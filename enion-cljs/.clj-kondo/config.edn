@@ -1,0 +1,23 @@
+{:lint-as {day8.re-frame.tracing/defn-traced clojure.core/defn
+           day8.re-frame.tracing/fn-traced clojure.core/fn
+           garden.def/defcssfn clojure.core/defn
+           garden.def/defkeyframes clojure.core/def
+           garden.def/defrule clojure.core/def
+           garden.def/defstyles clojure.core/def
+           garden.def/defstylesheet clojure.core/def
+           garden.units/defunit clojure.core/def
+           spade.core/defglobal clojure.core/def
+           spade.core/defclass clojure.core/def
+ :linters {:unresolved-symbol {:exclude [goog.DEBUG]}
+           :unused-namespace {:exclude [cljs.repl]}
+           :unused-referred-var {:exclude {cljs.repl [Error->map
+                                                      apropos
+                                                      dir
+                                                      doc
+                                                      error->str
+                                                      ex-str
+                                                      ex-triage
+                                                      find-doc
+                                                      print-doc
+                                                      pst
+                                                      source]}}}}
