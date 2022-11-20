@@ -65,8 +65,4 @@ ShaderSplat.prototype.initialize = function() {
 
 // update code called every frame
 ShaderSplat.prototype.update = function(dt) {
-    var playerPos = this.player.getPosition();
-    this.material.setParameter('character_position', [playerPos.x, playerPos.z]);
-    this.material.setParameter('dt', (dt * 100) % 3.14);
-    this.material.diffuseMapRotation = (dt * 10) % 360;
 };
