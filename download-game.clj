@@ -63,7 +63,8 @@
   (->  index-html
         (str/replace  #"<script src=\"app.js\"></script>" "")
         (str/replace  #"<script src=\"__loading__.js\"></script>"
-                       "<script src=\"__loading__.js\"></script>\n\t<script src=\"app.js\"></script>")
+                       "<script src=\"__loading__.js\"></script>\n\t
+                       <script src=\"enion-cljs/resources/public/js/compiled/app.js\"></script>")
         (#(.write w %))))
 
 ;; Usage

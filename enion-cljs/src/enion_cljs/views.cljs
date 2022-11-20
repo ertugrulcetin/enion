@@ -14,5 +14,4 @@
       "Hello from " @name]
      [:div
       [:h3 (str "screen-width: " @(re-frame/subscribe [::bp/screen-width]))]
-      [:h3 (str "screen: " @(re-frame/subscribe [::bp/screen]))]]
-     ]))
+      [:h3 (str "screen: " @(re-frame/subscribe [::bp/screen]))]]]))
