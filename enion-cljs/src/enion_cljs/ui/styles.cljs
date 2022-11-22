@@ -1,4 +1,4 @@
-(ns enion-cljs.styles
+(ns enion-cljs.ui.styles
   (:require-macros
     [garden.def :refer [defcssfn]])
   (:require

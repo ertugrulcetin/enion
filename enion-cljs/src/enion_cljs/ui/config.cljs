@@ -1,4 +1,4 @@
-(ns enion-cljs.config)
+(ns enion-cljs.ui.config)
 
 (def debug?
   ^boolean goog.DEBUG)

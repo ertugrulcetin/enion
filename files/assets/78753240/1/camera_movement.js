@@ -70,18 +70,19 @@ CameraMovement.prototype.postUpdate = function (dt) {
     var originEntity = this.entity.parent;
 
     var targetY = this.eulers.x + 180;
-    var targetX = this.eulers.y % 360;
+    var targetX = this.eulers.y;
 
     targetX %= 360;
+    targetX = -targetX;
     targetY %= 360;
 
-    if (targetX > -3) {
-        targetX = -3;
-        this.eulers.y = -3;
+    if (targetX > -5) {
+        targetX = -5;
+        this.eulers.y = 5;
     }
     if (targetX < -55) {
         targetX = -55;
-        this.eulers.y = -55;
+        this.eulers.y = 55;
     }
 
     this.targetAngle.set(targetX, targetY, 0);

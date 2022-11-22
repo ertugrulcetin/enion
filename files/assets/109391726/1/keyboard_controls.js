@@ -8,13 +8,19 @@ KeyboardControls.prototype.initialize = function() {
 
 
 KeyboardControls.prototype.keyDown = function (e) {
-    if ((e.key === pc.KEY_W) && (this.entity.anim.baseLayer.activeState !== 'run')) {
+    if ((e.key === pc.KEY_W) ||
+        (e.key === pc.KEY_S) ||
+        (e.key === pc.KEY_A) ||
+        (e.key === pc.KEY_D) && (this.entity.anim.baseLayer.activeState !== 'run')) {
         this.entity.anim.setBoolean('run', true);
     }
 };
 
 KeyboardControls.prototype.keyUp = function (e) {
-    if ((e.key === pc.KEY_W) && (this.entity.anim.baseLayer.activeState === 'run')) {
+    if ((e.key === pc.KEY_W) ||
+        (e.key === pc.KEY_S) ||
+        (e.key === pc.KEY_A) ||
+        (e.key === pc.KEY_D) && (this.entity.anim.baseLayer.activeState === 'run')) {
         this.entity.anim.setBoolean('run', false);
     }
 };

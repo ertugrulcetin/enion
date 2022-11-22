@@ -1,30 +1,26 @@
 var PlayerMovement = pc.createScript('playerMovement');
 
-PlayerMovement.attributes.add('power', {
+PlayerMovement.attributes.add('speed', {
     type: 'number'
 });
 
 PlayerMovement.prototype.initialize = function () {
     var app = this.app;
     this.camera = app.root.findByName('Camera');
+    this.cameraScript = this.camera.script.cameraMovement;
+    this.modelEntity = app.root.findByName("model");
     this.eulers = new pc.Vec3();
     this.jumped = false;
     this.force = new pc.Vec3();
 };
 
 PlayerMovement.prototype.update = function (dt) {
-      // If a camera isn't assigned from the Editor, create one
-    if (!this.camera) {
-        this._createCamera();
-    }
-    
     var force = this.force;
     var app = this.app;
 
     // Get camera directions to determine movement directions
     var forward = this.camera.forward;
     var right = this.camera.right;
-       
 
     // movement
     var x = 0;
@@ -32,7 +28,7 @@ PlayerMovement.prototype.update = function (dt) {
 
     // Use W-A-S-D keys to move player
     // Check for key presses
-    if (app.keyboard.isPressed(pc.KEY_A) || app.keyboard.isPressed(pc.KEY_Q)) {
+    if (app.keyboard.isPressed(pc.KEY_A)) {
         x -= right.x;
         z -= right.z;
     }
@@ -58,22 +54,31 @@ PlayerMovement.prototype.update = function (dt) {
 
     // use direction from keypresses to apply a force to the character
     if (x !== 0 && z !== 0) {
-        force.set(x, 0, z).normalize().scale(this.power);
+        force.set(x, 0, z).normalize().scale(this.speed);
         this.entity.rigidbody.applyForce(force);
     }
 
-    // this.entity.setLocalEulerAngles(0, this.eulers.y, 0);
-    //this.entity.lookAt(10, 0, 10);
-
-    // update camera angle from mouse events
-    this.camera.setLocalEulerAngles(this.eulers.y, this.eulers.x, 0);
-};
-
-PlayerMovement.prototype._createCamera = function () {
-    // If user hasn't assigned a camera, create a new one
-    this.camera = new pc.Entity();
-    this.camera.setName("First Person Camera");
-    this.camera.addComponent("camera");
-    this.entity.addChild(this.camera);
-    this.camera.translateLocal(0, 0.5, 0);
+    var targetY = this.cameraScript.eulers.x + 20;
+    if (app.keyboard.isPressed(pc.KEY_A) && app.keyboard.isPressed(pc.KEY_W)) {
+        targetY += 45;
+    }
+    if (app.keyboard.isPressed(pc.KEY_A) && !app.keyboard.isPressed(pc.KEY_W) && !app.keyboard.isPressed(pc.KEY_S)) {
+        targetY += 90;
+    }
+    if (app.keyboard.isPressed(pc.KEY_D) && app.keyboard.isPressed(pc.KEY_W)) {
+        targetY -= 45;
+    }
+    if (app.keyboard.isPressed(pc.KEY_D) && !app.keyboard.isPressed(pc.KEY_W) && !app.keyboard.isPressed(pc.KEY_S)) {
+        targetY -= 90;
+    }
+    if (app.keyboard.isPressed(pc.KEY_A) && app.keyboard.isPressed(pc.KEY_S)) {
+        targetY += 135;
+    }
+    if (app.keyboard.isPressed(pc.KEY_D) && app.keyboard.isPressed(pc.KEY_S)) {
+        targetY -= 135;
+    }
+    if (app.keyboard.isPressed(pc.KEY_S) && !app.keyboard.isPressed(pc.KEY_D) && !app.keyboard.isPressed(pc.KEY_A)) {
+        targetY += 180;
+    }
+    this.modelEntity.setLocalEulerAngles(0, targetY, 0);
 };

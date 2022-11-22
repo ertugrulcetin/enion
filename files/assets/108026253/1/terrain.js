@@ -37,6 +37,7 @@ Terrain.attributes.add('material', {
 
 // initialize code called once per entity
 Terrain.prototype.initialize = function() {
+    console.log(this)
     var img = this.heightMap.resource.getSource();
 
     var meshes = this.createTerrainFromHeightMap(img, this.subdivisions);

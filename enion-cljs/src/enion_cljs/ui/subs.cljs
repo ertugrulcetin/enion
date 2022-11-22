@@ -1,4 +1,4 @@
-(ns enion-cljs.subs
+(ns enion-cljs.ui.subs
   (:require
    [re-frame.core :as re-frame]))
 

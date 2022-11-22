@@ -1,10 +1,9 @@
-(ns enion-cljs.views
+(ns enion-cljs.ui.views
   (:require
    [re-frame.core :as re-frame]
    [breaking-point.core :as bp]
-   [enion-cljs.styles :as styles]
-   [enion-cljs.subs :as subs]
-   ))
+   [enion-cljs.ui.styles :as styles]
+   [enion-cljs.ui.subs :as subs]))
 
 (defn main-panel []
   (let [name (re-frame/subscribe [::subs/name])]
