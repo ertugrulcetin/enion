@@ -1,15 +1,15 @@
 (ns enion-cljs.scene.pc
   (:require
-   [applied-science.js-interop :as j]
-   [camel-snake-kebab.core :as csk]
-   [clojure.string :as str]))
+    [applied-science.js-interop :as j]
+    [camel-snake-kebab.core :as csk]
+    [clojure.string :as str]))
 
 (defonce app nil)
 
 (def key->code
   (->> (js->clj js/pc :keywordize-keys true)
-    (filter #(str/starts-with? (name (first %)) "KEY_"))
-    (into {})))
+       (filter #(str/starts-with? (name (first %)) "KEY_"))
+       (into {})))
 
 (defn vec3
   ([]

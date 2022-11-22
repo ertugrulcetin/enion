@@ -1,16 +1,16 @@
 (ns enion-cljs.ui.styles
-  (:require-macros
-    [garden.def :refer [defcssfn]])
   (:require
-    [spade.core   :refer [defglobal defclass]]
+    [garden.color :refer [rgba]]
     [garden.units :refer [deg px]]
-    [garden.color :refer [rgba]]))
+    [spade.core   :refer [defglobal defclass]])
+  (:require-macros
+    [garden.def :refer [defcssfn]]))
 
 (defcssfn linear-gradient
- ([c1 p1 c2 p2]
-  [[c1 p1] [c2 p2]])
- ([dir c1 p1 c2 p2]
-  [dir [c1 p1] [c2 p2]]))
+  ([c1 p1 c2 p2]
+   [[c1 p1] [c2 p2]])
+  ([dir c1 p1 c2 p2]
+   [dir [c1 p1] [c2 p2]]))
 
 (defglobal defaults
   [:body

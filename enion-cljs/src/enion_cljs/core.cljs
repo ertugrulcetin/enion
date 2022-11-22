@@ -1,7 +1,7 @@
 (ns enion-cljs.core
   (:require
-   [enion-cljs.ui.core :as ui.core]
-   [enion-cljs.scene.core :as scene.core]))
+    [enion-cljs.scene.core :as scene.core]
+    [enion-cljs.ui.core :as ui.core]))
 
 (defn- create-div-app []
   (let [div (js/document.createElement "div")]

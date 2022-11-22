@@ -7,8 +7,8 @@
 
 (defn upload-app []
   (curl/put (str "https://playcanvas.com/api/assets/" asset-id)
-             {:headers {"Authorization" (str "Bearer " api-token)}
-              :raw-args ["-F" (str "file=@" app-file-path)]}))
+            {:headers {"Authorization" (str "Bearer " api-token)}
+             :raw-args ["-F" (str "file=@" app-file-path)]}))
 
 (upload-app)
 

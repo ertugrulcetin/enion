@@ -1,11 +1,11 @@
 (ns enion-cljs.ui.core
   (:require
-   [reagent.dom :as rdom]
-   [re-frame.core :as re-frame]
-   [breaking-point.core :as bp]
-   [enion-cljs.ui.events :as events]
-   [enion-cljs.ui.views :as views]
-   [enion-cljs.ui.config :as config]))
+    [breaking-point.core :as bp]
+    [enion-cljs.ui.config :as config]
+    [enion-cljs.ui.events :as events]
+    [enion-cljs.ui.views :as views]
+    [re-frame.core :as re-frame]
+    [reagent.dom :as rdom]))
 
 (defn dev-setup []
   (when config/debug?

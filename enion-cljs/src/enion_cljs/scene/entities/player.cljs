@@ -1,9 +1,9 @@
 (ns enion-cljs.scene.entities.player
   (:require
-   [enion-cljs.scene.pc :as pc :refer [app]]
-   [applied-science.js-interop :as j])
+    [applied-science.js-interop :as j]
+    [enion-cljs.scene.pc :as pc :refer [app]])
   (:require-macros
-   [enion-cljs.scene.macros :refer [fnt]]))
+    [enion-cljs.scene.macros :refer [fnt]]))
 
 (defonce state (atom {}))
 (defonce entity nil)
@@ -11,18 +11,18 @@
 (defn- init-fn [this]
   (let [camera (pc/find-by-name "Camera")]
     (swap! state assoc
-      :speed (j/get this :speed)
-      :camera camera
-      :camera-script (j/get-in camera [:script :cameraMovement])
-      :model-entity (pc/find-by-name "model")
-      :eulers (pc/vec3)
-      :force (pc/vec3)
-      :x (atom 0)
-      :z (atom 0)
-      :target-y (atom nil))
+           :speed (j/get this :speed)
+           :camera camera
+           :camera-script (j/get-in camera [:script :cameraMovement])
+           :model-entity (pc/find-by-name "model")
+           :eulers (pc/vec3)
+           :force (pc/vec3)
+           :x (atom 0)
+           :z (atom 0)
+           :target-y (atom nil))
     (set! entity (j/get this :entity))))
 
-;;TODO add if entity is able to move - like app-focused? and alive? etc.
+;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [_ _]
   (let [force (:force @state)
         speed (:speed @state)
@@ -62,9 +62,9 @@
       (pc/pressed? :KEY_D) (swap! target-y - 90)
       (pc/pressed? :KEY_S) (swap! target-y + 180))
     (when (or (pc/pressed? :KEY_W)
-            (pc/pressed? :KEY_A)
-            (pc/pressed? :KEY_S)
-            (pc/pressed? :KEY_D))
+              (pc/pressed? :KEY_A)
+              (pc/pressed? :KEY_S)
+              (pc/pressed? :KEY_D))
       (.setLocalEulerAngles ^js/pc.Entity (:model-entity @state) 0 @target-y 0))))
 
 (defn- update-fn [dt this]
@@ -72,10 +72,10 @@
 
 (defn init []
   (pc/create-script :player
-    {:attrs {:speed {:type "number"
-                     :default 750}}
-     :init (fnt (init-fn this))
-     :update (fnt (update-fn dt this))}))
+                    {:attrs {:speed {:type "number"
+                                     :default 750}}
+                     :init (fnt (init-fn this))
+                     :update (fnt (update-fn dt this))}))
 
 (comment
   (js/console.log entity)
