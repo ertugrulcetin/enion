@@ -11,16 +11,16 @@
        (filter #(str/starts-with? (name (first %)) "KEY_"))
        (into {})))
 
+(def find-by-name
+  (memoize
+    (fn [name]
+      (j/call-in app [:root :findByName] name))))
+
 (defn vec3
   ([]
    (vec3 0 0 0))
   ([x y z]
    (js/pc.Vec3. x y z)))
-
-(def find-by-name
-  (memoize
-    (fn [name]
-      (j/call-in app [:root :findByName] name))))
 
 (defn create-script [script-name {:keys [attrs init update post-init post-update]}]
   (let [script (j/call js/pc :createScript (csk/->camelCaseString script-name))]

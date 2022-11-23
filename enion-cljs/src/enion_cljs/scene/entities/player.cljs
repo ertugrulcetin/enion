@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.entities.player
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.scene.pc :as pc :refer [app]])
+    [enion-cljs.scene.pc :as pc])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -11,7 +11,7 @@
 (defn- init-fn [this]
   (let [camera (pc/find-by-name "Camera")]
     (swap! state assoc
-           :speed (j/get this :speed)
+           :speed 750
            :camera camera
            :camera-script (j/get-in camera [:script :cameraMovement])
            :model-entity (pc/find-by-name "model")
@@ -72,9 +72,7 @@
 
 (defn init []
   (pc/create-script :player
-                    {:attrs {:speed {:type "number"
-                                     :default 750}}
-                     :init (fnt (init-fn this))
+                    {:init (fnt (init-fn this))
                      :update (fnt (update-fn dt this))}))
 
 (comment
