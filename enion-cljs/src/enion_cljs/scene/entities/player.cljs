@@ -11,7 +11,6 @@
                       :z 0
                       :target-y nil
                       :eulers (pc/vec3)
-                      :force (pc/vec3)
                       :temp-dir (pc/vec3)
                       :world-dir (pc/vec3)}))
 
@@ -25,37 +24,34 @@
 
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [_ _]
-  (let [force (:force @state)
-        speed (:speed @state)
+  (let [speed (:speed @state)
         camera (:camera @state)
-        forward (.-forward camera)
         right (.-right camera)
-        c-angle (pc/get-loc-euler camera)]
-    ;; TODO fix movement
+        forward (.-forward camera)
+        world-dir (:world-dir @state)
+        temp-dir (:temp-dir @state)]
     (swap! state assoc
            :x 0
            :z 0
            :target-y (+ (.-x (:eulers @entity.camera/state)) 20))
+    (pc/setv world-dir 0 0 0)
     (when (pc/pressed? :KEY_W)
-      (swap! state update :x + (.-x forward))
-      (swap! state update :z + (.-z forward)))
+      (swap! state update :z inc))
     (when (pc/pressed? :KEY_A)
-      (swap! state update :x - (.-x right))
-      (swap! state update :z - (.-z right)))
+      (swap! state update :x dec))
     (when (pc/pressed? :KEY_S)
-      (swap! state update :x - (.-x forward))
-      (swap! state update :z - (.-z forward)))
+      (swap! state update :z dec))
     (when (pc/pressed? :KEY_D)
-      (swap! state update :x + (.-x right))
-      (swap! state update :z + (.-z right)))
-
+      (swap! state update :x inc))
     (when (pc/pressed? :KEY_SPACE)
       (.applyImpulse ^js/pc.RigidBodyComponent (.-rigidbody entity) 0 40 0))
 
     (when (or (not= (:x @state) 0)
               (not= (:z @state) 0))
-      (.. force (set (:x @state) 0 (:z @state)) normalize (scale speed))
-      (.applyForce ^js/pc.RigidBodyComponent (.-rigidbody entity) force))
+      (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir forward) (:z @state)))
+      (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir right) (:x @state)))
+      (-> world-dir pc/normalize (pc/scale speed))
+      (.applyForce ^js/pc.RigidBodyComponent (.-rigidbody entity) (.-x world-dir) 0 (.-z world-dir)))
 
     (cond
       (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_W)) (swap! state update :target-y + 45)

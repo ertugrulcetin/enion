@@ -157,12 +157,6 @@ CameraMovement.prototype.onMouseWheel = function (e) {
     this.rayEnd.setLocalPosition(rayPos.x, rayPos.y, z);
 };
 
-CameraMovement.prototype.onWheelClick = function (e, eulers, wheelClickCounter) {
-    if (e.which == 2) {
-        eulers.x += wheelClickCounter.x;
-    }
-};
-
 CameraMovement.prototype.getWorldPoint = function () {
     var from = this.entity.parent.getPosition();
     var to = this.rayEnd.getPosition();

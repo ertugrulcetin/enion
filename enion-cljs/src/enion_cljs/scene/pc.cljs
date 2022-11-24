@@ -24,6 +24,21 @@
   ([x y z]
    (js/pc.Vec3. x y z)))
 
+(defn addv [^js/pc.Vec3 v1 ^js/pc.Vec3 v2]
+  (.add v1 v2))
+
+(defn copyv [^js/pc.Vec3 v1 ^js/pc.Vec3 v2]
+  (.copy v1 v2))
+
+(defn mul-scalar [^js/pc.Vec3 v s]
+  (.mulScalar v s))
+
+(defn normalize [^js/pc.Vec3 v]
+  (.normalize v))
+
+(defn scale [^js/pc.Vec3 v s]
+  (.scale v s))
+
 (defn setv [^js/pc.Vec3 v x y z]
   (.set v x y z))
 
