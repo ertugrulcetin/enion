@@ -99,7 +99,7 @@
         target-angle (:target-angle @state)
         page-x (:page-x @state)]
     (pc/setv target-angle target-x target-y 0)
-    (pc/set-euler-angles origin-entity target-angle)
+    (pc/set-euler origin-entity target-angle)
     (pc/set-pos entity (get-world-point))
     (pc/look-at entity (pc/get-pos origin-entity))
     (when (and (:mouse-over? @state)

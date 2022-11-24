@@ -11,7 +11,9 @@
                       :z 0
                       :target-y nil
                       :eulers (pc/vec3)
-                      :force (pc/vec3)}))
+                      :force (pc/vec3)
+                      :temp-dir (pc/vec3)
+                      :world-dir (pc/vec3)}))
 
 (defonce entity nil)
 
@@ -25,8 +27,10 @@
 (defn- process-movement [_ _]
   (let [force (:force @state)
         speed (:speed @state)
-        forward (.-forward (:camera @state))
-        right (.-right (:camera @state))]
+        camera (:camera @state)
+        forward (.-forward camera)
+        right (.-right camera)
+        c-angle (pc/get-loc-euler camera)]
     ;; TODO fix movement
     (swap! state assoc
            :x 0
@@ -44,11 +48,15 @@
     (when (pc/pressed? :KEY_D)
       (swap! state update :x + (.-x right))
       (swap! state update :z + (.-z right)))
+
     (when (pc/pressed? :KEY_SPACE)
       (.applyImpulse ^js/pc.RigidBodyComponent (.-rigidbody entity) 0 40 0))
-    (when (and (not= 0 (:x @state)) (not= 0 (:z @state)))
+
+    (when (or (not= (:x @state) 0)
+              (not= (:z @state) 0))
       (.. force (set (:x @state) 0 (:z @state)) normalize (scale speed))
       (.applyForce ^js/pc.RigidBodyComponent (.-rigidbody entity) force))
+
     (cond
       (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_W)) (swap! state update :target-y + 45)
       (and (pc/pressed? :KEY_D) (pc/pressed? :KEY_W)) (swap! state update :target-y - 45)

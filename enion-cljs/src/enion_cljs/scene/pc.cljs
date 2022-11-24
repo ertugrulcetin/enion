@@ -36,8 +36,11 @@
   ([^js/pc.Entity e x y z]
    (.setLocalPosition e x y z)))
 
-(defn set-euler-angles [^js/pc.Entity e ^js/pc.Vec3 v]
+(defn set-euler [^js/pc.Entity e ^js/pc.Vec3 v]
   (.setEulerAngles e v))
+
+(defn get-loc-euler [^js/pc.Entity e]
+  (.getLocalEulerAngles e))
 
 (defn get-pos [^js/pc.Entity e]
   (.getPosition e))

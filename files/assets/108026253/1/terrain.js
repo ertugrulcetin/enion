@@ -37,7 +37,6 @@ Terrain.attributes.add('material', {
 
 // initialize code called once per entity
 Terrain.prototype.initialize = function() {
-    console.log(this)
     var img = this.heightMap.resource.getSource();
 
     var meshes = this.createTerrainFromHeightMap(img, this.subdivisions);
@@ -46,9 +45,6 @@ Terrain.prototype.initialize = function() {
     
     this.entity.addComponent('render', {
         meshInstances: [new pc.MeshInstance(visualMesh, this.material.resource)],
-        // layers: [this.app.scene.layers.getLayerByName("World").id,
-        //         this.app.scene.layers.getLayerByName("Terrain").id
-        //         ],
         castShadows: false
     });
 

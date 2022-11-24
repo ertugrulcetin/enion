@@ -18,6 +18,7 @@
 
 (println "Preparing download...")
 
+
 (def job-id
   (-> (curl/post "https://playcanvas.com/api/apps/download"
                  {:headers {"accept" "application/json"
@@ -28,11 +29,13 @@
                                                :name project-name
                                                :optimize_scene_format true
                                                :scripts_minify false})})
-      :body 
-      json/parse-string 
+      :body
+      json/parse-string
       (get "id")))
 
+
 (println "Preparing download completed.")
+
 
 (while (let [_ (Thread/sleep sleep-timeout)
              job-result (-> (curl/get (str "https://playcanvas.com/api/jobs/" job-id)
@@ -54,18 +57,21 @@
   (println "Fetching job status...")
   (Thread/sleep sleep-timeout))
 
+
 (tasks/shell (str "mkdir -p " project-dir))
 (tasks/shell {:dir project-dir} (str "unzip -o " project-unzip-dir))
 
 (def index-html (slurp "index.html"))
 
+
 (with-open [w (io/writer  "index.html")]
   (->  index-html
-        (str/replace  #"<script src=\"app.js\"></script>" "")
-        (str/replace  #"<script src=\"__loading__.js\"></script>"
-                       "<script src=\"__loading__.js\"></script>\n\t
+       (str/replace  #"<script src=\"app.js\"></script>" "")
+       (str/replace  #"<script src=\"__loading__.js\"></script>"
+                     "<script src=\"__loading__.js\"></script>\n\t
                        <script src=\"enion-cljs/resources/public/js/compiled/app.js\"></script>")
-        (#(.write w %))))
+       (#(.write w %))))
+
 
 ;; Usage
 ;; bb ./download-game.clj
