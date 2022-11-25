@@ -44,14 +44,14 @@
     (when (pc/pressed? :KEY_D)
       (swap! state update :x inc))
     (when (pc/pressed? :KEY_SPACE)
-      (.applyImpulse ^js/pc.RigidBodyComponent (.-rigidbody entity) 0 40 0))
+      (pc/apply-impulse entity 0 40 0))
 
     (when (or (not= (:x @state) 0)
               (not= (:z @state) 0))
       (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir forward) (:z @state)))
       (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir right) (:x @state)))
       (-> world-dir pc/normalize (pc/scale speed))
-      (.applyForce ^js/pc.RigidBodyComponent (.-rigidbody entity) (.-x world-dir) 0 (.-z world-dir)))
+      (pc/apply-force entity (.-x world-dir) 0 (.-z world-dir)))
 
     (cond
       (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_W)) (swap! state update :target-y + 45)
@@ -65,7 +65,7 @@
               (pc/pressed? :KEY_A)
               (pc/pressed? :KEY_S)
               (pc/pressed? :KEY_D))
-      (.setLocalEulerAngles ^js/pc.Entity (:model-entity @state) 0 (:target-y @state) 0))))
+      (pc/set-loc-euler (:model-entity @state) 0 (:target-y @state) 0))))
 
 (defn- update-fn [dt this]
   (process-movement dt this))
@@ -79,4 +79,5 @@
   (js/console.log entity)
   ;this.entity.rigidbody.applyImpulse(0, 80, 0);
   (j/call-in entity [:rigidbody :teleport] -0 2.3 0)
+  (swap! state assoc :speed 750)
   )

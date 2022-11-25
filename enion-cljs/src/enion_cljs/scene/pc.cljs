@@ -57,6 +57,9 @@
 (defn get-loc-euler [^js/pc.Entity e]
   (.getLocalEulerAngles e))
 
+(defn set-loc-euler [^js/pc.Entity e x y z]
+  (.setLocalEulerAngles e x y z))
+
 (defn get-pos [^js/pc.Entity e]
   (.getPosition e))
 
@@ -68,6 +71,12 @@
 
 (defn look-at [^js/pc.Entity e ^js/pc.Vec3 v]
   (.lookAt e v))
+
+(defn apply-impulse [^js/pc.Entity e x y z]
+  (.applyImpulse ^js/pc.RigidBodyComponent (.-rigidbody e) x y z))
+
+(defn apply-force [^js/pc.Entity e x y z]
+  (.applyForce ^js/pc.RigidBodyComponent (.-rigidbody e) x y z))
 
 (defn create-script [script-name {:keys [attrs init update post-init post-update]}]
   (let [script (j/call js/pc :createScript (csk/->camelCaseString script-name))]
