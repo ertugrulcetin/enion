@@ -18,6 +18,9 @@
     (fn [name]
       (j/call-in app [:root :findByName] name))))
 
+(defn find-by-tag [tag]
+  (j/call-in app [:root :findByTag] tag))
+
 (defn vec3
   ([]
    (vec3 0 0 0))
@@ -44,6 +47,9 @@
 
 (defn set-pos [^js/pc.Entity e ^js/pc.Vec3 v]
   (.setPosition e v))
+
+(defn distance [^js/pc.Vec3 v1 ^js/pc.Vec3 v2]
+  (.distance v1 v2))
 
 (defn set-loc-pos
   ([^js/pc.Entity e ^js/pc.Vec3 v]
@@ -77,6 +83,9 @@
 
 (defn apply-force [^js/pc.Entity e x y z]
   (.applyForce ^js/pc.RigidBodyComponent (.-rigidbody e) x y z))
+
+(defn ^string get-guid [^js/pc.Entity e]
+  (.getGuid e))
 
 (defn create-script [script-name {:keys [attrs init update post-init post-update]}]
   (let [script (j/call js/pc :createScript (csk/->camelCaseString script-name))]

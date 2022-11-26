@@ -79,5 +79,5 @@
   (js/console.log entity)
   ;this.entity.rigidbody.applyImpulse(0, 80, 0);
   (j/call-in entity [:rigidbody :teleport] -0 2.3 0)
-  (swap! state assoc :speed 750)
+  (swap! state assoc :speed 1750)
   )
