@@ -52,7 +52,7 @@
   (swap! state assoc :mouse-over? true))
 
 (defn- init-fn [this]
-  (swap! state assoc :ray-end (pc/find-by-name "RaycastEndPoint"))
+  (swap! state assoc :ray-end (pc/find-by-name "ray_end"))
   (set! entity (j/get this :entity))
   (pc/disable-context-menu)
   (pc/mouse-on :EVENT_MOUSEMOVE mouse-move)
@@ -74,8 +74,11 @@
 (defn- get-world-point []
   (let [from (pc/get-pos (.-parent entity))
         to (pc/get-pos (:ray-end @state))
-        hit (pc/raycast-first from to)]
-    (if hit
+        hit (pc/raycast-first from to)
+        collision (some-> hit .-entity .-name)]
+    (if (and hit (or (= collision "terrain")
+                     (= collision "collision_rock")
+                     (= collision "collision_big_tree")))
       ^js/pc.Vec3 (.-point hit)
       to)))
 

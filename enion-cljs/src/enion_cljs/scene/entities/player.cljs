@@ -18,7 +18,7 @@
 
 (defn- init-fn [this]
   (swap! state assoc
-         :camera (pc/find-by-name "Camera")
+         :camera (pc/find-by-name "camera")
          :model-entity (pc/find-by-name "model"))
   (set! entity (j/get this :entity)))
 
