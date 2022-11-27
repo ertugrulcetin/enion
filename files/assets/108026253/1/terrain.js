@@ -45,7 +45,8 @@ Terrain.prototype.initialize = function() {
     
     this.entity.addComponent('render', {
         meshInstances: [new pc.MeshInstance(visualMesh, this.material.resource)],
-        castShadows: false
+        castShadows: false,
+        isStatic: true
     });
 
     this.entity.addComponent('collision', {

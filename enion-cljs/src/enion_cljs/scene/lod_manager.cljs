@@ -4,7 +4,8 @@
     [clojure.set :as set]
     [enion-cljs.scene.entities.player :as entity.player]
     [enion-cljs.scene.pc :as pc :refer [app]]
-    [goog.functions :as functions]))
+    [goog.functions :as functions]
+    [goog.object :as ob]))
 
 (defonce entities (atom {}))
 
@@ -57,7 +58,7 @@
 ;; TODO think memo this fn
 (let [find-fn (fn [t] (lod-keys t))]
   (defn- process-mesh-instance [mesh-instance]
-    (when ^boolean (.-visibleThisFrame mesh-instance)
+    (when ^boolean (ob/get mesh-instance "visibleThisFrame")
       (let [entity (.-node mesh-instance)
             tags (.list ^js/Object (.-tags entity))]
         (when (> (count tags) 0)
@@ -93,8 +94,7 @@
   (let [world-layer (j/call-in app [:scene :layers :getLayerByName] "World")]
     (j/assoc! world-layer :onPostCull (functions/throttle
                                         (fn [_]
-                                          (.forEach ^js/Array (.-opaqueMeshInstances world-layer) (fn [mesh]
-                                                                                                    (process-mesh-instance mesh))))
+                                          (.forEach ^js/Array (.-opaqueMeshInstances world-layer) process-mesh-instance))
                                         500))))
 
 (defn init []
