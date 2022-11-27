@@ -18,14 +18,30 @@
                 "lod-2" 50}
    "orc-mine" {"lod-0" 20
                "lod-1" 40
-               "lod-2" 50}})
+               "lod-2" 50}
+   "orc-luberjack" {"lod-0" 10
+                    "lod-1" 15
+                    "lod-2" 20}
+   "human-barrack" {"lod-0" 20
+                    "lod-1" 40
+                    "lod-2" 50}
+   "human-mine" {"lod-0" 10
+                 "lod-1" 15
+                 "lod-2" 20}
+   "human-smithy" {"lod-0" 20
+                   "lod-1" 40
+                   "lod-2" 50}})
 
 (def lod-keys (set (keys lod-ranges)))
 
 (def template-tags
   #{"tree-big-template"
     "orc-house-template"
-    "orc-mine-template"})
+    "orc-mine-template"
+    "orc-luberjack-template"
+    "human-barrack-template"
+    "human-mine-template"
+    "human-smithy-template"})
 
 (def get-lod-range
   (memoize
