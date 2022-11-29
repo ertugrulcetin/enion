@@ -45,7 +45,7 @@ ShaderSplat.prototype.initialize = function() {
     var render = this.entity.render;
     
     this.material = render.meshInstances[0].material;
-    this.player = app.root.findByName("Player");
+    this.player = app.root.findByName("player");
     var playerPos = this.player.getPosition();
     
     // this.material.chunks.combinePS = this.circleShader.resource;
@@ -59,7 +59,7 @@ ShaderSplat.prototype.initialize = function() {
     this.material.setParameter('texture_blue', this.blueTex.resource);
     this.material.setParameter('texture_alpha', this.alphaTex.resource);
 
-    this.material.setParameter('scale_factor', app.root.findByName("Terrain").script.terrain.height * 2);
+    this.material.setParameter('scale_factor', app.root.findByName("terrain").script.terrain.height * 2);
     this.material.update();
 };
 

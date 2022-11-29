@@ -6,6 +6,8 @@
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
+;; TODO apply restitution and friction to 1 - collision of other enemies
+
 (defonce state (atom {:speed 750
                       :x 0
                       :z 0
@@ -33,7 +35,7 @@
     (swap! state assoc
            :x 0
            :z 0
-           :target-y (+ (.-x (:eulers @entity.camera/state)) 20))
+           :target-y (.-x (:eulers @entity.camera/state)))
     (pc/setv world-dir 0 0 0)
     (when (pc/pressed? :KEY_W)
       (swap! state update :z inc))
@@ -78,6 +80,6 @@
 (comment
   (js/console.log entity)
   ;this.entity.rigidbody.applyImpulse(0, 80, 0);
-  (j/call-in entity [:rigidbody :teleport] -0 2.3 0)
+  (j/call-in entity [:rigidbody :teleport] 31 2.3 -32)
   (swap! state assoc :speed 1750)
   )

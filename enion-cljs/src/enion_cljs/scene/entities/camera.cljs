@@ -30,7 +30,7 @@
         ray-pos (pc/get-loc-pos ray-end)
         z (+ (.-z ray-pos) (* 0.1 (.-wheelDelta e)))
         z (cond
-            (< z 2) 2
+            (< z 0.5) 0.5
             (> z 3.5) 3.5
             :else z)]
     (pc/set-loc-pos ray-end (.-x ray-pos) (.-y ray-pos) z)))
@@ -78,7 +78,8 @@
         collision (some-> hit .-entity .-name)]
     (if (and hit (or (= collision "terrain")
                      (= collision "collision_rock")
-                     (= collision "collision_big_tree")))
+                     (= collision "collision_big_tree")
+                     (= collision "collision_building")))
       ^js/pc.Vec3 (.-point hit)
       to)))
 

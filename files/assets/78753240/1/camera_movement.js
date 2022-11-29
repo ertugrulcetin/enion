@@ -14,7 +14,7 @@ CameraMovement.prototype.initialize = function () {
     var app = this.app;
 
     this.targetAngle = new pc.Vec3();
-    this.rayEnd = app.root.findByName('RaycastEndPoint');
+    this.rayEnd = app.root.findByName('ray_end');
 
     this.wheelClickCounter = { x: 0, clicked: false };
 

@@ -124,7 +124,7 @@ Water.prototype.CreateWaterMaterial = function(){
     
     // Define our uniforms
     if(!this.camera){
-        this.camera = this.app.root.findByName("Camera").camera;
+        this.camera = this.app.root.findByName("camera").camera;
     }
     var camera = this.camera; 
     var n = camera.nearClip;
