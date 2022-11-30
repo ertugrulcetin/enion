@@ -48,6 +48,9 @@
 (defn set-pos [^js/pc.Entity e ^js/pc.Vec3 v]
   (.setPosition e v))
 
+(defn sub [^js/pc.Vec3 v1 ^js/pc.Vec3 v2]
+  (.sub v1 v2))
+
 (defn distance [^js/pc.Vec3 v1 ^js/pc.Vec3 v2]
   (.distance v1 v2))
 
@@ -57,11 +60,17 @@
   ([^js/pc.Entity e x y z]
    (.setLocalPosition e x y z)))
 
-(defn set-euler [^js/pc.Entity e ^js/pc.Vec3 v]
-  (.setEulerAngles e v))
+(defn set-euler
+  ([^js/pc.Entity e ^js/pc.Vec3 v]
+   (.setEulerAngles e v))
+  ([^js/pc.Entity e x y z]
+   (.setEulerAngles e x y z)))
 
 (defn get-loc-euler [^js/pc.Entity e]
   (.getLocalEulerAngles e))
+
+(defn get-euler [^js/pc.Entity e]
+  (.getEulerAngles e))
 
 (defn set-loc-euler [^js/pc.Entity e x y z]
   (.setLocalEulerAngles e x y z))
@@ -75,8 +84,11 @@
 (defn raycast-first [^js/pc.Vec3 from ^js/pc.Vec3 to]
   (.raycastFirst ^js/pc.RigidBodyComponent (.-systems.rigidbody app) from to))
 
-(defn look-at [^js/pc.Entity e ^js/pc.Vec3 v]
-  (.lookAt e v))
+(defn look-at
+  ([^js/pc.Entity e ^js/pc.Vec3 v]
+   (.lookAt e v))
+  ([^js/pc.Entity e x y z]
+   (.lookAt e x y z)))
 
 (defn apply-impulse [^js/pc.Entity e x y z]
   (.applyImpulse ^js/pc.RigidBodyComponent (.-rigidbody e) x y z))
@@ -99,8 +111,51 @@
 (defn pressed? [key]
   (.isPressed ^js/pc.Keyboard (.-keyboard app) (key key->code)))
 
+(defn was-pressed? [key]
+  (.wasPressed ^js/pc.Keyboard (.-keyboard app) (key key->code)))
+
 (defn disable-context-menu []
   (.disableContextMenu ^js/pc.Mouse (.-mouse app)))
 
-(defn mouse-on [key f]
+(defn on-mouse [key f]
   (.on ^js/pc.Mouse (.-mouse app) (key key->code) f))
+
+(defn on-keyboard [key f]
+  (.on ^js/pc.Keyboard (.-keyboard app) (key key->code) f))
+
+(defn get-key-code [k]
+  (k key->code))
+
+(defn off-anim [entity event-name]
+  (j/call-in entity [:anim :off] event-name))
+
+(defn on-anim [entity event-name f]
+  (off-anim entity event-name)
+  (j/call-in entity [:anim :on] event-name f))
+
+(defn set-anim-boolean [^js/pc.Entity e s v]
+  (.setBoolean ^js/pc.AnimComponent (.-anim e) s v))
+
+(defn set-anim-int [^js/pc.Entity e s v]
+  (.setInteger ^js/pc.AnimComponent (.-anim e) s v))
+
+(defn get-anim-state [^js/pc.Entity e]
+  ^string (.-activeState (-> e .-anim .-layers (aget 0))))
+
+(defn get-anim-prev-state [^js/pc.Entity e]
+  ^string (.-previousState (-> e .-anim .-layers (aget 0))))
+
+(defn get-active-state-current-time [^js/pc.Entity e]
+  ^int (.-activeStateCurrentTime (-> e .-anim .-layers (aget 0))))
+
+(defn get-active-state-duration [^js/pc.Entity e]
+  ^int (.-activeStateDuration (-> e .-anim .-layers (aget 0))))
+
+(defn get-active-state-progress [^js/pc.Entity e]
+  ^int (.-activeStateProgress (-> e .-anim .-layers (aget 0))))
+
+(defn reset-anim [e]
+  (j/call-in e [:anim :layers 0 :reset]))
+
+(defn play-anim [e]
+  (j/call-in e [:anim :layers 0 :play]))
