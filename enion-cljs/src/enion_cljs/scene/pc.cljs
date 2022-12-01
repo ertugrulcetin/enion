@@ -88,7 +88,11 @@
   ([^js/pc.Entity e ^js/pc.Vec3 v]
    (.lookAt e v))
   ([^js/pc.Entity e x y z]
-   (.lookAt e x y z)))
+   (.lookAt e x y z))
+  ([^js/pc.Entity e x y z reverse?]
+   (.lookAt e x y z)
+   (when reverse?
+     (.rotateLocal e 0 180 0))))
 
 (defn apply-impulse [^js/pc.Entity e x y z]
   (.applyImpulse ^js/pc.RigidBodyComponent (.-rigidbody e) x y z))
@@ -123,7 +127,7 @@
 (defn on-keyboard [key f]
   (.on ^js/pc.Keyboard (.-keyboard app) (key key->code) f))
 
-(defn get-key-code [k]
+(defn get-code [k]
   (k key->code))
 
 (defn off-anim [entity event-name]

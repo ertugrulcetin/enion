@@ -23,39 +23,43 @@
 (defonce player-entity nil)
 (defonce model-entity nil)
 
-(defn- pressing-wasd-or-has-target? []
+(defn- pressing-wasd? []
   (or (pc/pressed? :KEY_W)
       (pc/pressed? :KEY_A)
       (pc/pressed? :KEY_S)
-      (pc/pressed? :KEY_D)
-      (:target-pos-available? @state)))
+      (pc/pressed? :KEY_D)))
+
+(defn- pressing-wasd-or-has-target? []
+  (or (pressing-wasd?) (:target-pos-available? @state)))
 
 ;; jump has Exit Time = 1
 ;; TODO when pressed in gets triggered always
 (defn- process-skills [e]
   (let [active-state (pc/get-anim-state model-entity)]
+    (when (pressing-wasd?)
+      (swap! state assoc :target-pos-available? false))
     (cond
       (and (= "idle" active-state)
            (pressing-wasd-or-has-target?))
       (pc/set-anim-boolean model-entity "run" true)
 
       (and (#{"idle" "run"} active-state)
-           (= (.-key e) (pc/get-key-code :KEY_SPACE)))
+           (= (.-key e) (pc/get-code :KEY_SPACE)))
       (pc/set-anim-boolean model-entity "jump" true)
 
       (and (#{"idle" "run"} active-state)
-           (= (.-key e) (pc/get-key-code :KEY_1)))
+           (= (.-key e) (pc/get-code :KEY_1)))
       (pc/set-anim-boolean model-entity "attack_one_hand" true)
 
       (and (#{"idle" "run"} active-state)
-           (= (.-key e) (pc/get-key-code :KEY_2)))
+           (= (.-key e) (pc/get-code :KEY_2)))
       (pc/set-anim-boolean model-entity "attack_slow_down" true)
 
       (and (#{"idle" "run"} active-state)
-           (= (.-key e) (pc/get-key-code :KEY_R)))
+           (= (.-key e) (pc/get-code :KEY_R)))
       (pc/set-anim-boolean model-entity "attack_r" true))))
 
-(defn- process-running [e]
+(defn- process-running []
   (if (pressing-wasd-or-has-target?)
     (pc/set-anim-boolean model-entity "run" true)
     (pc/set-anim-boolean model-entity "run" false)))
@@ -91,7 +95,12 @@
   (pc/set-anim-boolean model-entity "jump" true)
   (pc/get-active-state-current-time model-entity)
   (pc/get-active-state-duration model-entity)
-  (pc/get-active-state-progress model-entity)
+
+  (js/setInterval
+    (fn []
+      (when (= "attackOneHand" (pc/get-anim-state model-entity))
+        (js/console.log (pc/get-active-state-progress model-entity))))
+    1)
 
   (pc/get-anim-state model-entity)
   (pc/get-anim-prev-state model-entity)
@@ -108,7 +117,7 @@
   (pc/on-keyboard :EVENT_KEYDOWN (fn [e]
                                    (process-skills e)))
   (pc/on-keyboard :EVENT_KEYUP (fn [e]
-                                 (process-running e)))
+                                 (process-running)))
   (pc/on-anim model-entity "on-jump-end"
               (fn [e]
                 (on-jump-end e)))
@@ -141,21 +150,21 @@
       (let [x (-> result .-point .-x)
             y (-> result .-point .-y)
             z (-> result .-point .-z)]
-        (pc/look-at model-entity x (.-y (pc/get-pos model-entity)) z)
-        (.rotateLocal model-entity 0 180 0)
+        (pc/look-at model-entity x (.-y (pc/get-pos model-entity)) z true)
         (swap! state assoc
                :target-pos (pc/setv (:target-pos @state) x y z)
-               :target-pos-available? true)))))
+               :target-pos-available? true)
+        (process-running)))))
 
 (defn- register-mouse-events []
   (pc/on-mouse :EVENT_MOUSEDOWN
                (fn [e]
-                 (when (= (.-button e) (:MOUSEBUTTON_LEFT pc/key->code))
+                 (when (= (.-button e) (pc/get-code :MOUSEBUTTON_LEFT))
                    (swap! state assoc :mouse-left-locked? true)
                    (set-target-position e))))
   (pc/on-mouse :EVENT_MOUSEUP
                (fn [e]
-                 (when (= (.-button e) (:MOUSEBUTTON_LEFT pc/key->code))
+                 (when (= (.-button e) (pc/get-code :MOUSEBUTTON_LEFT))
                    (swap! state assoc :mouse-left-locked? false))))
   (pc/on-mouse :EVENT_MOUSEMOVE
                (fn [e]
@@ -172,9 +181,6 @@
     (register-skill-events)
     (register-mouse-events)))
 
-(comment
-  (swap! state assoc :target-pos-available? false))
-
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [_ _]
   (let [speed (:speed @state)
@@ -183,17 +189,16 @@
         forward (.-forward camera)
         world-dir (:world-dir @state)
         temp-dir (:temp-dir @state)]
-    (pc/setv temp-dir 0 0 0)
     (if (:target-pos-available? @state)
       (let [target (:target-pos @state)
             temp-dir (pc/copyv temp-dir target)
             pos (pc/get-pos player-entity)
             dir (-> temp-dir (pc/sub pos) pc/normalize (pc/scale speed))]
-        (js/console.log (pc/distance target pos))
-        (if (>= (pc/distance target pos) 0.3)
+        (if (>= (pc/distance target pos) 0.2)
           (pc/apply-force player-entity (.-x dir) 0 (.-z dir))
           (do
-            (swap! state assoc :target-pos-available? false))))
+            (swap! state assoc :target-pos-available? false)
+            (process-running))))
       (do
         (pc/setv world-dir 0 0 0)
         (swap! state assoc
@@ -208,6 +213,7 @@
           (swap! state update :z dec))
         (when (pc/pressed? :KEY_D)
           (swap! state update :x inc))
+
         (when (pc/pressed? :KEY_SPACE)
           (pc/apply-impulse player-entity 0 40 0))
 
@@ -215,7 +221,7 @@
                   (not= (:z @state) 0))
           (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir forward) (:z @state)))
           (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir right) (:x @state)))
-          (cljs.pprint/pprint (-> world-dir pc/normalize (pc/scale speed)))
+          (-> world-dir pc/normalize (pc/scale speed))
           (pc/apply-force player-entity (.-x world-dir) 0 (.-z world-dir)))
 
         (cond
