@@ -18,7 +18,9 @@
                       :health 100
                       :mouse-left-locked? false
                       :target-pos (pc/vec3)
-                      :target-pos-available? false}))
+                      :target-pos-available? false
+                      :skill-locked? false
+                      :can-r-attack-interrupt? false}))
 
 (defonce player-entity nil)
 (defonce model-entity nil)
@@ -29,35 +31,52 @@
       (pc/pressed? :KEY_S)
       (pc/pressed? :KEY_D)))
 
+(defn- pressing-attacks? []
+  (or (pc/pressed? :KEY_1)
+      (pc/pressed? :KEY_R)))
+
 (defn- pressing-wasd-or-has-target? []
   (or (pressing-wasd?) (:target-pos-available? @state)))
 
 ;; jump has Exit Time = 1
 ;; TODO when pressed in gets triggered always
+;; TODO can't attack while W pressed
 (defn- process-skills [e]
-  (let [active-state (pc/get-anim-state model-entity)]
-    (when (pressing-wasd?)
-      (swap! state assoc :target-pos-available? false))
-    (cond
-      (and (= "idle" active-state)
-           (pressing-wasd-or-has-target?))
-      (pc/set-anim-boolean model-entity "run" true)
+  (when-not (-> e .-event .-repeat)
+    (let [active-state (pc/get-anim-state model-entity)]
+      (when (pressing-wasd?)
+        (swap! state assoc :target-pos-available? false)
+        (when (and (= active-state "attackOneHand") (not (:skill-locked? @state)) (not (pressing-attacks?)))
+          (pc/set-anim-boolean model-entity "attack_one_hand" false)
+          (pc/set-anim-boolean model-entity "run" true)))
+      (cond
+        (and (= active-state "attackOneHand")
+             (= (.-key e) (pc/get-code :KEY_R))
+             (:can-r-attack-interrupt? @state))
+        (do
+          (println "BETWEEN COMBO!!")
+          (pc/set-anim-boolean model-entity "attack_one_hand" false)
+          (pc/set-anim-boolean model-entity "attack_r" true))
 
-      (and (#{"idle" "run"} active-state)
-           (= (.-key e) (pc/get-code :KEY_SPACE)))
-      (pc/set-anim-boolean model-entity "jump" true)
+        (and (= "idle" active-state)
+             (pressing-wasd-or-has-target?))
+        (pc/set-anim-boolean model-entity "run" true)
 
-      (and (#{"idle" "run"} active-state)
-           (= (.-key e) (pc/get-code :KEY_1)))
-      (pc/set-anim-boolean model-entity "attack_one_hand" true)
+        (and (#{"idle" "run"} active-state)
+             (= (.-key e) (pc/get-code :KEY_SPACE)))
+        (pc/set-anim-boolean model-entity "jump" true)
 
-      (and (#{"idle" "run"} active-state)
-           (= (.-key e) (pc/get-code :KEY_2)))
-      (pc/set-anim-boolean model-entity "attack_slow_down" true)
+        (and (#{"idle" "run"} active-state)
+             (= (.-key e) (pc/get-code :KEY_1)))
+        (pc/set-anim-boolean model-entity "attack_one_hand" true)
 
-      (and (#{"idle" "run"} active-state)
-           (= (.-key e) (pc/get-code :KEY_R)))
-      (pc/set-anim-boolean model-entity "attack_r" true))))
+        (and (#{"idle" "run"} active-state)
+             (= (.-key e) (pc/get-code :KEY_2)))
+        (pc/set-anim-boolean model-entity "attack_slow_down" true)
+
+        (and (#{"idle" "run"} active-state)
+             (= (.-key e) (pc/get-code :KEY_R)))
+        (pc/set-anim-boolean model-entity "attack_r" true)))))
 
 (defn- process-running []
   (if (pressing-wasd-or-has-target?)
@@ -71,6 +90,9 @@
 
 (defn on-attack-one-hand-end [e]
   (pc/set-anim-boolean model-entity (.-string e) false)
+  (swap! state assoc
+         :skill-locked? false
+         :can-r-attack-interrupt? false)
   (when (pressing-wasd-or-has-target?)
     (pc/set-anim-boolean model-entity "run" true)))
 
@@ -83,35 +105,6 @@
   (pc/set-anim-boolean model-entity (.-string e) false)
   (when (pressing-wasd-or-has-target?)
     (pc/set-anim-boolean model-entity "run" true)))
-
-(defn on-attack-one-hand-got-response [e]
-  (pc/set-anim-boolean model-entity (.-string e) false)
-  (when (pressing-wasd-or-has-target?)
-    (pc/set-anim-boolean model-entity "run" true)))
-
-(comment
-  (pc/get-anim-state model-entity)
-
-  (pc/set-anim-boolean model-entity "jump" true)
-  (pc/get-active-state-current-time model-entity)
-  (pc/get-active-state-duration model-entity)
-
-  (js/setInterval
-    (fn []
-      (when (= "attackOneHand" (pc/get-anim-state model-entity))
-        (js/console.log (pc/get-active-state-progress model-entity))))
-    1)
-
-  (pc/get-anim-state model-entity)
-  (pc/get-anim-prev-state model-entity)
-  (pc/set-anim-boolean model-entity "attack_one_hand" true)
-
-  (pc/set-anim-boolean model-entity "run" true)
-  (pc/set-anim-boolean model-entity "run" false)
-  (pc/set-anim-int model-entity "health" 100)
-  (pc/reset-anim model-entity)
-  (pc/play-anim model-entity)
-  )
 
 (defn- register-skill-events []
   (pc/on-keyboard :EVENT_KEYDOWN (fn [e]
@@ -134,9 +127,30 @@
               (fn [e]
                 (on-attack-r-end e)))
 
-  #_(pc/on-anim model-entity "attack-one-hand-got-response"
-      (fn [e]
-        (on-attack-one-hand-got-response e))))
+  (pc/on-anim model-entity "on-attack-one-hand-end-call"
+              (fn [e]
+                (println "on-attack-one-hand-end-call")
+                (swap! state assoc :skill-locked? true)))
+
+  (pc/on-anim model-entity "on-attack-one-hand-end-combo-lock-release"
+              (fn [e]
+                (println "on-attack-one-hand-end-combo-lock-release")
+                (swap! state assoc :can-r-attack-interrupt? true)))
+
+  (pc/on-anim model-entity "on-attack-one-hand-end-combo-lock"
+              (fn [e]
+                (println "on-attack-one-hand-end-combo-lock")
+                (swap! state assoc :can-r-attack-interrupt? false)))
+
+  (pc/on-anim model-entity "on-idle-start"
+              (fn [e]
+                (println "on idle start")
+                (swap! state assoc :skill-locked? false)))
+
+  (pc/on-anim model-entity "on-run-start"
+              (fn [e]
+                (println "on run start")
+                (swap! state assoc :skill-locked? false))))
 
 ;; TODO also need to check is char dead or alive to be able to do that
 (defn- set-target-position [e]
