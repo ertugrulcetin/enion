@@ -127,6 +127,12 @@
 (defn on-keyboard [key f]
   (.on ^js/pc.Keyboard (.-keyboard app) (key key->code) f))
 
+(defn key? [e k]
+  (= (.-key e) (k key->code)))
+
+(defn button? [e k]
+  (= (.-button e) (k key->code)))
+
 (defn get-code [k]
   (k key->code))
 
