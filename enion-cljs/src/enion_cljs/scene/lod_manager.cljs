@@ -43,6 +43,7 @@
     "human-mine-template"
     "human-smithy-template"})
 
+;; TODO remove memo, replace get-in with m/get!
 (def get-lod-range
   (memoize
     (fn [entity-type lod]
@@ -71,7 +72,6 @@
                               (first (set/intersection #{"lod-0" "lod-1" "lod-2"} tags-set)) c)))))
                     (into {})))))))
 
-;; TODO think memo this fn
 (let [find-fn (fn [t] (lod-keys t))]
   (defn- process-mesh-instance [mesh-instance]
     (when ^boolean (ob/get mesh-instance "visibleThisFrame")
