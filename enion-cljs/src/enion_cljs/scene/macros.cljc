@@ -1,11 +1,5 @@
 (ns enion-cljs.scene.macros
-  (:refer-clojure :exclude [assoc! get! update!])
-  #?(:cljs
-     (:require
-       [goog.object])))
-
-#?(:cljs (def ob-set goog.object/set))
-#?(:cljs (def ob-get goog.object/get))
+  (:refer-clojure :exclude [assoc! get! update!]))
 
 (defmacro fnt [& body]
   `(fn [~'dt]
@@ -14,7 +8,7 @@
 (defmacro assoc!
   ([obj k v]
    `(do
-      (enion-cljs.scene.macros/ob-set ~obj ~(name k) ~v)
+      (cljs.core/unchecked-set ~obj ~(name k) ~v)
       ~obj))
   ([obj k1 v1 k2 v2]
    `(do
@@ -28,11 +22,11 @@
 
 (defmacro get!
   ([obj k]
-   `(enion-cljs.scene.macros/ob-get ~obj ~(name k)))
+   `(cljs.core/unchecked-get ~obj ~(name k)))
   ([obj k1 k2]
-   `(-> obj (get! ~k1) (get! ~k2)))
+   `(-> ~obj (get! ~k1) (get! ~k2)))
   ([obj k1 k2 k3]
-   `(-> obj (get! ~k1) (get! ~k2) (get! ~k3))))
+   `(-> ~obj (get! ~k1) (get! ~k2) (get! ~k3))))
 
 (defmacro update!
   ([obj k f]
@@ -41,3 +35,13 @@
    `(assoc! ~obj ~k (~f (get! ~obj ~k) ~x)))
   ([obj k f x y]
    `(assoc! ~obj ~k (~f (get! ~obj ~k) ~x ~y))))
+
+(defmacro update-in!
+  ([obj k1 k2 f]
+   `(do
+      (assoc! (get! ~obj ~k1) ~k2 (~f (get! ~obj ~k1 ~k2)))
+      ~obj))
+  ([obj k1 k2 f x]
+   `(do
+      (assoc! (get! ~obj ~k1) ~k2 (~f (get! ~obj ~k1 ~k2) x))
+      ~obj)))

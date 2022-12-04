@@ -2,7 +2,13 @@
   (:require
     [enion-cljs.scene.animations.core :refer [model-entity]]
     [enion-cljs.scene.keyboard :as k]
-    [enion-cljs.scene.pc :as pc]))
+    [enion-cljs.scene.pc :as pc]
+    [enion-cljs.scene.utils :as utils]))
+
+(def key->skill
+  {(pc/get-code :KEY_1) "attackOneHand"
+   (pc/get-code :KEY_2) "attackSlowDown"
+   (pc/get-code :KEY_R) "attackR"})
 
 (def events
   [{:anim-state "idle" :event "onIdleStart" :idle-or-run-start? true}
@@ -21,6 +27,8 @@
 
 (def idle-run-states #{"idle" "run"})
 
+(def last-one-hand-combo (atom (js/Date.now)))
+
 (defn- skill-cancelled? [anim-state active-state state]
   (and (= active-state anim-state)
        (not (:skill-locked? @state))
@@ -30,8 +38,11 @@
   (pc/set-anim-boolean model-entity anim-state false)
   (pc/set-anim-boolean model-entity "run" true))
 
-;; TODO can't jump while attacking
-(defn- process-skills [e state]
+(defn skill-pressed? [e skill]
+  (= (key->skill (.-key e)) skill))
+
+;; TODO can't jump while attacking - collision wise
+(defn process-skills [e state]
   (when-not (-> e .-event .-repeat)
     (let [active-state (pc/get-anim-state model-entity)]
       (when (k/pressing-wasd?)
@@ -47,55 +58,51 @@
           (cancel-skill "attackSlowDown")))
       (cond
         (and (= active-state "attackOneHand")
-             (pc/key? e :KEY_R)
+             (skill-pressed? e "attackR")
              (:can-r-attack-interrupt? @state))
         (do
-          (println "BETWEEN COMBO!!")
+          (println "R combo!")
           (pc/set-anim-boolean model-entity "attackOneHand" false)
           (pc/set-anim-boolean model-entity "attackR" true))
 
         (and (= active-state "attackR")
-             (pc/key? e :KEY_1)
-             (:can-r-attack-interrupt? @state))
+             (skill-pressed? e "attackOneHand")
+             (:can-r-attack-interrupt? @state)
+             (> (- (js/Date.now) @last-one-hand-combo) (utils/rand-between 750 1200)))
         (do
-          (println "RRR BETWEEN COMBO!!")
+          (println "one hand combo...!")
           (pc/set-anim-boolean model-entity "attackR" false)
-          (pc/set-anim-boolean model-entity "attackOneHand" true))
+          (pc/set-anim-boolean model-entity "attackOneHand" true)
+          (reset! last-one-hand-combo (js/Date.now)))
 
-        (and (= "idle" active-state)
-             (k/pressing-wasd?))
+        (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (idle-run-states active-state)
-             (pc/key? e :KEY_SPACE))
+        (and (idle-run-states active-state) (pc/key? e :KEY_SPACE))
         (pc/set-anim-boolean model-entity "jump" true)
 
-        (and (idle-run-states active-state)
-             (pc/key? e :KEY_1))
+        (and (idle-run-states active-state) (skill-pressed? e "attackOneHand"))
         (pc/set-anim-boolean model-entity "attackOneHand" true)
 
-        (and (idle-run-states active-state)
-             (pc/key? e :KEY_2))
+        (and (idle-run-states active-state) (skill-pressed? e "attackSlowDown"))
         (pc/set-anim-boolean model-entity "attackSlowDown" true)
 
-        (and (idle-run-states active-state)
-             (pc/key? e :KEY_R))
+        (and (idle-run-states active-state) (skill-pressed? e "attackR"))
         (pc/set-anim-boolean model-entity "attackR" true)))))
 
-(defn register-anim-events [state model-entity pressing-wasd-or-has-target?]
+(defn register-anim-events [state]
   (doseq [{:keys [anim-state
                   event
                   attack?
                   call?
                   end?
                   r-lock?
-                  r-release?
-                  idle-or-run-start?]} events]
+                  r-release?]} events]
     (pc/on-anim model-entity event
                 (fn []
                   (when end?
                     (pc/set-anim-boolean model-entity anim-state false)
-                    (when (pressing-wasd-or-has-target?)
+                    (when (k/pressing-wasd?)
                       (pc/set-anim-boolean model-entity "run" true))
                     (when attack?
                       (swap! state assoc
@@ -104,15 +111,13 @@
                   (cond
                     call? (swap! state assoc :skill-locked? true)
                     r-release? (swap! state assoc :can-r-attack-interrupt? true)
-                    r-lock? (swap! state assoc :can-r-attack-interrupt? false)
-                    idle-or-run-start? (swap! state assoc :skill-locked? false))))))
+                    r-lock? (swap! state assoc :can-r-attack-interrupt? false))))))
 
 (comment
-  (doseq [{:keys [event]} events]
-    (pc/off-anim enion-cljs.scene.entities.player/model-entity event))
+  (do
+    (doseq [{:keys [event]} events]
+      (pc/off-anim enion-cljs.scene.entities.player/model-entity event))
+    (register-anim-events enion-cljs.scene.entities.player/state))
 
-  (register-anim-events
-    enion-cljs.scene.entities.player/state
-    enion-cljs.scene.entities.player/model-entity
-    enion-cljs.scene.entities.player/pressing-wasd-or-has-target?)
+  (:skill-locked? @enion-cljs.scene.entities.player/state)
   )

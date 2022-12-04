@@ -43,7 +43,7 @@
   (pc/on-keyboard :EVENT_KEYUP
                   (fn [e]
                     (process-running)))
-  (anim.warrior/register-anim-events state model-entity pressing-wasd-or-has-target?))
+  (anim.warrior/register-anim-events state))
 
 ;; TODO also need to check is char dead or alive to be able to do that
 (defn- set-target-position [e]
@@ -157,8 +157,4 @@
   (swap! state assoc :speed 1750)
 
   (def ddd (clj->js {:a 1}))
-
-  (m/assoc! ddd :a-ses? 3)
-  (m/update! ddd :a-ses? inc)
-  (m/get! ddd :a-ses?)
   )
