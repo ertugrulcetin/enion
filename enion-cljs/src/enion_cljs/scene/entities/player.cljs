@@ -3,6 +3,7 @@
     [applied-science.js-interop :as j]
     [enion-cljs.scene.animations.asas :as anim.asas]
     [enion-cljs.scene.animations.core :as anim]
+    [enion-cljs.scene.animations.mage :as anim.mage]
     [enion-cljs.scene.animations.warrior :as anim.warrior]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
@@ -42,12 +43,12 @@
   (pc/on-keyboard :EVENT_KEYDOWN
                   (fn [e]
                     ;; (anim.warrior/process-skills e state)
-                    (anim.asas/process-skills e state)))
+                    ;; (anim.asas/process-skills e state)
+                    (anim.mage/process-skills e state)))
   (pc/on-keyboard :EVENT_KEYUP
                   (fn [e]
                     (process-running)))
-  #_(anim.warrior/register-anim-events state)
-  (anim/register-anim-events state anim.asas/events))
+  (anim/register-anim-events state anim.mage/events))
 
 ;; TODO also need to check is char dead or alive to be able to do that
 (defn- set-target-position [e]
@@ -101,7 +102,7 @@
         forward (.-forward camera)
         world-dir (:world-dir @state)
         temp-dir (:temp-dir @state)]
-    (when-not (anim/char-cant-run? @state)
+    (when-not (anim/char-cant-run?)
       (if (:target-pos-available? @state)
         (let [target (:target-pos @state)
               temp-dir (pc/copyv temp-dir target)

@@ -8,7 +8,7 @@
 (def key->skill)
 
 (def idle-run-states #{"idle" "run"})
-(def skills-char-cant-run #{"hide"})
+(def skills-char-cant-run #{"hide" "attackRange" "attackSingle" "teleport"})
 
 (defn skill-cancelled? [anim-state active-state state]
   (and (= active-state anim-state)
@@ -46,10 +46,10 @@
                     r-lock? (swap! state assoc :can-r-attack-interrupt? false))))))
 
 (defn register-key->skills []
-  (set! key->skill {(pc/get-code :KEY_1) "attackDagger"
-                    (pc/get-code :KEY_2) "hide"
+  (set! key->skill {(pc/get-code :KEY_1) "attackRange"
+                    (pc/get-code :KEY_2) "attackSingle"
+                    (pc/get-code :KEY_3) "teleport"
                     (pc/get-code :KEY_R) "attackR"}))
 
-(defn char-cant-run? [state]
-  (and (state :skill-locked?)
-       (skills-char-cant-run (pc/get-anim-state model-entity))))
+(defn char-cant-run? []
+  (skills-char-cant-run (pc/get-anim-state model-entity)))

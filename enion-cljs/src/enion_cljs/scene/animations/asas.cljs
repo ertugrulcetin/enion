@@ -12,12 +12,12 @@
    {:anim-state "jump" :event "onJumpEnd" :end? true}
    {:anim-state "attackDagger" :event "onAttackDaggerEnd" :attack? true :end? true}
    {:anim-state "attackDagger" :event "onAttackDaggerCall" :call? true}
-   {:anim-state "attackDagger" :event "onAttackDaggerLockRelease" :r-release? true}
    {:anim-state "attackDagger" :event "onAttackDaggerLock" :r-lock? true}
+   {:anim-state "attackDagger" :event "onAttackDaggerLockRelease" :r-release? true}
    {:anim-state "attackR" :event "onAttackREnd" :attack? true :end? true}
    {:anim-state "attackR" :event "onAttackRCall" :call? true}
-   {:anim-state "attackR" :event "onAttackRLockRelease" :r-release? true}
    {:anim-state "attackR" :event "onAttackRLock" :r-lock? true}
+   {:anim-state "attackR" :event "onAttackRLockRelease" :r-release? true}
    {:anim-state "hide" :event "onHideCall" :call? true}
    {:anim-state "hide" :event "onHideEnd" :end? true}])
 
