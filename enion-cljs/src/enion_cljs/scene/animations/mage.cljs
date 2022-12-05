@@ -7,17 +7,16 @@
 
 ;; TODO define combo rand ranges in a var
 (def events
-  [{:anim-state "idle" :event "onIdleStart"}
-   {:anim-state "run" :event "onRunStart"}
-   {:anim-state "jump" :event "onJumpEnd" :end? true}
-   {:anim-state "attackRange" :event "onAttackRangeEnd" :attack? true :end? true}
-   {:anim-state "attackRange" :event "onAttackRangeCall" :call? true}
-   {:anim-state "attackSingle" :event "onAttackSingleEnd" :attack? true :end? true}
-   {:anim-state "attackSingle" :event "onAttackSingleCall" :call? true}
-   {:anim-state "attackR" :event "onAttackREnd" :attack? true :end? true}
-   {:anim-state "attackR" :event "onAttackRCall" :call? true}
-   {:anim-state "teleport" :event "onTeleportCall" :call? true}
-   {:anim-state "teleport" :event "onTeleportEnd" :end? true}])
+  (concat
+    anim/common-states
+    [{:anim-state "attackRange" :event "onAttackRangeEnd" :skill? true :end? true}
+     {:anim-state "attackRange" :event "onAttackRangeCall" :call? true}
+     {:anim-state "attackSingle" :event "onAttackSingleEnd" :skill? true :end? true}
+     {:anim-state "attackSingle" :event "onAttackSingleCall" :call? true}
+     {:anim-state "attackR" :event "onAttackREnd" :skill? true :end? true}
+     {:anim-state "attackR" :event "onAttackRCall" :call? true}
+     {:anim-state "teleport" :event "onTeleportCall" :call? true}
+     {:anim-state "teleport" :event "onTeleportEnd" :skill? true :end? true}]))
 
 ;; TODO can't jump while attacking - collision wise
 (defn process-skills [e state]

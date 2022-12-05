@@ -3,7 +3,7 @@
     [applied-science.js-interop :as j]
     [enion-cljs.scene.pc :as pc :refer [app]])
   (:require-macros
-    [enion-cljs.scene.macros :as m :refer [fnt]]))
+    [enion-cljs.scene.macros :refer [fnt]]))
 
 ;; TODO consider transient map
 (defonce state (atom {:eulers (pc/vec3)
@@ -20,7 +20,7 @@
 (defonce entity nil)
 
 (defn- mouse-move [e]
-  (swap! state assoc :page-x (m/get! e :x))
+  (swap! state assoc :page-x (j/get e :x))
   (when (:right-click? @state)
     (set! (.-x (:eulers @state)) (- (.-x (:eulers @state)) (mod (/ (* (:mouse-speed @state) (.-dx e)) 60) 360)))
     (set! (.-y (:eulers @state)) (+ (.-y (:eulers @state)) (mod (/ (* (:mouse-speed @state) (.-dy e)) 60) 360)))

@@ -4,12 +4,13 @@
     [enion-cljs.scene.animations.asas :as anim.asas]
     [enion-cljs.scene.animations.core :as anim]
     [enion-cljs.scene.animations.mage :as anim.mage]
+    [enion-cljs.scene.animations.priest :as anim.priest]
     [enion-cljs.scene.animations.warrior :as anim.warrior]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc])
   (:require-macros
-    [enion-cljs.scene.macros :as m :refer [fnt]]))
+    [enion-cljs.scene.macros :refer [fnt]]))
 
 ;; TODO apply restitution and friction to 1 - collision of other enemies
 
@@ -44,25 +45,28 @@
                   (fn [e]
                     ;; (anim.warrior/process-skills e state)
                     ;; (anim.asas/process-skills e state)
-                    (anim.mage/process-skills e state)))
+                    ;; (anim.mage/process-skills e state)
+                    (println "key down")
+                    (anim.priest/process-skills e state)))
   (pc/on-keyboard :EVENT_KEYUP
                   (fn [e]
                     (process-running)))
-  (anim/register-anim-events state anim.mage/events))
+  (anim/register-anim-events state anim.priest/events))
 
 ;; TODO also need to check is char dead or alive to be able to do that
 (defn- set-target-position [e]
-  (let [x (.-x e)
-        y (.-y e)
-        ^js/pc.CameraComponent camera (.-camera entity.camera/entity)
+  (let [x (j/get e :x)
+        y (j/get e :y)
+        camera (j/get entity.camera/entity :camera)
         from (pc/get-pos entity.camera/entity)
-        to (.screenToWorld camera x y (.-farClip camera))
+        to (.screenToWorld camera x y (j/get camera :farClip))
         result (pc/raycast-first from to)]
-    (when (and result (= "terrain" (-> result .-entity .-name)))
-      (let [x (-> result .-point .-x)
-            y (-> result .-point .-y)
-            z (-> result .-point .-z)]
-        (pc/look-at model-entity x (.-y (pc/get-pos model-entity)) z true)
+    (when (and result (= "terrain" (j/get-in result [:entity :name])))
+      (println "bur")
+      (let [x (j/get-in result [:point :x])
+            y (j/get-in result [:point :y])
+            z (j/get-in result [:point :z])]
+        (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true)
         (swap! state assoc
                :target-pos (pc/setv (:target-pos @state) x y z)
                :target-pos-available? true)
@@ -160,7 +164,7 @@
 (comment
   (js/console.log player-entity)
   (j/call-in player-entity [:rigidbody :teleport] 31 2.3 -32)
-  (swap! state assoc :speed 1750)
+  (swap! state assoc :speed 650)
 
   (def ddd (clj->js {:a 1}))
   )

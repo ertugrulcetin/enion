@@ -16,6 +16,23 @@
 (def project-unzip-dir (str project-dir ".zip"))
 (def sleep-timeout 1000)
 
+(def asset-id 113651303)
+(def empty-app-js-file-path "/Users/ertugrulcetin/IdeaProjects/enion/enion-cljs/app.js")
+
+(println "Uploading empty app.js")
+
+
+(defn upload-empty-app-js
+  []
+  (curl/put (str "https://playcanvas.com/api/assets/" asset-id)
+            {:headers {"Authorization" (str "Bearer " api-token)}
+             :raw-args ["-F" (str "file=@" empty-app-js-file-path)]}))
+
+
+(upload-empty-app-js)
+
+(println "Done - Uploading empty app.js")
+
 (println "Preparing download...")
 
 

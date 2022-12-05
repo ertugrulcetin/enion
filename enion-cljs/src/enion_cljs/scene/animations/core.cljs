@@ -8,7 +8,20 @@
 (def key->skill)
 
 (def idle-run-states #{"idle" "run"})
-(def skills-char-cant-run #{"hide" "attackRange" "attackSingle" "teleport"})
+
+(def skills-char-cant-run
+  #{"hide"
+    "attackRange"
+    "attackSingle"
+    "teleport"
+    "breakDefense"
+    "heal"
+    "cure"})
+
+(def common-states
+  [{:anim-state "idle" :event "onIdleStart"}
+   {:anim-state "run" :event "onRunStart"}
+   {:anim-state "jump" :event "onJumpEnd" :end? true}])
 
 (defn skill-cancelled? [anim-state active-state state]
   (and (= active-state anim-state)
@@ -25,7 +38,7 @@
 (defn register-anim-events [state events]
   (doseq [{:keys [anim-state
                   event
-                  attack?
+                  skill?
                   call?
                   end?
                   r-lock?
@@ -36,7 +49,7 @@
                     (pc/set-anim-boolean model-entity anim-state false)
                     (when (k/pressing-wasd?)
                       (pc/set-anim-boolean model-entity "run" true))
-                    (when attack?
+                    (when skill?
                       (swap! state assoc
                              :skill-locked? false
                              :can-r-attack-interrupt? false)))
@@ -46,9 +59,9 @@
                     r-lock? (swap! state assoc :can-r-attack-interrupt? false))))))
 
 (defn register-key->skills []
-  (set! key->skill {(pc/get-code :KEY_1) "attackRange"
-                    (pc/get-code :KEY_2) "attackSingle"
-                    (pc/get-code :KEY_3) "teleport"
+  (set! key->skill {(pc/get-code :KEY_1) "breakDefense"
+                    (pc/get-code :KEY_2) "heal"
+                    (pc/get-code :KEY_3) "cure"
                     (pc/get-code :KEY_R) "attackR"}))
 
 (defn char-cant-run? []

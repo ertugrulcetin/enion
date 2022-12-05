@@ -6,19 +6,18 @@
     [enion-cljs.scene.utils :as utils]))
 
 (def events
-  [{:anim-state "idle" :event "onIdleStart" :idle-or-run-start? true}
-   {:anim-state "run" :event "onRunStart" :idle-or-run-start? true}
-   {:anim-state "jump" :event "onJumpEnd" :end? true}
-   {:anim-state "attackOneHand" :event "onAttackOneHandEnd" :attack? true :end? true}
-   {:anim-state "attackOneHand" :event "onAttackOneHandCall" :call? true}
-   {:anim-state "attackOneHand" :event "onAttackOneHandLockRelease" :r-release? true}
-   {:anim-state "attackOneHand" :event "onAttackOneHandLock" :r-lock? true}
-   {:anim-state "attackR" :event "onAttackREnd" :attack? true :end? true}
-   {:anim-state "attackR" :event "onAttackRCall" :call? true}
-   {:anim-state "attackR" :event "onAttackRLockRelease" :r-release? true}
-   {:anim-state "attackR" :event "onAttackRLock" :r-lock? true}
-   {:anim-state "attackSlowDown" :event "onAttackSlowDownCall" :call? true}
-   {:anim-state "attackSlowDown" :event "onAttackSlowDownEnd" :attack? true :end? true}])
+  (concat
+    anim/common-states
+    [{:anim-state "attackOneHand" :event "onAttackOneHandEnd" :skill? true :end? true}
+     {:anim-state "attackOneHand" :event "onAttackOneHandCall" :call? true}
+     {:anim-state "attackOneHand" :event "onAttackOneHandLockRelease" :r-release? true}
+     {:anim-state "attackOneHand" :event "onAttackOneHandLock" :r-lock? true}
+     {:anim-state "attackR" :event "onAttackREnd" :skill? true :end? true}
+     {:anim-state "attackR" :event "onAttackRCall" :call? true}
+     {:anim-state "attackR" :event "onAttackRLockRelease" :r-release? true}
+     {:anim-state "attackR" :event "onAttackRLock" :r-lock? true}
+     {:anim-state "attackSlowDown" :event "onAttackSlowDownCall" :call? true}
+     {:anim-state "attackSlowDown" :event "onAttackSlowDownEnd" :skill? true :end? true}]))
 
 (def last-one-hand-combo (atom (js/Date.now)))
 
