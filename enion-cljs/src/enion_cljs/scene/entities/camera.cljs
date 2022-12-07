@@ -57,6 +57,7 @@
 (defn- init-fn [this]
   (swap! state assoc :ray-end (pc/find-by-name "ray_end"))
   (set! entity (j/get this :entity))
+  (j/call-in entity [:camera :requestSceneDepthMap] true)
   (pc/disable-context-menu)
   (pc/on-mouse :EVENT_MOUSEMOVE mouse-move)
   (pc/on-mouse :EVENT_MOUSEWHEEL mouse-wheel)
@@ -78,7 +79,7 @@
   (let [from (pc/get-pos (.-parent entity))
         to (pc/get-pos (:ray-end @state))
         hit (pc/raycast-first from to)
-        collision (some-> hit .-entity .-name)]
+        collision (some-> hit (j/get-in [:entity :name]))]
     (if (and hit (or (= collision "terrain")
                      (= collision "collision_rock")
                      (= collision "collision_big_tree")

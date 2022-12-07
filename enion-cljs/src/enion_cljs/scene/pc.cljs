@@ -27,81 +27,81 @@
   ([x y z]
    (js/pc.Vec3. x y z)))
 
-(defn addv [^js/pc.Vec3 v1 ^js/pc.Vec3 v2]
-  (.add v1 v2))
+(defn addv [v1 v2]
+  (j/call v1 :add v2))
 
-(defn copyv [^js/pc.Vec3 v1 ^js/pc.Vec3 v2]
-  (.copy v1 v2))
+(defn copyv [v1 v2]
+  (j/call v1 :copy v2))
 
-(defn mul-scalar [^js/pc.Vec3 v s]
-  (.mulScalar v s))
+(defn mul-scalar [v s]
+  (j/call v :mulScalar s))
 
-(defn normalize [^js/pc.Vec3 v]
-  (.normalize v))
+(defn normalize [v]
+  (j/call v :normalize))
 
-(defn scale [^js/pc.Vec3 v s]
-  (.scale v s))
+(defn scale [v s]
+  (j/call v :scale s))
 
-(defn setv [^js/pc.Vec3 v x y z]
-  (.set v x y z))
+(defn setv [v x y z]
+  (j/call v :set x y z))
 
-(defn set-pos [^js/pc.Entity e ^js/pc.Vec3 v]
-  (.setPosition e v))
+(defn set-pos [e v]
+  (j/call e :setPosition v))
 
-(defn sub [^js/pc.Vec3 v1 ^js/pc.Vec3 v2]
-  (.sub v1 v2))
+(defn sub [v1 v2]
+  (j/call v1 :sub v2))
 
-(defn distance [^js/pc.Vec3 v1 ^js/pc.Vec3 v2]
-  (.distance v1 v2))
+(defn distance [v1 v2]
+  (j/call v1 :distance v2))
 
 (defn set-loc-pos
-  ([^js/pc.Entity e ^js/pc.Vec3 v]
-   (.setLocalPosition e v))
-  ([^js/pc.Entity e x y z]
-   (.setLocalPosition e x y z)))
+  ([e v]
+   (j/call e :setLocalPosition v))
+  ([e x y z]
+   (j/call e :setLocalPosition x y z)))
 
 (defn set-euler
-  ([^js/pc.Entity e ^js/pc.Vec3 v]
-   (.setEulerAngles e v))
-  ([^js/pc.Entity e x y z]
-   (.setEulerAngles e x y z)))
+  ([e v]
+   (j/call e :setEulerAngles v))
+  ([e x y z]
+   (j/call e :setEulerAngles x y z)))
 
-(defn get-loc-euler [^js/pc.Entity e]
-  (.getLocalEulerAngles e))
+(defn get-loc-euler [e]
+  (j/call e :getLocalEulerAngles))
 
-(defn get-euler [^js/pc.Entity e]
-  (.getEulerAngles e))
+(defn get-euler [e]
+  (j/call e :getEulerAngles))
 
-(defn set-loc-euler [^js/pc.Entity e x y z]
-  (.setLocalEulerAngles e x y z))
+(defn set-loc-euler [e x y z]
+  (j/call e :setLocalEulerAngles x y z))
 
-(defn get-pos [^js/pc.Entity e]
-  (.getPosition e))
+(defn get-pos [e]
+  (j/call e :getPosition))
 
-(defn get-loc-pos [^js/pc.Entity e]
-  (.getLocalPosition e))
+(defn get-loc-pos [e]
+  (j/call e :getLocalPosition))
 
-(defn raycast-first [^js/pc.Vec3 from ^js/pc.Vec3 to]
-  (.raycastFirst ^js/pc.RigidBodyComponent (.-systems.rigidbody app) from to))
+(defn raycast-first [from to]
+  (j/call-in app [:systems :rigidbody :raycastFirst] from to))
 
 (defn look-at
-  ([^js/pc.Entity e ^js/pc.Vec3 v]
-   (.lookAt e v))
-  ([^js/pc.Entity e x y z]
-   (.lookAt e x y z))
-  ([^js/pc.Entity e x y z reverse?]
-   (.lookAt e x y z)
+  ([e v]
+   (j/call e :lookAt v))
+  ([e x y z]
+   (j/call e :lookAt x y z))
+  ([e x y z reverse?]
+   (j/call e :lookAt x y z)
    (when reverse?
-     (.rotateLocal e 0 180 0))))
+     (j/call e :rotateLocal 0 180 0))))
 
-(defn apply-impulse [^js/pc.Entity e x y z]
-  (.applyImpulse ^js/pc.RigidBodyComponent (.-rigidbody e) x y z))
+(defn apply-impulse [entity x y z]
+  (j/call-in entity [:rigidbody :applyImpulse] x y z))
 
-(defn apply-force [^js/pc.Entity e x y z]
-  (.applyForce ^js/pc.RigidBodyComponent (.-rigidbody e) x y z))
+(defn apply-force [entity x y z]
+  (j/call-in entity [:rigidbody :applyForce] x y z))
 
-(defn ^string get-guid [^js/pc.Entity e]
-  (.getGuid e))
+(defn get-guid [entity]
+  (j/call entity :getGuid))
 
 (defn create-script [script-name {:keys [attrs init update post-init post-update]}]
   (let [script (j/call js/pc :createScript (csk/->camelCaseString script-name))]
@@ -113,25 +113,22 @@
     (some->> post-update (j/assoc-in! script [:prototype :postUpdate]))))
 
 (defn pressed? [key]
-  (.isPressed ^js/pc.Keyboard (.-keyboard app) (key key->code)))
-
-(defn was-pressed? [key]
-  (.wasPressed ^js/pc.Keyboard (.-keyboard app) (key key->code)))
+  (j/call-in app [:keyboard :isPressed] (key key->code)))
 
 (defn disable-context-menu []
-  (.disableContextMenu ^js/pc.Mouse (.-mouse app)))
+  (j/call-in app [:mouse :disableContextMenu]))
 
 (defn on-mouse [key f]
-  (.on ^js/pc.Mouse (.-mouse app) (key key->code) f))
+  (j/call-in app [:mouse :on] (key key->code) f))
 
 (defn on-keyboard [key f]
-  (.on ^js/pc.Keyboard (.-keyboard app) (key key->code) f))
+  (j/call-in app [:keyboard :on] (key key->code) f))
 
 (defn key? [e k]
-  (= (.-key e) (k key->code)))
+  (= (j/get e :key) (k key->code)))
 
 (defn button? [e k]
-  (= (.-button e) (k key->code)))
+  (= (j/get e :button) (k key->code)))
 
 (defn get-code [k]
   (k key->code))
@@ -143,29 +140,29 @@
   (off-anim entity event-name)
   (j/call-in entity [:anim :on] event-name f))
 
-(defn set-anim-boolean [^js/pc.Entity e s v]
-  (.setBoolean ^js/pc.AnimComponent (.-anim e) s v))
+(defn set-anim-boolean [entity param v]
+  (j/call-in entity [:anim :setBoolean] param v))
 
-(defn set-anim-int [^js/pc.Entity e s v]
-  (.setInteger ^js/pc.AnimComponent (.-anim e) s v))
+(defn set-anim-int [entity param v]
+  (j/call-in entity [:anim :setInteger] param v))
 
-(defn get-anim-state [^js/pc.Entity e]
-  ^string (.-activeState (-> e .-anim .-layers (aget 0))))
+(defn get-anim-state [entity]
+  (j/get-in entity [:anim :layers 0 :activeState]))
 
-(defn get-anim-prev-state [^js/pc.Entity e]
-  ^string (.-previousState (-> e .-anim .-layers (aget 0))))
+(defn get-active-state-current-time [entity]
+  (j/get-in entity [:anim :layers 0 :activeStateCurrentTime]))
 
-(defn get-active-state-current-time [^js/pc.Entity e]
-  ^int (.-activeStateCurrentTime (-> e .-anim .-layers (aget 0))))
+(defn get-active-state-duration [entity]
+  (j/get-in entity [:anim :layers 0 :activeStateDuration]))
 
-(defn get-active-state-duration [^js/pc.Entity e]
-  ^int (.-activeStateDuration (-> e .-anim .-layers (aget 0))))
-
-(defn get-active-state-progress [^js/pc.Entity e]
-  ^int (.-activeStateProgress (-> e .-anim .-layers (aget 0))))
+(defn get-active-state-progress [entity]
+  (j/get-in entity [:anim :layers 0 :activeStateProgress]))
 
 (defn reset-anim [e]
   (j/call-in e [:anim :layers 0 :reset]))
 
 (defn play-anim [e]
   (j/call-in e [:anim :layers 0 :play]))
+
+(defn screen-to-world [camera x y]
+  (j/call camera :screenToWorld x y (j/get camera :farClip)))

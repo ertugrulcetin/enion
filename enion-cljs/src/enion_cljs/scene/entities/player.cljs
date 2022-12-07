@@ -59,10 +59,9 @@
         y (j/get e :y)
         camera (j/get entity.camera/entity :camera)
         from (pc/get-pos entity.camera/entity)
-        to (.screenToWorld camera x y (j/get camera :farClip))
+        to (pc/screen-to-world camera x y)
         result (pc/raycast-first from to)]
     (when (and result (= "terrain" (j/get-in result [:entity :name])))
-      (println "bur")
       (let [x (j/get-in result [:point :x])
             y (j/get-in result [:point :y])
             z (j/get-in result [:point :z])]
@@ -162,6 +161,15 @@
                      :update (fnt (update-fn dt this))}))
 
 (comment
+  ;mesh.model.meshInstances[0].setParameter("material_opacity", 0.5);
+  (let [mesh (pc/find-by-name "arms_orc_chieftain")
+        material (j/get-in mesh [:render :meshInstances 0 :material])]
+    (j/call-in mesh [:render :meshInstances 0 :setParameter] "material_opacity" 1)
+    ;(js/console.log material)
+    ;(js/console.log (j/get-in mesh [:render :meshInstances 0 ]))
+    (js/console.log material)
+    )
+
   (js/console.log player-entity)
   (j/call-in player-entity [:rigidbody :teleport] 31 2.3 -32)
   (swap! state assoc :speed 650)
