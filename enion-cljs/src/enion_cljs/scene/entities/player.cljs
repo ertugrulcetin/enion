@@ -8,7 +8,8 @@
     [enion-cljs.scene.animations.warrior :as anim.warrior]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
-    [enion-cljs.scene.pc :as pc])
+    [enion-cljs.scene.pc :as pc]
+    [enion-cljs.scene.spells.mage :as spell.mage])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -65,6 +66,7 @@
       (let [x (j/get-in result [:point :x])
             y (j/get-in result [:point :y])
             z (j/get-in result [:point :z])]
+        (spell.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
         (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true)
         (swap! state assoc
                :target-pos (pc/setv (:target-pos @state) x y z)
@@ -161,18 +163,8 @@
                      :update (fnt (update-fn dt this))}))
 
 (comment
-  ;mesh.model.meshInstances[0].setParameter("material_opacity", 0.5);
-  (let [mesh (pc/find-by-name "arms_orc_chieftain")
-        material (j/get-in mesh [:render :meshInstances 0 :material])]
-    (j/call-in mesh [:render :meshInstances 0 :setParameter] "material_opacity" 1)
-    ;(js/console.log material)
-    ;(js/console.log (j/get-in mesh [:render :meshInstances 0 ]))
-    (js/console.log material)
-    )
-
   (js/console.log player-entity)
   (j/call-in player-entity [:rigidbody :teleport] 31 2.3 -32)
   (swap! state assoc :speed 650)
 
-  (def ddd (clj->js {:a 1}))
   )

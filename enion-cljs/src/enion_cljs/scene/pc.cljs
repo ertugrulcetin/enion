@@ -1,5 +1,6 @@
 (ns enion-cljs.scene.pc
   (:require
+    ["/enion_cljs/vendor/tween"]
     [applied-science.js-interop :as j]
     [camel-snake-kebab.core :as csk]
     [clojure.string :as str]))
@@ -80,6 +81,15 @@
 
 (defn get-loc-pos [e]
   (j/call e :getLocalPosition))
+
+(defn get-loc-scale [e]
+  (j/call e :getLocalScale))
+
+(defn set-loc-scale
+  ([e s]
+   (j/call e :setLocalScale s s s))
+  ([e x y z]
+   (j/call e :setLocalScale x y z)))
 
 (defn raycast-first [from to]
   (j/call-in app [:systems :rigidbody :raycastFirst] from to))
@@ -166,3 +176,14 @@
 
 (defn screen-to-world [camera x y]
   (j/call camera :screenToWorld x y (j/get camera :farClip)))
+
+(defn tween-pos-update [entity to]
+  (-> (j/call entity :tween (j/call entity :getLocalPosition))
+      (j/call :to (clj->js to) 1.0 js/pc.SineOut)
+      (j/call :delay 1.0)
+      (j/call :yoyo true)
+      ;; (j/call :loop true)
+      ))
+
+(comment
+  )
