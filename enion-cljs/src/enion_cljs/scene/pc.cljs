@@ -46,9 +46,6 @@
 (defn setv [v x y z]
   (j/call v :set x y z))
 
-(defn set-pos [e v]
-  (j/call e :setPosition v))
-
 (defn sub [v1 v2]
   (j/call v1 :sub v2))
 
@@ -78,6 +75,9 @@
 
 (defn get-pos [e]
   (j/call e :getPosition))
+
+(defn set-pos [e v]
+  (j/call e :setPosition v))
 
 (defn get-loc-pos [e]
   (j/call e :getLocalPosition))
@@ -176,14 +176,3 @@
 
 (defn screen-to-world [camera x y]
   (j/call camera :screenToWorld x y (j/get camera :farClip)))
-
-(defn tween-pos-update [entity to]
-  (-> (j/call entity :tween (j/call entity :getLocalPosition))
-      (j/call :to (clj->js to) 1.0 js/pc.SineOut)
-      (j/call :delay 1.0)
-      (j/call :yoyo true)
-      ;; (j/call :loop true)
-      ))
-
-(comment
-  )
