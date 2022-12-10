@@ -1,4 +1,4 @@
-(ns enion-cljs.scene.spells.mage
+(ns enion-cljs.scene.skills.mage
   (:require
     [applied-science.js-interop :as j]
     [enion-cljs.scene.pc :as pc]))
@@ -14,7 +14,7 @@
           first-pos (pc/get-loc-pos entity)
           tween-loc (-> (j/call entity :tween first-pos)
                         (j/call :to temp-final-pos 0.5 js/pc.Linear))
-          _ (pc/set-loc-scale entity 1)
+          _ (pc/set-loc-scale entity 0.2)
           first-scale (pc/get-loc-scale entity)
           tween-scale (-> (j/call entity :tween first-scale)
                           (j/call :to temp-final-scale 1 js/pc.Linear))
@@ -36,3 +36,7 @@
       (j/call tween-opacity :start)
       (j/call-in entity [:children 0 :particlesystem :play])
       nil)))
+
+(comment
+  (pc/set-loc-scale (pc/find-by-name "nova") 1)
+  (pc/get-loc-scale (pc/find-by-name "nova")))

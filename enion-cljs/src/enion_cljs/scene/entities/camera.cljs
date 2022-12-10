@@ -58,7 +58,6 @@
   (swap! state assoc :ray-end (pc/find-by-name "ray_end"))
   (set! entity (j/get this :entity))
   (j/call-in entity [:camera :requestSceneDepthMap] true)
-  (pc/disable-context-menu)
   (pc/on-mouse :EVENT_MOUSEMOVE mouse-move)
   (pc/on-mouse :EVENT_MOUSEWHEEL mouse-wheel)
   (pc/on-mouse :EVENT_MOUSEDOWN mouse-down)

@@ -7,6 +7,9 @@
 
 (defonce app nil)
 
+(def map-size 100)
+(def map-half-size (/ map-size 2))
+
 (def key->code
   (->> (js->clj js/pc :keywordize-keys true)
        (filter #(or (str/starts-with? (name (first %)) "KEY_")
@@ -176,3 +179,10 @@
 
 (defn screen-to-world [camera x y]
   (j/call camera :screenToWorld x y (j/get camera :farClip)))
+
+(let [temp (vec3)]
+  (defn get-map-pos [e]
+    (let [pos (get-pos e)]
+      (setv temp (+ (j/get pos :x) map-half-size)
+            (j/get pos :y)
+            (+ (j/get pos :z) map-half-size)))))

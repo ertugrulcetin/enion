@@ -9,6 +9,6 @@
     (.appendChild (.-body js/document) div)))
 
 (defn init []
-  ;; (create-div-app)
-  ;; (ui.core/init)
+  (create-div-app)
+  (ui.core/init)
   (scene.core/init))

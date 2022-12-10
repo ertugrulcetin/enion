@@ -83,12 +83,53 @@
 
 (with-open [w (io/writer  "index.html")]
   (->  index-html
-       (str/replace  #"<script src=\"app.js\"></script>" "")
        (str/replace  #"<script src=\"__loading__.js\"></script>"
-                     "<script src=\"__loading__.js\"></script>\n\t
-                       <script src=\"enion-cljs/resources/public/js/compiled/app.js\"></script>")
+                     "<script src=\"__loading__.js\"></script>\n    <script src=\"enion-cljs/resources/public/js/compiled/app.js\"></script>")
        (#(.write w %))))
 
+(with-open [w (io/writer "styles.css")]
+ (.write w "html {
+    height: 100%;
+    width: 100%;
+    background-color: white;
+}
+body {
+    margin: 0;
+    background-color: white;
+    font-family: Helvetica, arial, sans-serif;
+}
+
+#app {
+	height: 100%;
+ width: 100%;
+}
+
+#application-canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+#application-canvas.fill-mode-NONE {
+    margin: auto;
+}
+#application-canvas.fill-mode-KEEP_ASPECT {
+    width: 100%;
+    height: auto;
+    margin: 0;
+}
+#application-canvas.fill-mode-FILL_WINDOW {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+canvas:focus {
+    outline: none;
+}
+"))
 
 ;; Usage
 ;; bb ./download-game.clj

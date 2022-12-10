@@ -9,12 +9,12 @@
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.spells.mage :as spell.mage])
+    [enion-cljs.scene.skills.mage :as skills.mage])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
 ;; TODO apply restitution and friction to 1 - collision of other enemies
-
+;; TODO add jump
 (defonce state (atom {:speed 750
                       :x 0
                       :z 0
@@ -66,7 +66,6 @@
       (let [x (j/get-in result [:point :x])
             y (j/get-in result [:point :y])
             z (j/get-in result [:point :z])]
-        (spell.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
         (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true)
         (swap! state assoc
                :target-pos (pc/setv (:target-pos @state) x y z)
@@ -165,6 +164,10 @@
 (comment
   (js/console.log player-entity)
   (j/call-in player-entity [:rigidbody :teleport] 31 2.3 -32)
-  (swap! state assoc :speed 650)
+  (swap! state assoc :speed 4000)
+
+  (js->clj (.-forward (:camera @state)))
+
+  (pc/get-map-pos player-entity)
 
   )
