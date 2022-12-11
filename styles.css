@@ -1,19 +1,18 @@
 html {
     height: 100%;
     width: 100%;
-    background-color: #1d292c;
+    background-color: white;
 }
 body {
     margin: 0;
-    max-height: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: #1d292c;
+    background-color: white;
     font-family: Helvetica, arial, sans-serif;
-    position: relative;
-    width: 100%;
+    overflow: hidden;
+}
 
-    -webkit-tap-highlight-color: transparent;
+#app {
+	height: 100%;
+ width: 100%;
 }
 
 #application-canvas {

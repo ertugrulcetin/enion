@@ -66,6 +66,7 @@
       (let [x (j/get-in result [:point :x])
             y (j/get-in result [:point :y])
             z (j/get-in result [:point :z])]
+        (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
         (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true)
         (swap! state assoc
                :target-pos (pc/setv (:target-pos @state) x y z)
@@ -164,7 +165,8 @@
 (comment
   (js/console.log player-entity)
   (j/call-in player-entity [:rigidbody :teleport] 31 2.3 -32)
-  (swap! state assoc :speed 4000)
+
+  (swap! state assoc :speed 2500)
 
   (js->clj (.-forward (:camera @state)))
 

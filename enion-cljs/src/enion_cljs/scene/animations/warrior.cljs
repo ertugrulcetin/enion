@@ -5,6 +5,7 @@
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.utils :as utils]))
 
+;; TODO current state leftover in idle mode but was able to run at the same time
 (def events
   (concat
     anim/common-states

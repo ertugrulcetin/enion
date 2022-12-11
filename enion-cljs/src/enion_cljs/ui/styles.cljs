@@ -28,17 +28,16 @@
    :margin "0 auto 4px auto"
    :box-shadow "0px 0px 0px 2px #ffffff00"
    :padding "3px"
-   :background-color "rgba(16, 19, 29, 0.8)"
+   :background-color "#10131ca3"
    :border-radius "3px"})
 
 (defattrs hp-bar []
   {:z-index 0
-   :background-color "rgba (45, 66, 71, 0.7)"
+   :background-color "rgba(45, 66, 71, 0.7)"
    :border-radius "1.5px"
    :position :relative
    :color "#DAE8EA"
    :overflow :hidden
-   :text-shadow "1px 1px 2px #10131d"
    :white-space :nowrap
    :text-transform :capitalize
    :font-weight :bold
@@ -63,14 +62,14 @@
 
 (defattrs hp-hit []
   {:position :absolute
-   :background "#c0403fc4"
+   :background "#c0403f9b"
    :width "100%"
    :height "100%"
-   :transition "width .7s linear"})
+   :transition "width .8s linear"})
 
 (defattrs mp-used []
   {:composes [(hp-hit)]
-   :background "#2a4fdfc7"})
+   :background "#2a4fdf94"})
 
 (defattrs hp-mp-text []
   {:position :sticky
@@ -97,7 +96,8 @@
   {:position :absolute
    :width "50px"
    :height "50px"
-   :pointer-events :none})
+   ;; :pointer-events :none
+   })
 
 (defattrs skill-number []
   {:color "#5b858e"
