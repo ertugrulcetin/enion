@@ -11,8 +11,8 @@ body {
 }
 
 @font-face {
-    font-family: "Comic Papyrus";
-    src: url('Comic Papyrus.ttf') format("truetype");
+    font-family: 'Comic Papyrus';
+    src: url('Comic Papyrus.ttf') format('truetype');
 }
 
 #app {

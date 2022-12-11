@@ -120,6 +120,10 @@
 
 (defn- info-box []
   [:div (styles/info-box)
+   [:div
+    [:button
+     {:class (styles/collapse-button)}
+     "Collapse"]]
    [:div (styles/info-message-box)
     (for [[idx data] (map-indexed vector (range 100))]
       ^{:key idx}

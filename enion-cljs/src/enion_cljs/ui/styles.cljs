@@ -139,7 +139,7 @@
 (defattrs info-box []
   {:composes [(chat)]
    :left :unset
-   :bottom "5px"})
+   :bottom "20px"})
 
 (defattrs message-box []
   {:width "100%"
@@ -155,7 +155,7 @@
 
 (defattrs info-message-box []
   {:composes [(message-box)]
-   :height "150px"}
+   :height "130px"}
   ["&::-webkit-scrollbar" {:display :block}])
 
 (defclass chat-input []
@@ -170,9 +170,8 @@
    :border "2px solid #10131dcc"
    :border-radius "2px"})
 
-(defclass chat-all []
-  {:position :fixed
-   :margin-top "5px"
+(defclass button []
+  {:outline :none
    :font-size "16px"
    :font-family "Comic Papyrus"
    :background-color "#10131dcc"
@@ -181,10 +180,15 @@
    :color "white"
    :cursor :pointer})
 
+(defclass chat-all []
+  {:composes [(button)]
+   :position :fixed
+   :margin-top "5px"})
+
 (defclass chat-party []
   {:composes [(chat-all)]
    :margin-left "40px"
-   :color "rgb(15 188 3)"})
+   :color "rgb(15 188 3) !important"})
 
 (defattrs selected-player []
   {:composes [(actions-container)]
@@ -204,3 +208,8 @@
    :height "20px"
    :border "2px solid #10131dcc"
    :border-radius "3px"})
+
+(defclass collapse-button []
+  {:composes [(button)]
+   :margin-bottom "5px"
+   :font-size "14px"})
