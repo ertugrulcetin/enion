@@ -6,6 +6,7 @@
     [enion-cljs.scene.macros :refer [fnt]]))
 
 ;; TODO consider transient map
+;; TODO UI blocks right click camera adjusment
 (defonce state (atom {:eulers (pc/vec3)
                       :mouse-edge-range 5
                       :mouse-over? false

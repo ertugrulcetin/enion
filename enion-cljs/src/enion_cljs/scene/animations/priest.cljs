@@ -6,7 +6,6 @@
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.utils :as utils]))
 
-;; TODO remove :attack? ?
 (def events
   (concat anim/common-states
           [{:anim-state "breakDefense" :event "onBreakDefenseEnd" :skill? true :end? true}
@@ -23,6 +22,8 @@
   (when-not (j/get-in e [:event :repeat])
     (let [active-state (pc/get-anim-state model-entity)]
       (when (k/pressing-wasd?)
+        ;; TODO maybe we need to delete this
+        (pc/set-anim-boolean model-entity "run" true)
         (swap! state assoc :target-pos-available? false)
         (cond
           (anim/skill-cancelled? "breakDefense" active-state state)

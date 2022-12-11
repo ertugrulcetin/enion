@@ -67,14 +67,14 @@
 
 (defn- hp-bar []
   [:div (styles/hp-bar)
-   [:div#hit (styles/hp-hit)]
-   [:div#hp (styles/hp)]
+   [:div (styles/hp-hit)]
+   [:div (styles/hp)]
    [:span (styles/hp-mp-text) "100/100"]])
 
 (defn- mp-bar []
   [:div (styles/mp-bar)
-   [:div#mp-used (styles/mp-used)]
-   [:div#mp (styles/mp)]
+   [:div (styles/mp-used)]
+   [:div (styles/mp)]
    [:span (styles/hp-mp-text) "100/100"]])
 
 (defn- hp-mp-bars []
@@ -97,20 +97,19 @@
 
 (defn- chat []
   [:div (styles/chat)
-   [:div (styles/chat-container)
-    [:div (styles/message-box)
-     (for [[idx data] (map-indexed vector (range 10))]
-       ^{:key idx}
-       [:<>
-        [:span
-         [:b (str "Message" ": message-" data)]]
-        [:br]])]
-    [:div
-     [:input
-      {:ref #(some-> % .focus)
-       :class (styles/chat-input)
-       ;; :on-change #(dispatch [::events/set-chat-message (-> % .-target .-value)])
-       :max-length 40}]]]
+   [:div (styles/message-box)
+    (for [[idx data] (map-indexed vector (range 10))]
+      ^{:key idx}
+      [:<>
+       [:span
+        [:b (str "Message" ": message-" data)]]
+       [:br]])]
+   [:div
+    [:input
+     {:ref #(some-> % .focus)
+      :class (styles/chat-input)
+      ;; :on-change #(dispatch [::events/set-chat-message (-> % .-target .-value)])
+      :max-length 40}]]
    [:div
     [:button
      {:class (styles/chat-all)}
@@ -118,6 +117,24 @@
     [:button
      {:class (styles/chat-party)}
      "Party"]]])
+
+(defn- info-box []
+  [:div (styles/info-box)
+   [:div (styles/info-message-box)
+    (for [[idx data] (map-indexed vector (range 100))]
+      ^{:key idx}
+      [:<>
+       [:span
+        [:b (str "Message" ": message-" data)]]
+       [:br]])]])
+
+(defn- selected-player []
+  [:div (styles/selected-player)
+   [:span (styles/selected-player-text)
+    "0000000"]
+   [:div (styles/hp-bar-selected-player)
+    [:div (styles/hp-hit)]
+    [:div (styles/hp)]]])
 
 ;; TODO when game is ready then show HUD
 (defn main-panel []
@@ -131,6 +148,8 @@
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
+        [selected-player]
         [chat]
+        [info-box]
         [actions-section]
         [temp-skill-img]])}))

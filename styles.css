@@ -6,8 +6,13 @@ html {
 body {
     margin: 0;
     background-color: white;
-    font-family: Helvetica, arial, sans-serif;
+    font-family: Comic Papyrus, arial, sans-serif;
     overflow: hidden;
+}
+
+@font-face {
+    font-family: "Comic Papyrus";
+    src: url('Comic Papyrus.ttf') format("truetype");
 }
 
 #app {

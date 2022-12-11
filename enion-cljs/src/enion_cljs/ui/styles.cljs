@@ -83,8 +83,8 @@
    :border-radius "5px"
    :display :grid
    :grid-gap "3px"
-   :grid-auto-rows "56px"
-   :grid-auto-columns "56px"
+   :grid-auto-rows "51px"
+   :grid-auto-columns "51px"
    :grid-auto-flow :column
    :pointer-events :all})
 
@@ -96,8 +96,8 @@
 
 (defclass skill-img []
   {:position :absolute
-   :width "50px"
-   :height "50px"
+   :width "45px"
+   :height "45px"
    :pointer-events :none})
 
 (defattrs skill-number []
@@ -114,10 +114,10 @@
 
 (defattrs chat []
   {:position :absolute
+   :overflow :hidden
    :border-radius "5px"
    :text-align :left
    :font-size "14px"
-   :font-family "monospace"
    :font-weight "bold"
    :color "white"
    :margin-right "10px"
@@ -136,9 +136,10 @@
    :z-index 10}
   ["&::-webkit-scrollbar" {:display :none}])
 
-(defattrs chat-container []
-  {:display :flex
-   :flex-direction :column})
+(defattrs info-box []
+  {:composes [(chat)]
+   :left :unset
+   :bottom "5px"})
 
 (defattrs message-box []
   {:width "100%"
@@ -152,23 +153,28 @@
   [:span {:background-color "#10131dcc"}]
   [:b {:padding "5px"}])
 
+(defattrs info-message-box []
+  {:composes [(message-box)]
+   :height "150px"}
+  ["&::-webkit-scrollbar" {:display :block}])
+
 (defclass chat-input []
   {:width "345px"
    :height "28px"
-   :font-family "monospace"
    :background-color "#10131dcc"
    :outline :none
    :color :white
    :font-weight :bold
    :font-size "14px"
+   :font-family "Comic Papyrus"
    :border "2px solid #10131dcc"
    :border-radius "2px"})
 
 (defclass chat-all []
   {:position :fixed
-   :font-family :monospace
    :margin-top "5px"
    :font-size "16px"
+   :font-family "Comic Papyrus"
    :background-color "#10131dcc"
    :border "2px solid #10131dcc"
    :border-radius "2px"
@@ -177,5 +183,24 @@
 
 (defclass chat-party []
   {:composes [(chat-all)]
-   :margin-left "50px"
+   :margin-left "40px"
    :color "rgb(15 188 3)"})
+
+(defattrs selected-player []
+  {:composes [(actions-container)]
+   :top "20px"
+   :bottom :unset
+   :text-align :center
+   :pointer-events :none})
+
+(defattrs selected-player-text []
+  {:font-size "30px"
+   :color "#b62c2b"
+   :text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;"})
+
+(defattrs hp-bar-selected-player []
+  {:composes [(hp-bar)]
+   :width "350px"
+   :height "20px"
+   :border "2px solid #10131dcc"
+   :border-radius "3px"})
