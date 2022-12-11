@@ -112,3 +112,70 @@
    :z-index 10
    :font-weight :bold})
 
+(defattrs chat []
+  {:position :absolute
+   :border-radius "5px"
+   :text-align :left
+   :font-size "14px"
+   :font-family "monospace"
+   :font-weight "bold"
+   :color "white"
+   :margin-right "10px"
+   :right "0px"
+   :bottom "40px"
+   :overflow-y :auto
+   :padding "10px"
+   :height "150px"
+   :width "400px"
+   :pointer-events :all
+   :opacity 0.75
+   :left "10px"
+   ;; For Firefox
+   :-ms-overflow-style :none
+   :scrollbar-width :none
+   :z-index 10}
+  ["&::-webkit-scrollbar" {:display :none}])
+
+(defattrs chat-container []
+  {:display :flex
+   :flex-direction :column})
+
+(defattrs message-box []
+  {:width "100%"
+   :height "120px"
+   :line-height "1.65em"
+   :overflow-y :auto
+   ;; For Firefox
+   :-ms-overflow-style :none
+   :scrollbar-width :none}
+  ["&::-webkit-scrollbar" {:display :none}]
+  [:span {:background-color "#10131dcc"}]
+  [:b {:padding "5px"}])
+
+(defclass chat-input []
+  {:width "345px"
+   :height "28px"
+   :font-family "monospace"
+   :background-color "#10131dcc"
+   :outline :none
+   :color :white
+   :font-weight :bold
+   :font-size "14px"
+   :border "2px solid #10131dcc"
+   :border-radius "2px"})
+
+(defclass chat-all []
+  {:position :fixed
+   :font-family :monospace
+   :margin-top "5px"
+   :font-size "16px"
+   :background-color "#10131dcc"
+   :border "2px solid #10131dcc"
+   :border-radius "2px"
+   :color "white"
+   :cursor :pointer})
+
+(defclass chat-party []
+  {:composes [(chat-all)]
+   :margin-left "50px"
+   :color "rgb(15 188 3)"})

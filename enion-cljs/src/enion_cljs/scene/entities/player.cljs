@@ -47,7 +47,6 @@
                     ;; (anim.warrior/process-skills e state)
                     ;; (anim.asas/process-skills e state)
                     ;; (anim.mage/process-skills e state)
-                    (println "key down")
                     (anim.priest/process-skills e state)))
   (pc/on-keyboard :EVENT_KEYUP
                   (fn [e]
@@ -66,8 +65,8 @@
       (let [x (j/get-in result [:point :x])
             y (j/get-in result [:point :y])
             z (j/get-in result [:point :z])]
-        (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
         (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true)
+        (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
         (swap! state assoc
                :target-pos (pc/setv (:target-pos @state) x y z)
                :target-pos-available? true)

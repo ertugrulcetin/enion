@@ -90,6 +90,35 @@
        [skill i s])
      @skill-slots)])
 
+(defn- actions-section []
+  [:div (styles/actions-container)
+   [hp-mp-bars]
+   [skill-bar]])
+
+(defn- chat []
+  [:div (styles/chat)
+   [:div (styles/chat-container)
+    [:div (styles/message-box)
+     (for [[idx data] (map-indexed vector (range 10))]
+       ^{:key idx}
+       [:<>
+        [:span
+         [:b (str "Message" ": message-" data)]]
+        [:br]])]
+    [:div
+     [:input
+      {:ref #(some-> % .focus)
+       :class (styles/chat-input)
+       ;; :on-change #(dispatch [::events/set-chat-message (-> % .-target .-value)])
+       :max-length 40}]]]
+   [:div
+    [:button
+     {:class (styles/chat-all)}
+     "All"]
+    [:button
+     {:class (styles/chat-party)}
+     "Party"]]])
+
 ;; TODO when game is ready then show HUD
 (defn main-panel []
   (r/create-class
@@ -102,7 +131,6 @@
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
-        [:div (styles/actions-container)
-         [hp-mp-bars]
-         [skill-bar]]
+        [chat]
+        [actions-section]
         [temp-skill-img]])}))
