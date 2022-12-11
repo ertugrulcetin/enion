@@ -76,7 +76,10 @@
 (defn- register-mouse-events []
   (pc/on-mouse :EVENT_MOUSEDOWN
                (fn [e]
-                 (when (pc/button? e :MOUSEBUTTON_LEFT)
+                 (when (and (pc/button? e :MOUSEBUTTON_LEFT)
+                            (or (= "CANVAS" (j/get-in e [:element :nodeName]))
+                                (not= "all" (->  (j/call js/window :getComputedStyle (j/get e :element))
+                                                 (j/get :pointerEvents)))))
                    (swap! state assoc :mouse-left-locked? true)
                    (set-target-position e))))
   (pc/on-mouse :EVENT_MOUSEUP

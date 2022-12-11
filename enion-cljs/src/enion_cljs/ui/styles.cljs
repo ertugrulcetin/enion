@@ -73,7 +73,8 @@
 
 (defattrs hp-mp-text []
   {:position :sticky
-   :padding-left "4px"})
+   :padding-left "4px"
+   :user-select :none})
 
 (defattrs skill-bar []
   {:background-color "#10131ca3"
@@ -84,7 +85,8 @@
    :grid-gap "3px"
    :grid-auto-rows "56px"
    :grid-auto-columns "56px"
-   :grid-auto-flow :column})
+   :grid-auto-flow :column
+   :pointer-events :all})
 
 (defclass skill []
   {:position :relative
@@ -96,8 +98,7 @@
   {:position :absolute
    :width "50px"
    :height "50px"
-   ;; :pointer-events :none
-   })
+   :pointer-events :none})
 
 (defattrs skill-number []
   {:color "#5b858e"

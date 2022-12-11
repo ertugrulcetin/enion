@@ -87,8 +87,9 @@
                      "<script src=\"__loading__.js\"></script>\n    <script src=\"enion-cljs/resources/public/js/compiled/app.js\"></script>")
        (#(.write w %))))
 
+
 (with-open [w (io/writer "styles.css")]
- (.write w "html {
+  (.write w "html {
     height: 100%;
     width: 100%;
     background-color: white;
@@ -97,6 +98,7 @@ body {
     margin: 0;
     background-color: white;
     font-family: Helvetica, arial, sans-serif;
+    overflow: hidden;
 }
 
 #app {
@@ -130,6 +132,7 @@ canvas:focus {
     outline: none;
 }
 "))
+
 
 ;; Usage
 ;; bb ./download-game.clj

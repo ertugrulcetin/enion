@@ -6,7 +6,7 @@
 (defn- create-div-app []
   (let [div (js/document.createElement "div")]
     (.setAttribute div "id" "app")
-    (.appendChild (.-body js/document) div)))
+    (.prepend (.-body js/document) div)))
 
 (defn init []
   (create-div-app)
