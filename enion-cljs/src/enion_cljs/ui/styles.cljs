@@ -83,8 +83,8 @@
    :border-radius "5px"
    :display :grid
    :grid-gap "3px"
-   :grid-auto-rows "51px"
-   :grid-auto-columns "51px"
+   :grid-auto-rows "46px"
+   :grid-auto-columns "46px"
    :grid-auto-flow :column
    :pointer-events :all})
 
@@ -96,8 +96,8 @@
 
 (defclass skill-img []
   {:position :absolute
-   :width "45px"
-   :height "45px"
+   :width "40px"
+   :height "40px"
    :pointer-events :none})
 
 (defattrs skill-number []
@@ -112,23 +112,38 @@
    :z-index 10
    :font-weight :bold})
 
-(defattrs chat []
+(defclass chat-wrapper []
   {:position :absolute
-   :overflow :hidden
+   :width "30%"
+   :left "10px"
+   :margin-left :auto
+   :height :auto
+   :bottom "45px"
+   :z-index 15
+   :opacity 0.75})
+
+(defattrs info-box-wrapper []
+  {:composes [(chat-wrapper)]
+   :width "25%"
+   :right 0
+   :left :unset
+   :bottom "10px"})
+
+(defattrs chat []
+  {:overflow :hidden
+   :width "100%"
    :border-radius "5px"
    :text-align :left
-   :font-size "14px"
+   :font-size "13px"
    :font-weight "bold"
    :color "white"
    :margin-right "10px"
    :right "0px"
-   :bottom "40px"
+   :bottom "50px"
    :overflow-y :auto
    :padding "10px"
-   :height "150px"
-   :width "400px"
+   ;; :height "180px"
    :pointer-events :all
-   :opacity 0.75
    :left "10px"
    ;; For Firefox
    :-ms-overflow-style :none
@@ -139,7 +154,8 @@
 (defattrs info-box []
   {:composes [(chat)]
    :left :unset
-   :bottom "20px"})
+   :bottom "20px"
+   :height "150px"})
 
 (defattrs message-box []
   {:width "100%"
@@ -150,13 +166,31 @@
    :-ms-overflow-style :none
    :scrollbar-width :none}
   ["&::-webkit-scrollbar" {:display :none}]
-  [:span {:background-color "#10131dcc"}]
-  [:b {:padding "5px"}])
+  [:strong {:padding "2px"
+            :background-color "#10131dcc"
+            :border-radius "3px"}]
+  [:span {:padding "2px"
+          :margin-left "5px"
+          :line-height "1.6rem"
+          :background-color "#10131dcc"
+          :border-radius "3px"}])
 
-(defattrs info-message-box []
+(defclass info-message-box []
   {:composes [(message-box)]
-   :height "130px"}
+   :height "150px"}
+  [:span {:margin-left :unset}
+   [:&.damage {:color "#ff0000ff"}]
+   [:&.hit {:color "#e1dedeff"}]
+   [:&.bp {:color "#5f5fcbff"}]
+   [:&.skill {:color "#e1dedeff"}]
+   [:&.using-potion {:color "#01ffbbd3"}]
+   [:&.hp-recover {:color "#53b226ff"}]
+   [:&.mp-recover {:color "#2691b2ff"}]
+   [:&.skill-failed {:color "#ffc301c8"}]]
   ["&::-webkit-scrollbar" {:display :block}])
+
+(defattrs chat-part-message-box []
+  {:color "rgb(15 188 3)"})
 
 (defclass chat-input []
   {:width "345px"
@@ -176,19 +210,14 @@
    :font-family "Comic Papyrus"
    :background-color "#10131dcc"
    :border "2px solid #10131dcc"
-   :border-radius "2px"
+   :border-radius "5px"
    :color "white"
-   :cursor :pointer})
-
-(defclass chat-all []
-  {:composes [(button)]
-   :position :fixed
-   :margin-top "5px"})
-
-(defclass chat-party []
-  {:composes [(chat-all)]
-   :margin-left "40px"
-   :color "rgb(15 188 3) !important"})
+   :cursor :pointer
+   :pointer-events :all
+   :user-select :none}
+  [:&:hover
+   {:border "2px solid grey"
+    :border-radius "5px"}])
 
 (defattrs selected-player []
   {:composes [(actions-container)]
@@ -209,7 +238,41 @@
    :border "2px solid #10131dcc"
    :border-radius "3px"})
 
-(defclass collapse-button []
+(defclass info-close-button []
   {:composes [(button)]
-   :margin-bottom "5px"
-   :font-size "14px"})
+   :margin-left "10px"
+   :font-size "14px"
+   :border-radius "5px"})
+
+(defclass info-open-button []
+  {:composes [(info-close-button)]
+   :position :absolute
+   :opacity 0.5
+   :right "20px"
+   :bottom "10px"})
+
+(defclass chat-close-button []
+  {:composes [(info-close-button)]})
+
+(defclass chat-open-button []
+  {:composes [(chat-close-button)]
+   :position :fixed
+   :bottom "20px"})
+
+(defclass chat-all-button []
+  {:composes [(button)]
+   :position :fixed
+   :margin-top "5px"})
+
+(defclass chat-party-button []
+  {:composes [(chat-all-button)]
+   :margin-left "40px"
+   :color "rgb(15 188 3) !important"})
+
+(defclass chat-party-button-selected []
+  {:border "2px solid rgb(15 188 3)"}
+  [:&:hover {:border "2px solid rgb(15 188 3)"}])
+
+(defclass chat-all-button-selected []
+  {:border "2px solid white"}
+  [:&:hover {:border "2px solid white"}])
