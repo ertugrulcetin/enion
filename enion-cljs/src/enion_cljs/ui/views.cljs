@@ -1,6 +1,7 @@
 (ns enion-cljs.ui.views
   (:require
     [applied-science.js-interop :as j]
+    [enion-cljs.scene.entities.player :as player]
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
@@ -210,30 +211,6 @@
          [:div (styles/info-box)
           [info-message-box]])])))
 
-(comment
-  (def data [{:damage 241 :from "NeaTBuSTeR"}
-             {:bp 62}
-             {:hit 88 :to "LeXXo"}
-             {:skill "Smash raptor"}
-             {:skill-failed true}
-             {:too-far true}
-             {:potion :hp}
-             {:potion :mp}
-             {:hp true}
-             {:mp true}])
-  (def data1 (shuffle data))
-  (def data2 (shuffle data))
-  (def data3 (shuffle data))
-  (def all-data [data1 data2 data3])
-  (doseq [msg (first (shuffle all-data))]
-    (dispatch-sync [::events/add-message-to-info-box msg]))
-  (js/setInterval
-    (fn []
-      (doseq [msg (first (shuffle all-data))]
-        (dispatch-sync [::events/add-message-to-info-box msg])))
-    250)
-  )
-
 (defn- selected-player []
   [:div (styles/selected-player)
    [:span (styles/selected-player-text)
@@ -241,6 +218,46 @@
    [:div (styles/hp-bar-selected-player)
     [:div (styles/hp-hit)]
     [:div (styles/hp)]]])
+
+(defonce x (r/atom 0))
+(defonce y (r/atom 0))
+
+(comment
+  (player/get-position)
+  (js/clearInterval 35281)
+  (js/setInterval
+    (fn []
+      (when-not (= "idle" (player/get-state))
+        (let [pos (player/get-position)]
+          (reset! x (+ (* (j/get pos :x) 5) 175))
+          (reset! y (+ (* (j/get pos :z) 5) 175)))))
+    250)
+  )
+
+;; Math formula of map
+;; let scale = Map zoom size (#holder) / terrain size (100) ratio
+;; let gap = (Map zoom size (#holder) - Minimap size) / 2
+;; (+ (* (j/get pos :x) scale) gap)
+
+;; (when-not (= "idle" (player/get-state))
+;;       (let [pos (player/get-position)]
+;;         (reset! x (+ (* (j/get pos :x) 5) 175))
+;;         (reset! y (+ (* (j/get pos :z) 5) 175))))
+(defn- map-holder []
+  [:div
+   {:class (styles/holder)
+    :style {:left (str (- @x) "px")
+            :top (str (- @y) "px")}}
+   [:img
+    {:class (styles/minimap-img)
+     :src "http://localhost:8280/img/minimap.png"}]])
+
+(defn- minimap []
+  (when @(subscribe [::subs/minimap-open?])
+    [:div (styles/minimap)
+     [:div (styles/map-overflow)
+      [map-holder]
+      [:div (styles/minimap-player)]]]))
 
 ;; TODO when game is ready then show HUD
 (defn main-panel []
@@ -253,12 +270,17 @@
                                        (reset! mouse-y (j/get e :y))))
        (js/document.addEventListener "keydown"
                                      (fn [e]
-                                       (when (= (j/get e :code) "Enter")
-                                         (dispatch [::events/send-message])))))
+                                       (cond
+                                         (= (j/get e :code) "Enter")
+                                         (dispatch [::events/send-message])
+
+                                         (= (j/get e :code) "KeyM")
+                                         (dispatch [::events/toggle-minimap])))))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
         [selected-player]
+        [minimap]
         [chat]
         [info-box]
         [actions-section]

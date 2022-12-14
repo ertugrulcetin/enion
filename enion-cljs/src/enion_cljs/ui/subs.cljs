@@ -33,3 +33,8 @@
   ::chat-type
   (fn [db]
     (-> db :chat-box :type)))
+
+(reg-sub
+  ::minimap-open?
+  (fn [db]
+    (:minimap-open? db)))

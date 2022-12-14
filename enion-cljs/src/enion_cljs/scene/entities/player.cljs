@@ -156,6 +156,12 @@
           (when (pressing-wasd-or-has-target?)
             (pc/set-loc-euler model-entity 0 (:target-y @state) 0)))))))
 
+(defn get-position []
+  (pc/get-pos player-entity))
+
+(defn get-state []
+  (pc/get-anim-state model-entity))
+
 (defn- update-fn [dt this]
   (process-movement dt this))
 
@@ -165,10 +171,11 @@
                      :update (fnt (update-fn dt this))}))
 
 (comment
+  (get-position)
   (js/console.log player-entity)
   (j/call-in player-entity [:rigidbody :teleport] 31 2.3 -32)
 
-  (swap! state assoc :speed 2500)
+  (swap! state assoc :speed 750)
 
   (js->clj (.-forward (:camera @state)))
 

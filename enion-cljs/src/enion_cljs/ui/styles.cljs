@@ -276,3 +276,48 @@
 (defclass chat-all-button-selected []
   {:border "2px solid white"}
   [:&:hover {:border "2px solid white"}])
+
+(defattrs minimap []
+  {:position :absolute
+   :right "10px"
+   :top "10px"
+   :width "148px"
+   :height "148px"
+   :z-index 3
+   :border "2px solid black"
+   :user-select :none
+   :pointer-events :none})
+
+(defattrs map-overflow []
+  {:position :absolute
+   :overflow :hidden
+   :width "100%"
+   :height "100%"
+   :left 0
+   :top 0
+   :background "#78b9cf"})
+
+(defclass holder []
+  {:position :absolute
+   :width "500px"
+   :height "500px"
+   :transition "left .3s linear, top .3s linear"})
+
+(defclass minimap-img []
+  {:position :absolute
+   :width "100%"
+   :height "100%"
+   :left 0
+   :top 0
+   :z-index 1})
+
+(defattrs minimap-player []
+  {:background-size "100% 100% !important"
+   :width "12px"
+   :height "12px"
+   :z-index 1
+   :position :absolute
+   :left "50%"
+   :top "50%"
+   :transform "translate(-50%, -50%)"
+   :background "url(\"http://localhost:8280/img/pointer.png\") center 0px no-repeat"})

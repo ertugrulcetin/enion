@@ -10,4 +10,5 @@
                          :party (rb/ring-buffer 50)}
               :open? true
               :active-input? false
-              :type :all}})
+              :type :all}
+   :minimap-open? true})

@@ -71,3 +71,10 @@
         (cond
           input-open? {:db (assoc-in db [:chat-box :active-input?] false)}
           (not input-open?) {:db (assoc-in db [:chat-box :active-input?] true)})))))
+
+(reg-event-db
+  ::toggle-minimap
+  (fn [db]
+    (if (-> db :chat-box :active-input?)
+      db
+      (update db :minimap-open? not))))
