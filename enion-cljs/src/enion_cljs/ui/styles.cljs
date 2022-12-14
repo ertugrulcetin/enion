@@ -285,6 +285,7 @@
    :height "148px"
    :z-index 3
    :border "2px solid black"
+   :border-radius "3px"
    :user-select :none
    :pointer-events :none})
 
