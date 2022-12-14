@@ -85,6 +85,25 @@
      [:span (:text msg)]
      [:br]]))
 
+(defn- on-message-box-update [ref]
+  (when-let [elem @ref]
+    (let [gap (- (j/get elem :scrollHeight) (+ (j/get elem :scrollTop)
+                                               (j/get elem :offsetHeight)))]
+      (when (< gap 50)
+        (j/assoc! elem :scrollTop (j/get elem :scrollHeight))))))
+
+(defn- chat-message-box []
+  (let [ref (atom nil)]
+    (r/create-class
+      {:component-did-update #(on-message-box-update ref)
+       :reagent-render (fn []
+                         [:div
+                          {:ref #(reset! ref %)
+                           :class (styles/message-box)}
+                          (for [[idx msg] (map-indexed vector @(subscribe [::subs/chat-messages]))]
+                            ^{:key idx}
+                            [chat-message msg])])})))
+
 (defn- chat []
   (let [open? @(subscribe [::subs/box-open? :chat-box])
         input-active? @(subscribe [::subs/chat-input-active?])
@@ -100,10 +119,7 @@
       (if open? "Close" "Open")]
      (when open?
        [:div (styles/chat)
-        [:div (styles/message-box)
-         (for [[idx msg] (map-indexed vector @(subscribe [::subs/chat-messages]))]
-           ^{:key idx}
-           [chat-message msg])]
+        [chat-message-box]
         (when input-active?
           [:input
            {:ref #(some-> % .focus)
@@ -169,42 +185,30 @@
 (defn- info-message-box []
   (let [ref (atom nil)]
     (r/create-class
-      {:component-did-update (fn []
-                               (when-let [elem @ref]
-                                 (j/assoc! elem :scrollTop (j/get elem :scrollHeight))))
+      {:component-did-update #(on-message-box-update ref)
        :reagent-render (fn []
-                         [:div {:ref #(reset! ref %)
-                                :class (styles/info-message-box)}
-                          (for [[idx message] (map-indexed vector
-                                                           [{:damage 241 :from "NeaTBuSTeR"}
-                                                            {:bp 62}
-                                                            {:hit 88 :to "LeXXo"}
-                                                            {:skill "Smash raptor"}
-                                                            {:skill-failed true}
-                                                            {:too-far true}
-                                                            {:potion :hp}
-                                                            {:potion :mp}
-                                                            {:hp true}
-                                                            {:mp true}]
-                                                           #_@(subscribe [::subs/info-box-messages]))]
+                         [:div
+                          {:ref #(reset! ref %)
+                           :class (styles/info-message-box)}
+                          (for [[idx message] (map-indexed vector @(subscribe [::subs/info-box-messages]))]
                             ^{:key idx}
                             [info-message message])])})))
 
 (defn- info-box []
-  (when true #_@(subscribe [::subs/info-box-messages])
-        (let [open? @(subscribe [::subs/box-open? :info-box])
-              ref (atom nil)]
-          [:div (styles/info-box-wrapper)
-           [:button
-            {:ref #(reset! ref %)
-             :class (if open? (styles/info-close-button) (styles/info-open-button))
-             :on-click (fn []
-                         (dispatch [::events/toggle-box :info-box])
-                         (some-> @ref .blur))}
-            (if open? "Close" "Open")]
-           (when open?
-             [:div (styles/info-box)
-              [info-message-box]])])))
+  (when @(subscribe [::subs/any-info-box-messages?])
+    (let [open? @(subscribe [::subs/box-open? :info-box])
+          ref (atom nil)]
+      [:div (styles/info-box-wrapper)
+       [:button
+        {:ref #(reset! ref %)
+         :class (if open? (styles/info-close-button) (styles/info-open-button))
+         :on-click (fn []
+                     (dispatch [::events/toggle-box :info-box])
+                     (some-> @ref .blur))}
+        (if open? "Close" "Open")]
+       (when open?
+         [:div (styles/info-box)
+          [info-message-box]])])))
 
 (comment
   (def data [{:damage 241 :from "NeaTBuSTeR"}
@@ -250,8 +254,7 @@
        (js/document.addEventListener "keydown"
                                      (fn [e]
                                        (when (= (j/get e :code) "Enter")
-                                         (dispatch [::events/send-message]))
-                                       (js/console.log e))))
+                                         (dispatch [::events/send-message])))))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

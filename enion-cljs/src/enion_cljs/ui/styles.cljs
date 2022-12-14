@@ -157,7 +157,7 @@
    :bottom "20px"
    :height "150px"})
 
-(defattrs message-box []
+(defclass message-box []
   {:width "100%"
    :height "120px"
    :line-height "1.65em"

@@ -13,6 +13,12 @@
     (-> db :info-box :messages seq)))
 
 (reg-sub
+  ::any-info-box-messages?
+  :<- [::info-box-messages]
+  (fn [info-box-messages]
+    (boolean info-box-messages)))
+
+(reg-sub
   ::chat-messages
   (fn [db]
     (let [type (-> db :chat-box :type)]

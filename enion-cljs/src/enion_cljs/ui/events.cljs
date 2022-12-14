@@ -1,12 +1,30 @@
 (ns enion-cljs.ui.events
   (:require
     [enion-cljs.ui.db :as db]
-    [re-frame.core :refer [reg-event-db reg-event-fx]]))
+    [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx]]))
+
+(defonce throttle-timeouts (atom {}))
 
 (reg-event-db
   ::initialize-db
   (fn [_ _]
     db/default-db))
+
+(reg-fx
+  ::dispatch-throttle
+  (fn [[id event-vec milli-secs]]
+    (when-not (@throttle-timeouts id)
+      (swap! throttle-timeouts assoc id
+             (js/setTimeout
+               (fn []
+                 (dispatch event-vec)
+                 (swap! throttle-timeouts dissoc id))
+               milli-secs)))))
+
+(reg-event-fx
+  ::add-message-to-info-box-throttled
+  (fn [_ [_ msg]]
+    {::dispatch-throttle [::add-message-to-info-box [::add-message-to-info-box msg] 100]}))
 
 (reg-event-db
   ::add-message-to-info-box

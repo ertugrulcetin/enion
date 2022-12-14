@@ -4,9 +4,9 @@
 
 (def default-db
   {:name "Enion Online"
-   :info-box {:messages (rb/ring-buffer 100)
+   :info-box {:messages (rb/ring-buffer 50)
               :open? true}
-   :chat-box {:messages {:all (rb/ring-buffer 50)
+   :chat-box {:messages {:all (conj (rb/ring-buffer 50) {:from "System" :text "Welcome to Enion Online!"})
                          :party (rb/ring-buffer 50)}
               :open? true
               :active-input? false
