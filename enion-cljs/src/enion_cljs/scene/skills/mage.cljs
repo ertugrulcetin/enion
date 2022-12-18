@@ -6,7 +6,8 @@
 ;; TODO check temp-final-pos, when there are multiple novas, what to do? override may happen...
 (let [temp-final-pos (js-obj)
       temp-final-scale #js {:x 5 :y 5 :z 5}
-      opacity #js {:opacity 0}]
+      opacity #js {:opacity 1}
+      last-opacity #js {:opacity 0}]
   (defn throw-nova [entity pos]
     (j/assoc! entity :enabled true)
     (j/assoc! temp-final-pos :x (j/get pos :x) :y (j/get pos :y) :z (j/get pos :z))
@@ -18,19 +19,19 @@
           first-scale (pc/get-loc-scale entity)
           tween-scale (-> (j/call entity :tween first-scale)
                           (j/call :to temp-final-scale 1 js/pc.Linear))
-          mat (j/get-in entity [:render :meshInstances 0 :material])
-          _ (do
-              (j/assoc! mat :opacity 0.75)
-              (j/call mat :update))
-          tween-opacity (-> (j/call entity :tween mat)
-                            (j/call :to opacity 1 js/pc.Linear)
+          _ (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" 1)
+          _ (j/assoc! opacity :opacity 1)
+          tween-opacity (-> (j/call entity :tween opacity)
+                            (j/call :to last-opacity 1 js/pc.Linear)
                             (j/call :delay 0.5))
-          _ (j/call tween-opacity :on "update" (fn []
-                                                 (j/call mat :update)))
-          _ (j/call tween-opacity :on "complete" (fn []
-                                                   (j/call-in entity [:children 0 :particlesystem :stop])
-                                                   (j/call-in entity [:children 0 :particlesystem :reset])
-                                                   (j/assoc! entity :enabled false)))]
+          _ (j/call tween-opacity :on "update"
+                    (fn []
+                      (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" (j/get opacity :opacity))))
+          _ (j/call tween-opacity :on "complete"
+                    (fn []
+                      (j/call-in entity [:children 0 :particlesystem :stop])
+                      (j/call-in entity [:children 0 :particlesystem :reset])
+                      (j/assoc! entity :enabled false)))]
       (j/call tween-loc :start)
       (j/call tween-scale :start)
       (j/call tween-opacity :start)
@@ -39,4 +40,34 @@
 
 (comment
   (pc/set-loc-scale (pc/find-by-name "nova") 1)
-  (pc/get-loc-scale (pc/find-by-name "nova")))
+  (pc/get-loc-scale (pc/find-by-name "nova"))
+
+  (let [e (pc/find-by-name "light_sprite")
+        _ (pc/set-loc-scale e 0.05)
+        temp-final-scale #js {:x 0 :y 0.05 :z 0.05}
+        first-scale (pc/get-loc-scale e)
+        tween-scale (-> (j/call e :tween first-scale)
+                      (j/call :to temp-final-scale 0.3 js/pc.Linear))]
+    (j/call tween-scale :start)
+    nil)
+
+
+  (let [color #js {:color 1}
+        last-color #js {:color 0}
+        e (pc/find-by-name "model_mesh")
+        tween-color (-> (j/call e :tween color)
+                      (j/call :to last-color 2 js/pc.Linear)
+                      ;(j/call :yoyo true)
+                      ;(j/call :loop true)
+                      ;(j/call :repeat )
+                      )
+        _ (j/call tween-color :on "update"
+            (fn []
+              (j/call-in e [:render :meshInstances 0 :setParameter] "material_emissive" #js[(j/get color :color) 0 0])))]
+    (j/call tween-color :start)
+    nil)
+
+  (j/call-in (pc/find-by-name "model_mesh") [:render :meshInstances 0 :setParameter] "material_emissive" #js[0.01 0 0])
+
+  (j/call-in (pc/find-by-name "model_mesh") [:render :meshInstances 0 :setParameter] "material_opacity" 0.4)
+  )

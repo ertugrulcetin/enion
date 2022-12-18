@@ -186,3 +186,6 @@
       (setv temp (+ (j/get pos :x) map-half-size)
             (j/get pos :y)
             (+ (j/get pos :z) map-half-size)))))
+
+(defn color [r g b]
+  (js/pc.Color. r g b))
