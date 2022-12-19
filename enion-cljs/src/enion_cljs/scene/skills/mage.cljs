@@ -47,8 +47,21 @@
         temp-final-scale #js {:x 0 :y 0.05 :z 0.05}
         first-scale (pc/get-loc-scale e)
         tween-scale (-> (j/call e :tween first-scale)
-                      (j/call :to temp-final-scale 0.3 js/pc.Linear))]
+                      (j/call :to temp-final-scale 0.2 js/pc.Linear))]
     (j/call tween-scale :start)
+    nil)
+
+  (js/console.log (pc/find-by-name "light_sprite"))
+  (let [opacity #js {:opacity 1}
+        last-opacity #js {:opacity 0}
+        e (pc/find-by-name "light_sprite")
+        tween-opacity (-> (j/call e :tween opacity)
+                          (j/call :to last-opacity 0.2 js/pc.Linear))
+        _ (j/call tween-opacity :on "update"
+              (fn []
+                (println (j/get opacity :opacity))
+                (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))]
+    (j/call tween-opacity :start)
     nil)
 
 

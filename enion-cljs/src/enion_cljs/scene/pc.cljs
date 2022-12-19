@@ -189,3 +189,6 @@
 
 (defn color [r g b]
   (js/pc.Color. r g b))
+
+(defn find-asset-by-name [name]
+  (j/call-in app [:assets :_assets :find] #(= name (j/get % :name))))
