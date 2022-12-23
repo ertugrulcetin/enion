@@ -8,6 +8,7 @@
       (pc/pressed? :KEY_S)
       (pc/pressed? :KEY_D)))
 
+;; TODO update here
 (defn pressing-attacks? []
   (or (pc/pressed? :KEY_1)
       (pc/pressed? :KEY_2)

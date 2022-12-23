@@ -31,6 +31,7 @@
 
 (defonce player-entity nil)
 (defonce model-entity nil)
+(defonce effects (atom {}))
 
 (defn- pressing-wasd-or-has-target? []
   (or (k/pressing-wasd?) (:target-pos-available? @state)))
@@ -44,14 +45,18 @@
   (anim/register-key->skills)
   (pc/on-keyboard :EVENT_KEYDOWN
                   (fn [e]
-                    ;; (anim.warrior/process-skills e state)
+                    (anim.warrior/process-skills e state)
                     ;; (anim.asas/process-skills e state)
                     ;; (anim.mage/process-skills e state)
-                    (anim.priest/process-skills e state)))
+                    ;; (anim.priest/process-skills e state)
+                    ))
   (pc/on-keyboard :EVENT_KEYUP
                   (fn [e]
                     (process-running)))
-  (anim/register-anim-events state anim.priest/events))
+  (anim/register-anim-events state
+                             anim.warrior/events
+                             ;; anim.priest/events
+                             ))
 
 ;; TODO also need to check is char dead or alive to be able to do that
 (defn- set-target-position [e]
@@ -91,11 +96,13 @@
                    (set-target-position e)))))
 
 (defn- init-fn [this]
-  (let [model-entity* (pc/find-by-name "model")]
-    (swap! state assoc
-           :camera (pc/find-by-name "camera")
-           :model-entity model-entity*)
-    (set! player-entity (j/get this :entity))
+  (let [character-template-entity (pc/clone (pc/find-by-name "orc_warrior"))
+        player-entity* (j/get this :entity)
+        _ (pc/set-loc-pos character-template-entity 0 0 0)
+        _ (pc/add-child player-entity* character-template-entity)
+        model-entity* (pc/find-by-name* character-template-entity "orc_warrior_model")]
+    (swap! state assoc :camera (pc/find-by-name "camera"))
+    (set! player-entity player-entity*)
     (set! model-entity model-entity*)
     (set! anim/model-entity model-entity*)
     (register-skill-events)
@@ -175,7 +182,7 @@
   (js/console.log player-entity)
   (j/call-in player-entity [:rigidbody :teleport] 31 2.3 -32)
 
-  (swap! state assoc :speed 750)
+  (swap! state assoc :speed 650)
 
   (js->clj (.-forward (:camera @state)))
 

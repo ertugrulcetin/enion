@@ -4,8 +4,7 @@
     [clojure.set :as set]
     [enion-cljs.scene.entities.player :as entity.player]
     [enion-cljs.scene.pc :as pc :refer [app]]
-    [goog.functions :as functions]
-    [goog.object :as ob]))
+    [goog.functions :as functions]))
 
 (defonce entities (atom {}))
 
@@ -74,7 +73,7 @@
 
 (let [find-fn (fn [t] (lod-keys t))]
   (defn- process-mesh-instance [mesh-instance]
-    (when ^boolean (ob/get mesh-instance "visibleThisFrame")
+    (when ^boolean (j/get mesh-instance :visibleThisFrame)
       (let [entity (.-node mesh-instance)
             tags (.list ^js/Object (.-tags entity))]
         (when (> (count tags) 0)
@@ -90,27 +89,27 @@
               (cond
                 (< distance (inc lod-0-range))
                 (do
-                  (set! (.-enabled lod-0) true)
-                  (set! (.-enabled lod-1) false)
-                  (set! (.-enabled lod-2) false))
+                  (j/assoc! lod-0 :enabled true)
+                  (j/assoc! lod-1 :enabled false)
+                  (j/assoc! lod-2 :enabled false))
 
                 (< lod-0-range distance (inc lod-1-range))
                 (do
-                  (set! (.-enabled lod-0) false)
-                  (set! (.-enabled lod-1) true)
-                  (set! (.-enabled lod-2) false))
+                  (j/assoc! lod-0 :enabled false)
+                  (j/assoc! lod-1 :enabled true)
+                  (j/assoc! lod-2 :enabled false))
 
                 (< lod-1-range distance (inc lod-2-range))
                 (do
-                  (set! (.-enabled lod-0) false)
-                  (set! (.-enabled lod-1) false)
-                  (set! (.-enabled lod-2) true))))))))))
+                  (j/assoc! lod-0 :enabled false)
+                  (j/assoc! lod-1 :enabled false)
+                  (j/assoc! lod-2 :enabled true))))))))))
 
 (defn- process-on-post-cull []
   (let [world-layer (j/call-in app [:scene :layers :getLayerByName] "World")]
     (j/assoc! world-layer :onPostCull (functions/throttle
                                         (fn [_]
-                                          (.forEach ^js/Array (.-opaqueMeshInstances world-layer) process-mesh-instance))
+                                          (.forEach ^js/Array (j/get world-layer :opaqueMeshInstances) process-mesh-instance))
                                         500))))
 
 (defn init []

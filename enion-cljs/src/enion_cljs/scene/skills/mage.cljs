@@ -43,15 +43,17 @@
   (pc/get-loc-scale (pc/find-by-name "nova"))
 
   (let [e (pc/find-by-name "light_sprite")
-        _ (pc/set-loc-scale e 0.05)
-        temp-final-scale #js {:x 0 :y 0.05 :z 0.05}
+        _ (pc/set-loc-scale e 0.3)
+        temp-final-scale #js {:x 0 :y 0.3 :z 0.3}
         first-scale (pc/get-loc-scale e)
         tween-scale (-> (j/call e :tween first-scale)
-                      (j/call :to temp-final-scale 0.2 js/pc.Linear))]
+                      (j/call :to temp-final-scale 0.25 js/pc.Linear))]
     (j/call tween-scale :start)
     nil)
 
-  (js/console.log (pc/find-by-name "light_sprite"))
+  (pc/set-loc-pos (pc/find-by-name "light_sprite") 0 0 0)
+
+
   (let [opacity #js {:opacity 1}
         last-opacity #js {:opacity 0}
         e (pc/find-by-name "light_sprite")
@@ -59,7 +61,6 @@
                           (j/call :to last-opacity 0.2 js/pc.Linear))
         _ (j/call tween-opacity :on "update"
               (fn []
-                (println (j/get opacity :opacity))
                 (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))]
     (j/call tween-opacity :start)
     nil)
@@ -79,6 +80,27 @@
               (j/call-in e [:render :meshInstances 0 :setParameter] "material_emissive" #js[(j/get color :color) 0 0])))]
     (j/call tween-color :start)
     nil)
+
+  (pc/set-loc-scale (pc/find-by-name "light_sprite2") 0.15)
+  (let [e (pc/find-by-name "light_sprite2")]
+    (j/assoc! e :enabled true)
+    (j/assoc-in! e [:sprite :opacity] 1)
+    (js/setTimeout #(j/assoc-in! e [:sprite :opacity] 0.5) 75)
+    (js/setTimeout #(j/assoc! e :enabled false) 150))
+
+  (let [opacity #js {:opacity 1}
+        last-opacity #js {:opacity 0}
+        e (pc/find-by-name "light_sprite2")
+        _ (j/assoc! e :enabled true)
+        tween-opacity (-> (j/call e :tween opacity)
+                          (j/call :to last-opacity 0.2 js/pc.Linear))
+        _ (j/call tween-opacity :on "update"
+              (fn []
+                (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))]
+    (j/call tween-opacity :start)
+    nil)
+
+  (pc/set-loc-pos (pc/find-by-name "light_sprite2") 0 -0.15 0)
 
   (j/call-in (pc/find-by-name "model_mesh") [:render :meshInstances 0 :setParameter] "material_emissive" #js[0.01 0 0])
 

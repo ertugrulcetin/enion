@@ -59,9 +59,9 @@
                     r-lock? (swap! state assoc :can-r-attack-interrupt? false))))))
 
 (defn register-key->skills []
-  (set! key->skill {(pc/get-code :KEY_1) "breakDefense"
-                    (pc/get-code :KEY_2) "heal"
-                    (pc/get-code :KEY_3) "cure"
+  (set! key->skill {(pc/get-code :KEY_1) "attackOneHand"
+                    (pc/get-code :KEY_2) "attackSlowDown"
+                    ;; (pc/get-code :KEY_3) "cure"
                     (pc/get-code :KEY_R) "attackR"}))
 
 (defn char-cant-run? []

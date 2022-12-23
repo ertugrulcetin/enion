@@ -20,7 +20,7 @@ Water.attributes.add('surfaceTexture', {
 
 Water.attributes.add('isMask', {type:'boolean',title:"Is Mask?"});
 
-Water.attributes.add('subdivisions', { type : 'number', default : 100 });
+Water.attributes.add('subdivisions', { type : 'number', default : 1});
 Water.attributes.add('width', { type : 'number', default : 1000 });
 Water.attributes.add('height', { type : 'number', default : 1000 });
 
