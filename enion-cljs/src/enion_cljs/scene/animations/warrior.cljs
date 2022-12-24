@@ -59,7 +59,7 @@
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE))
+        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE) (:on-ground? @state))
         (pc/set-anim-boolean model-entity "jump" true)
 
         (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackOneHand"))

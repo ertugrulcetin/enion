@@ -41,7 +41,7 @@
     (pc/set-anim-boolean model-entity "run" true)
     (pc/set-anim-boolean model-entity "run" false)))
 
-(defn- register-skill-events []
+(defn- register-keyboard-events []
   (anim/register-key->skills)
   (pc/on-keyboard :EVENT_KEYDOWN
                   (fn [e]
@@ -56,7 +56,7 @@
   (anim/register-anim-events state
                              anim.warrior/events
                              ;; anim.priest/events
-                             ))
+                             player-entity))
 
 ;; TODO also need to check is char dead or alive to be able to do that
 (defn- set-target-position [e]
@@ -82,8 +82,8 @@
                (fn [e]
                  (when (and (pc/button? e :MOUSEBUTTON_LEFT)
                             (or (= "CANVAS" (j/get-in e [:element :nodeName]))
-                                (not= "all" (->  (j/call js/window :getComputedStyle (j/get e :element))
-                                                 (j/get :pointerEvents)))))
+                                (not= "all" (-> (j/call js/window :getComputedStyle (j/get e :element))
+                                                (j/get :pointerEvents)))))
                    (swap! state assoc :mouse-left-locked? true)
                    (set-target-position e))))
   (pc/on-mouse :EVENT_MOUSEUP
@@ -95,6 +95,18 @@
                  (when (:mouse-left-locked? @state)
                    (set-target-position e)))))
 
+(defn- collision-start [result]
+  (when (= "terrain" (j/get-in result [:other :name]))
+    (swap! state assoc :on-ground? true)))
+
+(defn- collision-end [result]
+  (when (= "terrain" (j/get result :name))
+    (swap! state assoc :on-ground? false)))
+
+(defn- register-collision-events [entity]
+  (j/call-in entity [:collision :on] "collisionstart" collision-start)
+  (j/call-in entity [:collision :on] "collisionend" collision-end))
+
 (defn- init-fn [this]
   (let [character-template-entity (pc/clone (pc/find-by-name "orc_warrior"))
         player-entity* (j/get this :entity)
@@ -105,8 +117,9 @@
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
     (set! anim/model-entity model-entity*)
-    (register-skill-events)
-    (register-mouse-events)))
+    (register-keyboard-events)
+    (register-mouse-events)
+    (register-collision-events player-entity*)))
 
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [_ _]
@@ -141,9 +154,6 @@
             (swap! state update :z dec))
           (when (pc/pressed? :KEY_D)
             (swap! state update :x inc))
-
-          (when (pc/pressed? :KEY_SPACE)
-            (pc/apply-impulse player-entity 0 40 0))
 
           (when (or (not= (:x @state) 0)
                     (not= (:z @state) 0))
@@ -187,5 +197,9 @@
   (js->clj (.-forward (:camera @state)))
 
   (pc/get-map-pos player-entity)
+
+  (pc/apply-impulse player-entity 0 200 0)
+
+  (:on-ground? @state)
 
   )

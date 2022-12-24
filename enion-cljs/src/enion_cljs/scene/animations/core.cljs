@@ -21,7 +21,9 @@
 (def common-states
   [{:anim-state "idle" :event "onIdleStart"}
    {:anim-state "run" :event "onRunStart"}
-   {:anim-state "jump" :event "onJumpEnd" :end? true}])
+   {:anim-state "jump" :event "onJumpEnd" :end? true}
+   {:anim-state "jump" :event "onJumpStart" :call? true :f (fn [player-entity]
+                                                             (pc/apply-impulse player-entity 0 200 0))}])
 
 (defn skill-cancelled? [anim-state active-state state]
   (and (= active-state anim-state)
@@ -35,16 +37,19 @@
 (defn skill-pressed? [e skill]
   (= (key->skill (.-key e)) skill))
 
-(defn register-anim-events [state events]
+(defn register-anim-events [state events player-entity]
   (doseq [{:keys [anim-state
                   event
                   skill?
                   call?
                   end?
                   r-lock?
-                  r-release?]} events]
+                  r-release?
+                  f]} events]
     (pc/on-anim model-entity event
                 (fn []
+                  (when f
+                    (f player-entity))
                   (when end?
                     (pc/set-anim-boolean model-entity anim-state false)
                     (when (k/pressing-wasd?)
