@@ -171,7 +171,8 @@
             (pc/pressed? :KEY_D) (swap! state update :target-y - 90)
             (pc/pressed? :KEY_S) (swap! state update :target-y + 180))
           (when (pressing-wasd-or-has-target?)
-            (pc/set-loc-euler model-entity 0 (:target-y @state) 0)))))))
+            (pc/set-loc-euler model-entity 0 (:target-y @state) 0)
+            (pc/set-anim-boolean model-entity "run" true)))))))
 
 (defn get-position []
   (pc/get-pos player-entity))
