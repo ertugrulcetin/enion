@@ -59,7 +59,7 @@
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE))
+        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE) (:on-ground? @state))
         (pc/set-anim-boolean model-entity "jump" true)
 
         (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackDagger"))
@@ -75,7 +75,9 @@
   (do
     (doseq [{:keys [event]} events]
       (pc/off-anim enion-cljs.scene.entities.player/model-entity event))
-    (anim/register-anim-events enion-cljs.scene.entities.player/state))
+    (anim/register-anim-events enion-cljs.scene.entities.player/state
+      enion-cljs.scene.entities.player/player-entity))
 
   (:skill-locked? @enion-cljs.scene.entities.player/state)
+  (pc/get-anim-state model-entity)
   )

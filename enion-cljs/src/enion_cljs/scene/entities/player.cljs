@@ -45,8 +45,8 @@
   (anim/register-key->skills)
   (pc/on-keyboard :EVENT_KEYDOWN
                   (fn [e]
-                    (anim.warrior/process-skills e state)
-                    ;; (anim.asas/process-skills e state)
+                    ;; (anim.warrior/process-skills e state)
+                    (anim.asas/process-skills e state)
                     ;; (anim.mage/process-skills e state)
                     ;; (anim.priest/process-skills e state)
                     ))
@@ -54,7 +54,8 @@
                   (fn [e]
                     (process-running)))
   (anim/register-anim-events state
-                             anim.warrior/events
+                             anim.asas/events
+                             ;; anim.warrior/events
                              ;; anim.priest/events
                              player-entity))
 
@@ -108,11 +109,11 @@
   (j/call-in entity [:collision :on] "collisionend" collision-end))
 
 (defn- init-fn [this]
-  (let [character-template-entity (pc/clone (pc/find-by-name "orc_warrior"))
+  (let [character-template-entity (pc/clone (pc/find-by-name "orc_asas"))
         player-entity* (j/get this :entity)
         _ (pc/set-loc-pos character-template-entity 0 0 0)
         _ (pc/add-child player-entity* character-template-entity)
-        model-entity* (pc/find-by-name* character-template-entity "orc_warrior_model")]
+        model-entity* (pc/find-by-name* character-template-entity "orc_asas_model")]
     (swap! state assoc :camera (pc/find-by-name "camera"))
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
