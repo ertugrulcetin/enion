@@ -1,15 +1,15 @@
 (ns enion-cljs.scene.entities.player
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.scene.animations.asas :as anim.asas]
-    [enion-cljs.scene.animations.core :as anim]
-    [enion-cljs.scene.animations.mage :as anim.mage]
-    [enion-cljs.scene.animations.priest :as anim.priest]
-    [enion-cljs.scene.animations.warrior :as anim.warrior]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.skills.mage :as skills.mage])
+    [enion-cljs.scene.skills.asas :as skills.asas]
+    [enion-cljs.scene.skills.core :as skills]
+    [enion-cljs.scene.skills.mage :as skills.mage]
+    [enion-cljs.scene.skills.mage :as skills.mage]
+    [enion-cljs.scene.skills.priest :as skills.priest]
+    [enion-cljs.scene.skills.warrior :as skills.warrior])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -26,11 +26,14 @@
                          :target-pos (pc/vec3)
                          :target-pos-available? false
                          :skill-locked? false
-                         :can-r-attack-interrupt? false}))
+                         :can-r-attack-interrupt? false
+                         :race :orc
+                         :class :asas
+                         :name "NeaTBuSTeR"}))
 
 (defonce player-entity nil)
 (defonce model-entity nil)
-(defonce effects (atom {}))
+(defonce effects (clj->js {}))
 
 (defn- pressing-wasd-or-has-target? []
   (or (k/pressing-wasd?) (j/get state :target-pos-available?)))
@@ -41,22 +44,19 @@
     (pc/set-anim-boolean model-entity "run" false)))
 
 (defn- register-keyboard-events []
-  (anim/register-key->skills)
-  (pc/on-keyboard :EVENT_KEYDOWN
-                  (fn [e]
-                    ;; (anim.warrior/process-skills e state)
-                    (anim.asas/process-skills e state)
-                    ;; (anim.mage/process-skills e state)
-                    ;; (anim.priest/process-skills e state)
-                    ))
-  (pc/on-keyboard :EVENT_KEYUP
-                  (fn [e]
-                    (process-running)))
-  (anim/register-anim-events state
-                             anim.asas/events
-                             ;; anim.warrior/events
-                             ;; anim.priest/events
-                             player-entity))
+  (let [[process-skills events] (case (j/get state :class)
+                                  "warrior" [skills.warrior/process-skills skills.warrior/events]
+                                  "asas" [skills.asas/process-skills skills.asas/events]
+                                  "priest" [skills.priest/process-skills skills.priest/events]
+                                  "mage" [skills.mage/process-skills skills.mage/events])]
+    (skills/register-key->skills)
+    (pc/on-keyboard :EVENT_KEYDOWN
+                    (fn [e]
+                      (process-skills e state)))
+    (pc/on-keyboard :EVENT_KEYUP
+                    (fn [e]
+                      (process-running)))
+    (skills/register-anim-events state events player-entity)))
 
 ;; TODO also need to check is char dead or alive to be able to do that
 (defn- set-target-position [e]
@@ -106,16 +106,39 @@
   (j/call-in entity [:collision :on] "collisionstart" collision-start)
   (j/call-in entity [:collision :on] "collisionend" collision-end))
 
+(defn- get-model-entity [player-entity*]
+  (let [race (j/get state :race)
+        class (j/get state :class)
+        template-entity-name (str race "_" class)
+        model-entity-name (str race "_" class "_model")
+        character-template-entity (pc/clone (pc/find-by-name template-entity-name))]
+    (pc/set-loc-pos character-template-entity 0 0 0)
+    (pc/add-child player-entity* character-template-entity)
+    (pc/find-by-name character-template-entity model-entity-name)))
+
+(defn- create-username-text [player-entity*]
+  (let [username (j/get state :name)
+        race (j/get state :race)
+        class (j/get state :class)
+        template-entity-name (str race "_" class)
+        character-template-entity (pc/find-by-name player-entity* template-entity-name)
+        username-text-entity (pc/clone (pc/find-by-name "char_name"))]
+    (j/assoc-in! username-text-entity [:element :text] username)
+    (j/assoc-in! username-text-entity [:script :enabled] true)
+    (pc/add-child character-template-entity username-text-entity)
+    (when (and (= race "orc")
+               (or (= class "priest")
+                   (= class "warrior")))
+      (pc/set-loc-pos username-text-entity 0 0.05 0))))
+
 (defn- init-fn [this]
-  (let [character-template-entity (pc/clone (pc/find-by-name "orc_asas"))
-        player-entity* (j/get this :entity)
-        _ (pc/set-loc-pos character-template-entity 0 0 0)
-        _ (pc/add-child player-entity* character-template-entity)
-        model-entity* (pc/find-by-name* character-template-entity "orc_asas_model")]
+  (let [player-entity* (j/get this :entity)
+        model-entity* (get-model-entity player-entity*)]
+    (create-username-text player-entity*)
     (j/assoc! state :camera (pc/find-by-name "camera"))
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
-    (set! anim/model-entity model-entity*)
+    (set! skills/model-entity model-entity*)
     (register-keyboard-events)
     (register-mouse-events)
     (register-collision-events player-entity*)))
@@ -128,7 +151,7 @@
         forward (j/get camera :forward)
         world-dir (j/get state :world-dir)
         temp-dir (j/get state :temp-dir)]
-    (when-not (anim/char-cant-run?)
+    (when-not (skills/char-cant-run?)
       (if (j/get state :target-pos-available?)
         (let [target (j/get state :target-pos)
               temp-dir (pc/copyv temp-dir target)

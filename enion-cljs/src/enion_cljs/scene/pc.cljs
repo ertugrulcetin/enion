@@ -17,14 +17,11 @@
                     (str/starts-with? (name (first %)) "MOUSEBUTTON_")))
        (into {})))
 
-;; Memoized version of findByName
-(def find-by-name
-  (memoize
-    (fn [name]
-      (j/call-in app [:root :findByName] name))))
-
-(defn find-by-name* [root name]
-  (j/call root :findByName name))
+(defn find-by-name
+  ([name]
+   (j/call-in app [:root :findByName] name))
+  ([entity name]
+   (j/call entity :findByName name)))
 
 (defn find-by-tag [tag]
   (j/call-in app [:root :findByTag] tag))

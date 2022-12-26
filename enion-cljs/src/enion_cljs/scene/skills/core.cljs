@@ -1,4 +1,4 @@
-(ns enion-cljs.scene.animations.core
+(ns enion-cljs.scene.skills.core
   (:require
     [applied-science.js-interop :as j]
     [enion-cljs.scene.keyboard :as k]

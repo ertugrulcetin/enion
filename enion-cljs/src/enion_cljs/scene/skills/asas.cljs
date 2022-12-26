@@ -1,9 +1,9 @@
-(ns enion-cljs.scene.animations.asas
+(ns enion-cljs.scene.skills.asas
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.scene.animations.core :as anim :refer [model-entity]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
+    [enion-cljs.scene.skills.core :as anim :refer [model-entity]]
     [enion-cljs.scene.utils :as utils])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
