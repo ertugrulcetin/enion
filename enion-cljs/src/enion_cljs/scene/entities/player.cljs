@@ -135,7 +135,7 @@
               pos (pc/get-pos player-entity)
               dir (-> temp-dir (pc/sub pos) pc/normalize (pc/scale speed))]
           (if (>= (pc/distance target pos) 0.2)
-            (pc/apply-force player-entity (.-x dir) 0 (.-z dir))
+            (pc/apply-force player-entity (j/get dir :x) 0 (j/get dir :z))
             (do
               (j/assoc! state :target-pos-available? false)
               (process-running))))

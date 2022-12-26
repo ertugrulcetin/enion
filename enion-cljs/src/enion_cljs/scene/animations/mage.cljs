@@ -3,8 +3,9 @@
     [applied-science.js-interop :as j]
     [enion-cljs.scene.animations.core :as anim :refer [model-entity]]
     [enion-cljs.scene.keyboard :as k]
-    [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.utils :as utils]))
+    [enion-cljs.scene.pc :as pc])
+  (:require-macros
+    [enion-cljs.scene.macros :as m]))
 
 ;; TODO define combo rand ranges in a var
 (def events
@@ -23,20 +24,7 @@
 (defn process-skills [e state]
   (when-not (-> e .-event .-repeat)
     (let [active-state (pc/get-anim-state model-entity)]
-      (when (k/pressing-wasd?)
-        (j/assoc! state :target-pos-available? false)
-        (cond
-          (anim/skill-cancelled? "attackRange" active-state state)
-          (anim/cancel-skill "attackRange")
-
-          (anim/skill-cancelled? "attackSingle" active-state state)
-          (anim/cancel-skill "attackSingle")
-
-          (anim/skill-cancelled? "attackR" active-state state)
-          (anim/cancel-skill "attackR")
-
-          (anim/skill-cancelled? "teleport" active-state state)
-          (anim/cancel-skill "teleport")))
+      (m/process-cancellable-skills ["attackRange" "attackSingle" "attackR" "teleport"] active-state state)
       (cond
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)

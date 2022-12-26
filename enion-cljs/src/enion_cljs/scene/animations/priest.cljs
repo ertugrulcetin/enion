@@ -3,8 +3,9 @@
     [applied-science.js-interop :as j]
     [enion-cljs.scene.animations.core :as anim :refer [model-entity]]
     [enion-cljs.scene.keyboard :as k]
-    [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.utils :as utils]))
+    [enion-cljs.scene.pc :as pc])
+  (:require-macros
+    [enion-cljs.scene.macros :as m]))
 
 (def events
   (concat anim/common-states
@@ -21,22 +22,7 @@
 (defn process-skills [e state]
   (when-not (j/get-in e [:event :repeat])
     (let [active-state (pc/get-anim-state model-entity)]
-      (when (k/pressing-wasd?)
-        ;; TODO maybe we need to delete this
-        (pc/set-anim-boolean model-entity "run" true)
-        (j/assoc! state :target-pos-available? false)
-        (cond
-          (anim/skill-cancelled? "breakDefense" active-state state)
-          (anim/cancel-skill "breakDefense")
-
-          (anim/skill-cancelled? "heal" active-state state)
-          (anim/cancel-skill "heal")
-
-          (anim/skill-cancelled? "attackR" active-state state)
-          (anim/cancel-skill "attackR")
-
-          (anim/skill-cancelled? "cure" active-state state)
-          (anim/cancel-skill "cure")))
+      (m/process-cancellable-skills ["attackR" "breakDefense" "heal" "cure"] active-state state)
       (cond
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)

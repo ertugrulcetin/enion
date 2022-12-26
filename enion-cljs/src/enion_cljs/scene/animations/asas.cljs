@@ -4,7 +4,9 @@
     [enion-cljs.scene.animations.core :as anim :refer [model-entity]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.utils :as utils]))
+    [enion-cljs.scene.utils :as utils])
+  (:require-macros
+    [enion-cljs.scene.macros :as m]))
 
 ;; TODO define combo rand ranges in a var
 (def events
@@ -27,17 +29,7 @@
 (defn process-skills [e state]
   (when-not (-> e .-event .-repeat)
     (let [active-state (pc/get-anim-state model-entity)]
-      (when (k/pressing-wasd?)
-        (j/assoc! state :target-pos-available? false)
-        (cond
-          (anim/skill-cancelled? "attackDagger" active-state state)
-          (anim/cancel-skill "attackDagger")
-
-          (anim/skill-cancelled? "attackR" active-state state)
-          (anim/cancel-skill "attackR")
-
-          (anim/skill-cancelled? "hide" active-state state)
-          (anim/cancel-skill "hide")))
+      (m/process-cancellable-skills ["attackDagger" "attackR" "hide"] active-state state)
       (cond
         (and (= active-state "attackDagger")
              (anim/skill-pressed? e "attackR")

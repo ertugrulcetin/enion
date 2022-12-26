@@ -4,7 +4,9 @@
     [enion-cljs.scene.animations.core :as anim :refer [model-entity]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.utils :as utils]))
+    [enion-cljs.scene.utils :as utils])
+  (:require-macros
+    [enion-cljs.scene.macros :as m]))
 
 ;; TODO current state leftover in idle mode but was able to run at the same time
 (def events
@@ -27,17 +29,7 @@
 (defn process-skills [e state]
   (when-not (-> e .-event .-repeat)
     (let [active-state (pc/get-anim-state model-entity)]
-      (when (k/pressing-wasd?)
-        (j/assoc! state :target-pos-available? false)
-        (cond
-          (anim/skill-cancelled? "attackOneHand" active-state state)
-          (anim/cancel-skill "attackOneHand")
-
-          (anim/skill-cancelled? "attackR" active-state state)
-          (anim/cancel-skill "attackR")
-
-          (anim/skill-cancelled? "attackSlowDown" active-state state)
-          (anim/cancel-skill "attackSlowDown")))
+      (m/process-cancellable-skills ["attackOneHand" "attackSlowDown" "attackR"] active-state state)
       (cond
         (and (= active-state "attackOneHand")
              (anim/skill-pressed? e "attackR")
