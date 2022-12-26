@@ -141,7 +141,7 @@
               (process-running))))
         (do
           (pc/setv world-dir 0 0 0)
-          (j/assoc! state :x 0 :z 0 :target-y (.-x (:eulers @entity.camera/state)))
+          (j/assoc! state :x 0 :z 0 :target-y (j/get-in entity.camera/state [:eulers :x]))
           (when (pc/pressed? :KEY_W)
             (j/update! state :z inc))
           (when (pc/pressed? :KEY_A)

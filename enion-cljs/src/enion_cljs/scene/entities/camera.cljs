@@ -5,58 +5,53 @@
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
-;; TODO consider transient map
-;; TODO UI blocks right click camera adjusment
-(defonce state (atom {:eulers (pc/vec3)
-                      :mouse-edge-range 5
-                      :mouse-over? false
-                      :mouse-speed 1.4
-                      :page-x nil
-                      :right-click? false
-                      :rotation-speed 50
-                      :target-angle (pc/vec3)
-                      :wheel-clicked? false
-                      :wheel-x 0}))
+(defonce state (clj->js {:eulers (pc/vec3)
+                         :mouse-edge-range 5
+                         :mouse-over? false
+                         :mouse-speed 1.4
+                         :page-x nil
+                         :right-click? false
+                         :rotation-speed 50
+                         :target-angle (pc/vec3)
+                         :wheel-clicked? false
+                         :wheel-x 0}))
 
 (defonce entity nil)
 
 (defn- mouse-move [e]
-  (swap! state assoc :page-x (j/get e :x))
-  (when (:right-click? @state)
-    (set! (.-x (:eulers @state)) (- (.-x (:eulers @state)) (mod (/ (* (:mouse-speed @state) (.-dx e)) 60) 360)))
-    (set! (.-y (:eulers @state)) (+ (.-y (:eulers @state)) (mod (/ (* (:mouse-speed @state) (.-dy e)) 60) 360)))
-    ;; (m/update-in! :eulers :x - (mod (/ (* (j/get state :mouse-speed) (j/get e :dx)) 60) 360))
-    ;; (m/update-in! :eulers :y + (mod (/ (* (j/get state :mouse-speed) (j/get e :dy)) 60) 360))
-    ))
+  (j/assoc! state :page-x (j/get e :x))
+  (when (j/get state :right-click?)
+    (j/update-in! state [:eulers :x] - (mod (/ (* (j/get state :mouse-speed) (j/get e :dx)) 60) 360))
+    (j/update-in! state [:eulers :y] + (mod (/ (* (j/get state :mouse-speed) (j/get e :dy)) 60) 360))))
 
 (defn- mouse-wheel [e]
-  (let [ray-end (:ray-end @state)
+  (let [ray-end (j/get state :ray-end)
         ray-pos (pc/get-loc-pos ray-end)
-        z (+ (.-z ray-pos) (* 0.1 (.-wheelDelta e)))
+        z (+ (j/get ray-pos :z) (* 0.1 (j/get e :wheelDelta)))
         z (cond
             (< z 0.5) 0.5
             (> z 3.5) 3.5
             :else z)]
-    (pc/set-loc-pos ray-end (.-x ray-pos) (.-y ray-pos) z)))
+    (pc/set-loc-pos ray-end (j/get ray-pos :x) (j/get ray-pos :y) z)))
 
 (defn- mouse-down [e]
-  (when (= (.-button e) (:MOUSEBUTTON_RIGHT pc/key->code))
-    (swap! state assoc :right-click? true)))
+  (when (= (j/get e :button) (:MOUSEBUTTON_RIGHT pc/key->code))
+    (j/assoc! state :right-click? true)))
 
 (defn- mouse-up [e]
-  (when (= (.-button e) (:MOUSEBUTTON_RIGHT pc/key->code))
-    (swap! state assoc :right-click? false)))
+  (when (= (j/get e :button) (:MOUSEBUTTON_RIGHT pc/key->code))
+    (j/assoc! state :right-click? false)))
 
 (defn- mouse-out []
-  (swap! state assoc
-         :mouse-over? false
-         :right-click? false))
+  (j/assoc! state
+            :mouse-over? false
+            :right-click? false))
 
 (defn- mouse-over []
-  (swap! state assoc :mouse-over? true))
+  (j/assoc! state :mouse-over? true))
 
 (defn- init-fn [this]
-  (swap! state assoc :ray-end (pc/find-by-name "ray_end"))
+  (j/assoc! state :ray-end (pc/find-by-name "ray_end"))
   (set! entity (j/get this :entity))
   (pc/on-mouse :EVENT_MOUSEMOVE mouse-move)
   (pc/on-mouse :EVENT_MOUSEWHEEL mouse-wheel)
@@ -68,68 +63,68 @@
       (j/call :getElementById "application-canvas")
       (j/call :addEventListener "auxclick"
               (fn [e]
-                (when (= 2 (.-which e))
-                  (swap! state assoc
-                         :wheel-x 0
-                         :wheel-clicked? true)))
+                (when (= 2 (j/get e :which))
+                  (j/assoc! state
+                            :wheel-x 0
+                            :wheel-clicked? true)))
               false)))
 
 (defn- get-world-point []
-  (let [from (pc/get-pos (.-parent entity))
-        to (pc/get-pos (:ray-end @state))
+  (let [from (pc/get-pos (j/get entity :parent))
+        to (pc/get-pos (j/get state :ray-end))
         hit (pc/raycast-first from to)
         collision (some-> hit (j/get-in [:entity :name]))]
     (if (and hit (or (= collision "terrain")
                      (= collision "collision_rock")
                      (= collision "collision_big_tree")
                      (= collision "collision_building")))
-      ^js/pc.Vec3 (.-point hit)
+      (j/get hit :point)
       to)))
 
-(defn- post-update-fn [dt this]
-  (let [origin-entity (.-parent entity)
-        eulers (:eulers @state)
-        target-y (mod (+ (.-x eulers) 180) 360)
-        target-x (-> (.-y eulers)
+(defn- post-update-fn [dt _]
+  (let [origin-entity (j/get entity :parent)
+        eulers (j/get state :eulers)
+        target-y (mod (+ (j/get eulers :x) 180) 360)
+        target-x (-> (j/get eulers :y)
                      (mod 360)
                      (-))
         target-x (if (> target-x -5)
                    (do
-                     (set! (.-y eulers) 5)
+                     (j/assoc! eulers :y 5)
                      -5)
                    target-x)
         target-x (if (< target-x -55)
                    (do
-                     (set! (.-y eulers) 55)
+                     (j/assoc! eulers :y 55)
                      -55)
                    target-x)
-        target-angle (:target-angle @state)
-        page-x (:page-x @state)]
+        target-angle (j/get state :target-angle)
+        page-x (j/get state :page-x)]
     (pc/setv target-angle target-x target-y 0)
     (pc/set-euler origin-entity target-angle)
     (pc/set-pos entity (get-world-point))
     (pc/look-at entity (pc/get-pos origin-entity))
-    (when (and (:mouse-over? @state)
-               (not (:right-click? @state))
+    (when (and (j/get state :mouse-over?)
+               (not (j/get state :right-click?))
                page-x
-               (<= page-x (:mouse-edge-range @state)))
-      (set! (.-x eulers) (+ (.-x eulers) (* dt (:rotation-speed @state)))))
-    (when (and (:mouse-over? @state)
-               (not (:right-click? @state))
+               (<= page-x (j/get state :mouse-edge-range)))
+      (j/update! eulers :x + (* dt (j/get state :rotation-speed))))
+    (when (and (j/get state :mouse-over?)
+               (not (j/get state :right-click?))
                page-x
-               (>= page-x (- js/window.innerWidth (:mouse-edge-range @state))))
-      (set! (.-x eulers) (- (.-x eulers) (* dt (:rotation-speed @state)))))
-    (when (:wheel-clicked? @state)
-      (if (>= (:wheel-x @state) 180)
+               (>= page-x (- js/window.innerWidth (j/get state :mouse-edge-range))))
+      (j/update! eulers :x - (* dt (j/get state :rotation-speed))))
+    (when (j/get state :wheel-clicked?)
+      (if (>= (j/get state :wheel-x) 180)
         (do
-          (swap! state assoc
-                 :wheel-clicked? false
-                 :wheel-x 0)
-          (set! (.-x eulers) (mod (.-x eulers) 360)))
+          (j/assoc! state
+                    :wheel-clicked? false
+                    :wheel-x 0)
+          (j/update! eulers :x mod 360))
         (let [factor (* dt 175)]
-          (when (< (+ factor (:wheel-x @state)) 180)
-            (set! (.-x eulers) (+ (.-x eulers) factor))
-            (swap! state update :wheel-x + factor)))))))
+          (when (< (+ factor (j/get state :wheel-x)) 180)
+            (j/update! eulers :x + factor)
+            (j/update! state :wheel-x + factor)))))))
 
 (defn init []
   (pc/create-script :camera
