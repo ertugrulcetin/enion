@@ -24,7 +24,7 @@
       (when (k/pressing-wasd?)
         ;; TODO maybe we need to delete this
         (pc/set-anim-boolean model-entity "run" true)
-        (swap! state assoc :target-pos-available? false)
+        (j/assoc! state :target-pos-available? false)
         (cond
           (anim/skill-cancelled? "breakDefense" active-state state)
           (anim/cancel-skill "breakDefense")
@@ -41,7 +41,7 @@
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE) (:on-ground? @state))
+        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get state :on-ground?))
         (pc/set-anim-boolean model-entity "jump" true)
 
         (and (anim/idle-run-states active-state) (anim/skill-pressed? e "breakDefense"))
@@ -55,16 +55,3 @@
 
         (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackR"))
         (pc/set-anim-boolean model-entity "attackR" true)))))
-
-(comment
-  (js/setInterval
-    #(println "State: " (pc/get-anim-state model-entity) " - locked: " (:skill-locked? @enion-cljs.scene.entities.player/state))
-    150)
-
-  (do
-    (doseq [{:keys [event]} events]
-      (pc/off-anim enion-cljs.scene.entities.player/model-entity event))
-    (anim/register-anim-events enion-cljs.scene.entities.player/state events))
-
-  (:skill-locked? @enion-cljs.scene.entities.player/state)
-  )

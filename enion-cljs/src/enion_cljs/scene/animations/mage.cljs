@@ -1,5 +1,6 @@
 (ns enion-cljs.scene.animations.mage
   (:require
+    [applied-science.js-interop :as j]
     [enion-cljs.scene.animations.core :as anim :refer [model-entity]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
@@ -23,7 +24,7 @@
   (when-not (-> e .-event .-repeat)
     (let [active-state (pc/get-anim-state model-entity)]
       (when (k/pressing-wasd?)
-        (swap! state assoc :target-pos-available? false)
+        (j/assoc! state :target-pos-available? false)
         (cond
           (anim/skill-cancelled? "attackRange" active-state state)
           (anim/cancel-skill "attackRange")
@@ -40,7 +41,7 @@
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE) (:on-ground? @state))
+        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get state :on-ground?))
         (pc/set-anim-boolean model-entity "jump" true)
 
         (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackRange"))
@@ -54,12 +55,3 @@
 
         (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackR"))
         (pc/set-anim-boolean model-entity "attackR" true)))))
-
-(comment
-  (do
-    (doseq [{:keys [event]} events]
-      (pc/off-anim enion-cljs.scene.entities.player/model-entity event))
-    (anim/register-anim-events enion-cljs.scene.entities.player/state))
-
-  (:skill-locked? @enion-cljs.scene.entities.player/state)
-  )

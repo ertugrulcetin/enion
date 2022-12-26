@@ -1,5 +1,6 @@
 (ns enion-cljs.scene.animations.core
   (:require
+    [applied-science.js-interop :as j]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]))
 
@@ -27,7 +28,7 @@
 
 (defn skill-cancelled? [anim-state active-state state]
   (and (= active-state anim-state)
-       (not (:skill-locked? @state))
+       (not (j/get state :skill-locked?))
        (not (k/pressing-attacks?))))
 
 (defn cancel-skill [anim-state]
@@ -55,13 +56,13 @@
                     (when (k/pressing-wasd?)
                       (pc/set-anim-boolean model-entity "run" true))
                     (when skill?
-                      (swap! state assoc
-                             :skill-locked? false
-                             :can-r-attack-interrupt? false)))
+                      (j/assoc! state
+                                :skill-locked? false
+                                :can-r-attack-interrupt? false)))
                   (cond
-                    call? (swap! state assoc :skill-locked? true)
-                    r-release? (swap! state assoc :can-r-attack-interrupt? true)
-                    r-lock? (swap! state assoc :can-r-attack-interrupt? false))))))
+                    call? (j/assoc! state :skill-locked? true)
+                    r-release? (j/assoc! state :can-r-attack-interrupt? true)
+                    r-lock? (j/assoc! state :can-r-attack-interrupt? false))))))
 
 (defn register-key->skills []
   (set! key->skill {(pc/get-code :KEY_1) "attackDagger"

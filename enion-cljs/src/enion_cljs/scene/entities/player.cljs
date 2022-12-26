@@ -14,27 +14,26 @@
     [enion-cljs.scene.macros :refer [fnt]]))
 
 ;; TODO apply restitution and friction to 1 - collision of other enemies
-;; TODO add jump
-(defonce state (atom {:speed 750
-                      :x 0
-                      :z 0
-                      :target-y nil
-                      :eulers (pc/vec3)
-                      :temp-dir (pc/vec3)
-                      :world-dir (pc/vec3)
-                      :health 100
-                      :mouse-left-locked? false
-                      :target-pos (pc/vec3)
-                      :target-pos-available? false
-                      :skill-locked? false
-                      :can-r-attack-interrupt? false}))
+(defonce state (clj->js {:speed 750
+                         :x 0
+                         :z 0
+                         :target-y nil
+                         :eulers (pc/vec3)
+                         :temp-dir (pc/vec3)
+                         :world-dir (pc/vec3)
+                         :health 100
+                         :mouse-left-locked? false
+                         :target-pos (pc/vec3)
+                         :target-pos-available? false
+                         :skill-locked? false
+                         :can-r-attack-interrupt? false}))
 
 (defonce player-entity nil)
 (defonce model-entity nil)
 (defonce effects (atom {}))
 
 (defn- pressing-wasd-or-has-target? []
-  (or (k/pressing-wasd?) (:target-pos-available? @state)))
+  (or (k/pressing-wasd?) (j/get state :target-pos-available?)))
 
 (defn- process-running []
   (if (pressing-wasd-or-has-target?)
@@ -73,9 +72,8 @@
             z (j/get-in result [:point :z])]
         (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true)
         (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
-        (swap! state assoc
-               :target-pos (pc/setv (:target-pos @state) x y z)
-               :target-pos-available? true)
+        (j/assoc! state :target-pos (pc/setv (j/get state :target-pos) x y z)
+                  :target-pos-available? true)
         (process-running)))))
 
 (defn- register-mouse-events []
@@ -85,24 +83,24 @@
                             (or (= "CANVAS" (j/get-in e [:element :nodeName]))
                                 (not= "all" (-> (j/call js/window :getComputedStyle (j/get e :element))
                                                 (j/get :pointerEvents)))))
-                   (swap! state assoc :mouse-left-locked? true)
+                   (j/assoc! state :mouse-left-locked? true)
                    (set-target-position e))))
   (pc/on-mouse :EVENT_MOUSEUP
                (fn [e]
                  (when (pc/button? e :MOUSEBUTTON_LEFT)
-                   (swap! state assoc :mouse-left-locked? false))))
+                   (j/assoc! state :mouse-left-locked? false))))
   (pc/on-mouse :EVENT_MOUSEMOVE
                (fn [e]
-                 (when (:mouse-left-locked? @state)
+                 (when (j/get state :mouse-left-locked?)
                    (set-target-position e)))))
 
 (defn- collision-start [result]
   (when (= "terrain" (j/get-in result [:other :name]))
-    (swap! state assoc :on-ground? true)))
+    (j/assoc! state :on-ground? true)))
 
 (defn- collision-end [result]
   (when (= "terrain" (j/get result :name))
-    (swap! state assoc :on-ground? false)))
+    (j/assoc! state :on-ground? false)))
 
 (defn- register-collision-events [entity]
   (j/call-in entity [:collision :on] "collisionstart" collision-start)
@@ -114,7 +112,7 @@
         _ (pc/set-loc-pos character-template-entity 0 0 0)
         _ (pc/add-child player-entity* character-template-entity)
         model-entity* (pc/find-by-name* character-template-entity "orc_asas_model")]
-    (swap! state assoc :camera (pc/find-by-name "camera"))
+    (j/assoc! state :camera (pc/find-by-name "camera"))
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
     (set! anim/model-entity model-entity*)
@@ -124,55 +122,52 @@
 
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [_ _]
-  (let [speed (:speed @state)
-        camera (:camera @state)
-        right (.-right camera)
-        forward (.-forward camera)
-        world-dir (:world-dir @state)
-        temp-dir (:temp-dir @state)]
+  (let [speed (j/get state :speed)
+        camera (j/get state :camera)
+        right (j/get camera :right)
+        forward (j/get camera :forward)
+        world-dir (j/get state :world-dir)
+        temp-dir (j/get state :temp-dir)]
     (when-not (anim/char-cant-run?)
-      (if (:target-pos-available? @state)
-        (let [target (:target-pos @state)
+      (if (j/get state :target-pos-available?)
+        (let [target (j/get state :target-pos)
               temp-dir (pc/copyv temp-dir target)
               pos (pc/get-pos player-entity)
               dir (-> temp-dir (pc/sub pos) pc/normalize (pc/scale speed))]
           (if (>= (pc/distance target pos) 0.2)
             (pc/apply-force player-entity (.-x dir) 0 (.-z dir))
             (do
-              (swap! state assoc :target-pos-available? false)
+              (j/assoc! state :target-pos-available? false)
               (process-running))))
         (do
           (pc/setv world-dir 0 0 0)
-          (swap! state assoc
-                 :x 0
-                 :z 0
-                 :target-y (.-x (:eulers @entity.camera/state)))
+          (j/assoc! state :x 0 :z 0 :target-y (.-x (:eulers @entity.camera/state)))
           (when (pc/pressed? :KEY_W)
-            (swap! state update :z inc))
+            (j/update! state :z inc))
           (when (pc/pressed? :KEY_A)
-            (swap! state update :x dec))
+            (j/update! state :x dec))
           (when (pc/pressed? :KEY_S)
-            (swap! state update :z dec))
+            (j/update! state :z dec))
           (when (pc/pressed? :KEY_D)
-            (swap! state update :x inc))
+            (j/update! state :x inc))
 
-          (when (or (not= (:x @state) 0)
-                    (not= (:z @state) 0))
-            (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir forward) (:z @state)))
-            (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir right) (:x @state)))
+          (when (or (not= (j/get state :x) 0)
+                    (not= (j/get state :z) 0))
+            (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir forward) (j/get state :z)))
+            (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir right) (j/get state :x)))
             (-> world-dir pc/normalize (pc/scale speed))
-            (pc/apply-force player-entity (.-x world-dir) 0 (.-z world-dir)))
+            (pc/apply-force player-entity (j/get world-dir :x) 0 (j/get world-dir :z)))
 
           (cond
-            (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_W)) (swap! state update :target-y + 45)
-            (and (pc/pressed? :KEY_D) (pc/pressed? :KEY_W)) (swap! state update :target-y - 45)
-            (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_S)) (swap! state update :target-y + 135)
-            (and (pc/pressed? :KEY_D) (pc/pressed? :KEY_S)) (swap! state update :target-y - 135)
-            (pc/pressed? :KEY_A) (swap! state update :target-y + 90)
-            (pc/pressed? :KEY_D) (swap! state update :target-y - 90)
-            (pc/pressed? :KEY_S) (swap! state update :target-y + 180))
+            (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_W)) (j/update! state :target-y + 45)
+            (and (pc/pressed? :KEY_D) (pc/pressed? :KEY_W)) (j/update! state :target-y - 45)
+            (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_S)) (j/update! state :target-y + 135)
+            (and (pc/pressed? :KEY_D) (pc/pressed? :KEY_S)) (j/update! state :target-y - 135)
+            (pc/pressed? :KEY_A) (j/update! state :target-y + 90)
+            (pc/pressed? :KEY_D) (j/update! state :target-y - 90)
+            (pc/pressed? :KEY_S) (j/update! state :target-y + 180))
           (when (pressing-wasd-or-has-target?)
-            (pc/set-loc-euler model-entity 0 (:target-y @state) 0)
+            (pc/set-loc-euler model-entity 0 (j/get state :target-y) 0)
             (pc/set-anim-boolean model-entity "run" true)))))))
 
 (defn get-position []
@@ -194,14 +189,12 @@
   (js/console.log player-entity)
   (j/call-in player-entity [:rigidbody :teleport] 31 2.3 -32)
 
-  (swap! state assoc :speed 650)
-
-  (js->clj (.-forward (:camera @state)))
+  (j/assoc! state :speed 650)
 
   (pc/get-map-pos player-entity)
 
   (pc/apply-impulse player-entity 0 200 0)
 
-  (:on-ground? @state)
+  (j/get state :on-ground?)
 
   )

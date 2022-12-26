@@ -1,5 +1,6 @@
 (ns enion-cljs.scene.animations.warrior
   (:require
+    [applied-science.js-interop :as j]
     [enion-cljs.scene.animations.core :as anim :refer [model-entity]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
@@ -27,7 +28,7 @@
   (when-not (-> e .-event .-repeat)
     (let [active-state (pc/get-anim-state model-entity)]
       (when (k/pressing-wasd?)
-        (swap! state assoc :target-pos-available? false)
+        (j/assoc! state :target-pos-available? false)
         (cond
           (anim/skill-cancelled? "attackOneHand" active-state state)
           (anim/cancel-skill "attackOneHand")
@@ -40,7 +41,7 @@
       (cond
         (and (= active-state "attackOneHand")
              (anim/skill-pressed? e "attackR")
-             (:can-r-attack-interrupt? @state))
+             (j/get state :can-r-attack-interrupt?))
         (do
           (println "R combo!")
           (pc/set-anim-boolean model-entity "attackOneHand" false)
@@ -48,7 +49,7 @@
 
         (and (= active-state "attackR")
              (anim/skill-pressed? e "attackOneHand")
-             (:can-r-attack-interrupt? @state)
+             (j/get state :can-r-attack-interrupt?)
              (> (- (js/Date.now) @last-one-hand-combo) (utils/rand-between 750 1200)))
         (do
           (println "one hand combo...!")
@@ -59,7 +60,7 @@
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE) (:on-ground? @state))
+        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get state :on-ground?))
         (pc/set-anim-boolean model-entity "jump" true)
 
         (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackOneHand"))
@@ -70,12 +71,3 @@
 
         (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackR"))
         (pc/set-anim-boolean model-entity "attackR" true)))))
-
-(comment
-  (do
-    (doseq [{:keys [event]} events]
-      (pc/off-anim enion-cljs.scene.entities.player/model-entity event))
-    (anim/register-anim-events enion-cljs.scene.entities.player/state))
-
-  (:skill-locked? @enion-cljs.scene.entities.player/state)
-  )
