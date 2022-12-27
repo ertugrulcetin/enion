@@ -38,7 +38,7 @@
 (defn skill-pressed? [e skill]
   (= (key->skill (.-key e)) skill))
 
-(defn register-anim-events [state events player-entity]
+(defn register-skill-events [state events player-entity]
   (doseq [{:keys [anim-state
                   event
                   skill?
@@ -64,13 +64,12 @@
                     r-release? (j/assoc! state :can-r-attack-interrupt? true)
                     r-lock? (j/assoc! state :can-r-attack-interrupt? false))))))
 
-(defn register-key->skills [class]
-  (let [#_#_skill-map (case class
-                    "warrior" ["attackOneHand" "attackSlowDown"])]
-    (set! key->skill {(pc/get-code :KEY_1) "attackDagger"
-                      (pc/get-code :KEY_2) "hide"
-                      ;; (pc/get-code :KEY_3) "cure"
-                      (pc/get-code :KEY_R) "attackR"})))
+(defn register-key->skills [skill-mapping]
+  (let [m (reduce-kv (fn [acc k v]
+                       (assoc acc (pc/get-code (keyword (str "KEY_" k))) v))
+                     {(pc/get-code :KEY_R) "attackR"}
+                     skill-mapping)]
+    (set! key->skill m)))
 
 (defn char-cant-run? []
   (skills-char-cant-run (pc/get-anim-state model-entity)))

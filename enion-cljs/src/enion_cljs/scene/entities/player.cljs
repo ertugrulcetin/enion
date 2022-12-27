@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.entities.player
   (:require
     [applied-science.js-interop :as j]
+    [enion-cljs.common :as common]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
@@ -28,7 +29,7 @@
                          :skill-locked? false
                          :can-r-attack-interrupt? false
                          :race :orc
-                         :class :asas
+                         :class :priest
                          :name "NeaTBuSTeR"}))
 
 (defonce player-entity nil)
@@ -50,14 +51,15 @@
                                   "asas" [skills.asas/process-skills skills.asas/events]
                                   "priest" [skills.priest/process-skills skills.priest/events]
                                   "mage" [skills.mage/process-skills skills.mage/events])]
-    (skills/register-key->skills class)
+    (skills/register-key->skills (common/skills (keyword class)))
     (pc/on-keyboard :EVENT_KEYDOWN
                     (fn [e]
                       (process-skills e state)))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
                       (process-running)))
-    (skills/register-anim-events state events player-entity)))
+    (skills/register-skill-events state events player-entity)
+    (common/on :update-skills-order skills/register-key->skills)))
 
 ;; TODO also need to check is char dead or alive to be able to do that
 (defn- set-target-position [e]
@@ -72,7 +74,7 @@
             y (j/get-in result [:point :y])
             z (j/get-in result [:point :z])]
         (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true)
-        (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
+        ;; (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
         (j/assoc! state :target-pos (pc/setv (j/get state :target-pos) x y z)
                   :target-pos-available? true)
         (process-running)))))
@@ -155,6 +157,7 @@
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
     (set! skills/model-entity model-entity*)
+    (common/fire :init-skills (keyword (j/get state :class)))
     (register-keyboard-events)
     (register-mouse-events)
     (register-collision-events player-entity*)))

@@ -10,5 +10,4 @@
 
 (defn init []
   (create-div-app)
-  (ui.core/init)
-  (scene.core/init))
+  (scene.core/init #(ui.core/init)))

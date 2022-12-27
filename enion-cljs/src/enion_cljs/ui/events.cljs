@@ -1,5 +1,6 @@
 (ns enion-cljs.ui.events
   (:require
+    [enion-cljs.common :as common :refer [fire]]
     [enion-cljs.ui.db :as db]
     [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx]]))
 
@@ -20,6 +21,11 @@
                  (dispatch event-vec)
                  (swap! throttle-timeouts dissoc id))
                milli-secs)))))
+
+(reg-fx
+  ::fire
+  (fn [[event x]]
+    (fire event x)))
 
 (reg-event-fx
   ::add-message-to-info-box-throttled
@@ -78,3 +84,28 @@
     (if (-> db :chat-box :active-input?)
       db
       (update db :minimap-open? not))))
+
+(reg-event-db
+  ::init-skills
+  (fn [db [_ class]]
+    (let [skills (common/skills class)]
+      (assoc-in db [:player :skills] (conj (mapv second (sort skills)) :none :none)))))
+
+(reg-event-fx
+  ::update-skills-order
+  (fn [{:keys [db]} [_ index skill]]
+    (if-let [skill-move (-> db :player :skill-move)]
+      (let [skill-move-index (skill-move :index)
+            new-skill (skill-move :skill)
+            skill-slots (-> db :player :skills)
+            prev-skill (skill-slots index)
+            db (update-in db [:player :skills] assoc index new-skill skill-move-index prev-skill)]
+        {:db (assoc-in db [:player :skill-move] nil)
+         ::fire [:update-skills-order (->> db
+                                           :player
+                                           :skills
+                                           (map-indexed #(vector (inc %1) %2))
+                                           (remove #(= (second %) :none))
+                                           (into {}))]})
+      (when-not (= skill :none)
+        {:db (assoc-in db [:player :skill-move] {:index index :skill skill})}))))

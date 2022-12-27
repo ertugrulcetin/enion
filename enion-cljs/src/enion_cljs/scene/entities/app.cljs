@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.entities.app
   (:require
     [applied-science.js-interop :as j]
+    [enion-cljs.common :as common]
     [enion-cljs.scene.lod-manager :as lod-manager]
     [enion-cljs.scene.pc :as pc])
   (:require-macros
@@ -16,12 +17,15 @@
 
 (defn- init-fn [this]
   (set! pc/app (j/get this :app))
+  (common/set-app pc/app)
   (pc/disable-context-menu)
   (update-orc-human-materials)
   (clear-depth-buffer-layer))
 
-(defn init []
+(defn init [init-ui]
   (pc/create-script :app
-                    {:init (fnt (init-fn this))
+                    {:init (fnt
+                             (init-fn this)
+                             (init-ui))
                      :post-init (fn []
                                   (lod-manager/init))}))

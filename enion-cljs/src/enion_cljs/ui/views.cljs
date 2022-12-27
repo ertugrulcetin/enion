@@ -1,6 +1,7 @@
 (ns enion-cljs.ui.views
   (:require
     [applied-science.js-interop :as j]
+    [enion-cljs.common :refer [fire on]]
     [enion-cljs.scene.entities.player :as player]
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.styles :as styles]
@@ -10,18 +11,30 @@
 
 (def mouse-x (r/atom nil))
 (def mouse-y (r/atom nil))
-(def skill-move (r/atom nil))
 
-(def skill-slots (r/atom [:nova :teleport :mana :none :none :none :none :none]))
+(defn- img->img-url [img]
+  (str "http://localhost:8280/img/" img))
 
 (defn skill->img [skill]
   (case skill
-    :nova "http://localhost:8280/img/nova.jpeg"
-    :teleport "https://hordes.io/assets/ui/skills/32.webp"
-    :mana "https://hordes.io/assets/items/misc/misc1_q0.webp"))
+    "attackOneHand" (img->img-url "attack_one_hand.png")
+    "attackSlowDown" (img->img-url "attack_slowdown.png")
+    "shieldWall" (img->img-url "shield_wall.png")
+    "fleetFoot" (img->img-url "fleet_foot.png")
+    "attackDagger" (img->img-url "attack_dagger.png")
+    "phantomVision" (img->img-url "phantom_vision.png")
+    "hide" (img->img-url "hide.png")
+    "attackRange" (img->img-url "attack_range.jpeg")
+    "attackSingle" (img->img-url "attack_single.png")
+    "teleport" (img->img-url "teleport.png")
+    "heal" (img->img-url "heal.png")
+    "cure" (img->img-url "cure.png")
+    "breakDefense" (img->img-url "break_defense.png")
+    "hpPotion" (img->img-url "break_defense.png")
+    "mpPotion" (img->img-url "break_defense.png")))
 
 (defn temp-skill-img []
-  (when @skill-move
+  (when-let [skill-move @(subscribe [::subs/skill-move])]
     [:div
      {:style {:position :absolute
               :top @mouse-y
@@ -30,20 +43,11 @@
               :pointer-events :none}}
      [:img
       {:class (styles/skill-img)
-       :src (skill->img (:skill @skill-move))}]]))
+       :src (skill->img (:skill skill-move))}]]))
 
 (defn- skill [index skill]
   [:div {:class (styles/skill)
-         :on-click (fn []
-                     (if @skill-move
-                       (let [skill-move-index (@skill-move :index)
-                             new-skill (@skill-move :skill)
-                             prev-skill (@skill-slots index)]
-                         (do
-                           (swap! skill-slots assoc index new-skill skill-move-index prev-skill)
-                           (reset! skill-move nil)))
-                       (when-not (= skill :none)
-                         (reset! skill-move {:index index, :skill skill}))))}
+         :on-click #(dispatch [::events/update-skills-order index skill])}
    [:span (styles/skill-number) (inc index)]
    (when-not (= :none skill)
      [:img {:class (styles/skill-img)
@@ -72,7 +76,7 @@
      (fn [i s]
        ^{:key (str s "-" i)}
        [skill i s])
-     @skill-slots)])
+     @(subscribe [::subs/skills]))])
 
 (defn- actions-section []
   [:div (styles/actions-container)
@@ -275,7 +279,8 @@
                                          (dispatch [::events/send-message])
 
                                          (= (j/get e :code) "KeyM")
-                                         (dispatch [::events/toggle-minimap])))))
+                                         (dispatch [::events/toggle-minimap]))))
+       (on :init-skills #(dispatch [::events/init-skills %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

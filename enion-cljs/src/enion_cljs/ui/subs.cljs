@@ -38,3 +38,13 @@
   ::minimap-open?
   (fn [db]
     (:minimap-open? db)))
+
+(reg-sub
+  ::skills
+  (fn [db]
+    (-> db :player :skills)))
+
+(reg-sub
+  ::skill-move
+  (fn [db]
+    (-> db :player :skill-move)))
