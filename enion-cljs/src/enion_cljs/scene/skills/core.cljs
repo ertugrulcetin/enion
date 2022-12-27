@@ -64,11 +64,13 @@
                     r-release? (j/assoc! state :can-r-attack-interrupt? true)
                     r-lock? (j/assoc! state :can-r-attack-interrupt? false))))))
 
-(defn register-key->skills []
-  (set! key->skill {(pc/get-code :KEY_1) "attackDagger"
-                    (pc/get-code :KEY_2) "hide"
-                    ;; (pc/get-code :KEY_3) "cure"
-                    (pc/get-code :KEY_R) "attackR"}))
+(defn register-key->skills [class]
+  (let [#_#_skill-map (case class
+                    "warrior" ["attackOneHand" "attackSlowDown"])]
+    (set! key->skill {(pc/get-code :KEY_1) "attackDagger"
+                      (pc/get-code :KEY_2) "hide"
+                      ;; (pc/get-code :KEY_3) "cure"
+                      (pc/get-code :KEY_R) "attackR"})))
 
 (defn char-cant-run? []
   (skills-char-cant-run (pc/get-anim-state model-entity)))

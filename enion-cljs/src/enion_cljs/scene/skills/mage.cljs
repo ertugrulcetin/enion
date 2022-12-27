@@ -3,14 +3,14 @@
     [applied-science.js-interop :as j]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.skills.core :as anim :refer [model-entity]])
+    [enion-cljs.scene.skills.core :as skills :refer [model-entity]])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
 
 ;; TODO define combo rand ranges in a var
 (def events
   (concat
-    anim/common-states
+    skills/common-states
     [{:anim-state "attackRange" :event "onAttackRangeEnd" :skill? true :end? true}
      {:anim-state "attackRange" :event "onAttackRangeCall" :call? true}
      {:anim-state "attackSingle" :event "onAttackSingleEnd" :skill? true :end? true}
@@ -29,19 +29,19 @@
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (anim/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get state :on-ground?))
+        (and (skills/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get state :on-ground?))
         (pc/set-anim-boolean model-entity "jump" true)
 
-        (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackRange"))
+        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackRange"))
         (pc/set-anim-boolean model-entity "attackRange" true)
 
-        (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackSingle"))
+        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackSingle"))
         (pc/set-anim-boolean model-entity "attackSingle" true)
 
-        (and (anim/idle-run-states active-state) (anim/skill-pressed? e "teleport"))
+        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "teleport"))
         (pc/set-anim-boolean model-entity "teleport" true)
 
-        (and (anim/idle-run-states active-state) (anim/skill-pressed? e "attackR"))
+        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackR"))
         (pc/set-anim-boolean model-entity "attackR" true)))))
 
 ;; TODO check temp-final-pos, when there are multiple novas, what to do? override may happen...

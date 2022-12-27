@@ -44,12 +44,13 @@
     (pc/set-anim-boolean model-entity "run" false)))
 
 (defn- register-keyboard-events []
-  (let [[process-skills events] (case (j/get state :class)
+  (let [class (j/get state :class)
+        [process-skills events] (case class
                                   "warrior" [skills.warrior/process-skills skills.warrior/events]
                                   "asas" [skills.asas/process-skills skills.asas/events]
                                   "priest" [skills.priest/process-skills skills.priest/events]
                                   "mage" [skills.mage/process-skills skills.mage/events])]
-    (skills/register-key->skills)
+    (skills/register-key->skills class)
     (pc/on-keyboard :EVENT_KEYDOWN
                     (fn [e]
                       (process-skills e state)))
@@ -130,6 +131,21 @@
                (or (= class "priest")
                    (= class "warrior")))
       (pc/set-loc-pos username-text-entity 0 0.05 0))))
+
+(comment
+  (let [username (j/get state :name)
+        race (j/get state :race)
+        class (j/get state :class)
+        template-entity-name (str race "_" class)
+        character-template-entity (pc/find-by-name player-entity template-entity-name)
+        username-text-entity (pc/find-by-name character-template-entity "char_name")]
+    ;(js/console.log username-text-entity)
+    (j/assoc-in! username-text-entity [:element :color] (pc/color (/ 355 255) (/ 0 255) (/ 0 255)))
+    (j/assoc-in! username-text-entity [:element :outlineThickness] 0)
+    (j/assoc-in! username-text-entity [:element :fontSize] 32)
+
+    )
+  )
 
 (defn- init-fn [this]
   (let [player-entity* (j/get this :entity)
