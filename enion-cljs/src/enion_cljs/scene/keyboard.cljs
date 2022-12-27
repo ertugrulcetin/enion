@@ -7,10 +7,3 @@
       (pc/pressed? :KEY_A)
       (pc/pressed? :KEY_S)
       (pc/pressed? :KEY_D)))
-
-;; TODO update here
-(defn pressing-attacks? []
-  (or (pc/pressed? :KEY_1)
-      (pc/pressed? :KEY_2)
-      (pc/pressed? :KEY_3)
-      (pc/pressed? :KEY_R)))

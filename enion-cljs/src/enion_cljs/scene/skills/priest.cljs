@@ -18,7 +18,6 @@
            {:anim-state "cure" :event "onCureCall" :call? true}
            {:anim-state "cure" :event "onCureEnd" :skill? true :end? true}]))
 
-;; TODO can't jump while attacking - collision wise
 (defn process-skills [e state]
   (when-not (j/get-in e [:event :repeat])
     (let [active-state (pc/get-anim-state model-entity)]

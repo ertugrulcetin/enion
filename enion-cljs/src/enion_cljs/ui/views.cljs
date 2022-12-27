@@ -30,8 +30,8 @@
     "heal" (img->img-url "heal.png")
     "cure" (img->img-url "cure.png")
     "breakDefense" (img->img-url "break_defense.png")
-    "hpPotion" (img->img-url "break_defense.png")
-    "mpPotion" (img->img-url "break_defense.png")))
+    "hpPotion" (img->img-url "hp.png")
+    "mpPotion" (img->img-url "mp.png")))
 
 (defn temp-skill-img []
   (when-let [skill-move @(subscribe [::subs/skill-move])]

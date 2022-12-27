@@ -20,7 +20,6 @@
      {:anim-state "teleport" :event "onTeleportCall" :call? true}
      {:anim-state "teleport" :event "onTeleportEnd" :skill? true :end? true}]))
 
-;; TODO can't jump while attacking - collision wise
 (defn process-skills [e state]
   (when-not (-> e .-event .-repeat)
     (let [active-state (pc/get-anim-state model-entity)]

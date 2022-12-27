@@ -25,7 +25,6 @@
 
 (def last-one-hand-combo (atom (js/Date.now)))
 
-;; TODO can't jump while attacking - collision wise
 (defn process-skills [e state]
   (when-not (-> e .-event .-repeat)
     (let [active-state (pc/get-anim-state model-entity)]

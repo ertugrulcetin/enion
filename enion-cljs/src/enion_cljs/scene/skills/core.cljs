@@ -26,10 +26,9 @@
    {:anim-state "jump" :event "onJumpStart" :call? true :f (fn [player-entity]
                                                              (pc/apply-impulse player-entity 0 200 0))}])
 
-(defn skill-cancelled? [anim-state active-state state]
+(defn can-skill-be-cancelled? [anim-state active-state state]
   (and (= active-state anim-state)
-       (not (j/get state :skill-locked?))
-       (not (k/pressing-attacks?))))
+       (not (j/get state :skill-locked?))))
 
 (defn cancel-skill [anim-state]
   (pc/set-anim-boolean model-entity anim-state false)

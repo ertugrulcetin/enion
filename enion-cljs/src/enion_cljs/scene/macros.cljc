@@ -12,5 +12,5 @@
      (cond
        ~@(apply concat
                 (for [s skills]
-                  `[(enion-cljs.scene.skills.core/skill-cancelled? ~s ~active-state ~state)
+                  `[(enion-cljs.scene.skills.core/can-skill-be-cancelled? ~s ~active-state ~state)
                     (enion-cljs.scene.skills.core/cancel-skill ~s)])))))
