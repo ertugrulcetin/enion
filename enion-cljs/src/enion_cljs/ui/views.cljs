@@ -263,11 +263,25 @@
       [map-holder]
       [:div (styles/minimap-player)]]]))
 
+(defn- on-mouse-down [e]
+  (when (= (j/get e :button) 0)
+    (if (> js/window.innerWidth 1440)
+      (j/assoc-in! js/document [:body :style :cursor] "url(http://localhost:8280/img/cursor_64_active.png) 23 23, auto")
+      (j/assoc-in! js/document [:body :style :cursor] "url(http://localhost:8280/img/cursor_48_active.png) 17 17, auto"))))
+
+(defn- on-mouse-up [e]
+  (when (= (j/get e :button) 0)
+    (if (> js/window.innerWidth 1440)
+      (j/assoc-in! js/document [:body :style :cursor] "url(http://localhost:8280/img/cursor_64.png) 23 23, auto")
+      (j/assoc-in! js/document [:body :style :cursor] "url(http://localhost:8280/img/cursor_48.png) 17 17, auto"))))
+
 ;; TODO when game is ready then show HUD
 (defn main-panel []
   (r/create-class
     {:component-did-mount
      (fn []
+       (js/document.addEventListener "mousedown" on-mouse-down)
+       (js/document.addEventListener "mouseup" on-mouse-up)
        (js/document.addEventListener "mousemove"
                                      (fn [e]
                                        (reset! mouse-x (j/get e :x))
