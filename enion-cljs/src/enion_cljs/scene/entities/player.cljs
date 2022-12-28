@@ -29,7 +29,7 @@
                          :skill-locked? false
                          :can-r-attack-interrupt? false
                          :race :orc
-                         :class :priest
+                         :class :warrior
                          :name "NeaTBuSTeR"}))
 
 (defonce player-entity nil)

@@ -136,6 +136,13 @@ body {
 canvas:focus {
     outline: none;
 }
+
+
+@property --cooldown {
+  syntax: \"<percentage>\";
+  inherits: false;
+  initial-value: 0%;
+}
 "))
 
 
