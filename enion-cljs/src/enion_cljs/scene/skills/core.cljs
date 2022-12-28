@@ -57,7 +57,11 @@
                     (when skill?
                       (j/assoc! state
                                 :skill-locked? false
-                                :can-r-attack-interrupt? false)))
+                                :can-r-attack-interrupt? false))
+                    (when-let [target (and (skills-char-cant-run anim-state)
+                                           (j/get state :target-pos-available?)
+                                           (j/get state :target-pos))]
+                      (pc/look-at model-entity (j/get target :x) (j/get (pc/get-pos model-entity) :y) (j/get target :z) true)))
                   (cond
                     call? (j/assoc! state :skill-locked? true)
                     r-release? (j/assoc! state :can-r-attack-interrupt? true)

@@ -1,7 +1,7 @@
 (ns enion-cljs.ui.views
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [fire on]]
+    [enion-cljs.common :as common :refer [fire on]]
     [enion-cljs.scene.entities.player :as player]
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.styles :as styles]
@@ -45,13 +45,35 @@
       {:class (styles/skill-img)
        :src (skill->img (:skill skill-move))}]]))
 
+(defn- cooldown [skill]
+  (r/create-class
+    {:component-did-mount
+     (fn []
+       (js/setTimeout
+         (fn []
+           (dispatch [::events/clear-cooldown skill]))
+         (-> skill common/skills :cooldown)))
+     :reagent-render
+     (fn []
+       [:div (styles/cooldown (-> skill common/skills :cooldown (/ 1000)))])}))
+
 (defn- skill [index skill]
   [:div {:class (styles/skill)
          :on-click #(dispatch [::events/update-skills-order index skill])}
    [:span (styles/skill-number) (inc index)]
    (when-not (= :none skill)
-     [:img {:class (styles/skill-img)
-            :src (skill->img skill)}])])
+     [:div (styles/childs-overlayed)
+      [:img {:class (styles/skill-img)
+             :src (skill->img skill)}]
+      (when @(subscribe [::subs/cooldown skill])
+        [cooldown skill])])])
+
+(comment
+  (dispatch [::events/cooldown "heal"])
+  (dispatch [::events/cooldown "cure"])
+  (dispatch [::events/cooldown "fleetFoot"])
+  (dispatch [::events/cooldown "hpPotion"])
+  )
 
 (defn- hp-bar []
   [:div (styles/hp-bar)

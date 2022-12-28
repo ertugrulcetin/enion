@@ -51,7 +51,7 @@
                                   "asas" [skills.asas/process-skills skills.asas/events]
                                   "priest" [skills.priest/process-skills skills.priest/events]
                                   "mage" [skills.mage/process-skills skills.mage/events])]
-    (skills/register-key->skills (common/skills (keyword class)))
+    (skills/register-key->skills (common/skill-slot-order-by-class (keyword class)))
     (pc/on-keyboard :EVENT_KEYDOWN
                     (fn [e]
                       (process-skills e state)))
@@ -73,7 +73,8 @@
       (let [x (j/get-in result [:point :x])
             y (j/get-in result [:point :y])
             z (j/get-in result [:point :z])]
-        (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true)
+        (when-not (skills/char-cant-run?)
+          (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true))
         ;; (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
         (j/assoc! state :target-pos (pc/setv (j/get state :target-pos) x y z)
                   :target-pos-available? true)

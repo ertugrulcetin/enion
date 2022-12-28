@@ -48,3 +48,8 @@
   ::skill-move
   (fn [db]
     (-> db :player :skill-move)))
+
+(reg-sub
+  ::cooldown
+  (fn [db [_ skill]]
+    (-> db :player :cooldown (get skill))))

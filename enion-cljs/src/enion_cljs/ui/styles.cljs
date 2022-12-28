@@ -1,6 +1,10 @@
 (ns enion-cljs.ui.styles
   (:require
-    [spade.core :refer [defglobal defclass defattrs]]))
+    [spade.core :refer [defglobal defclass defattrs defkeyframes]]))
+
+#_(sr/inject!
+  "enion-cljs-ui-styles-cooldown-property"
+  "@property --cooldown {\n  syntax: \"<percentage>\";\n  inherits: false;\n  initial-value: 0%;\n}")
 
 (defglobal defaults
   [:body
@@ -322,3 +326,22 @@
    :top "50%"
    :transform "translate(-50%, -50%)"
    :background "url(\"http://localhost:8280/img/pointer.png\") center 0px no-repeat"})
+
+(defkeyframes cooldown-frames []
+  ["0%" {:--cooldown "0%"}]
+  ["100%" {:--cooldown "100%"}])
+
+(defattrs cooldown [secs]
+  {:--coldown "50%"
+   :background "conic-gradient(transparent var(--cooldown), rgba(0, 0, 0, 0.5) var(--cooldown))"
+   :animation [[(cooldown-frames) (str secs "s linear infinite")]]})
+
+(defattrs childs-overlayed []
+  {:height "40px"
+   :width "40px"
+   :border "2px solid black"}
+  [:&>*
+   {:position :absolute
+    :height "100%"
+    :width "100%"
+    :z-index 9}])

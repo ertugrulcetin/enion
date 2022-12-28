@@ -109,7 +109,7 @@
   (let [world-layer (j/call-in app [:scene :layers :getLayerByName] "World")]
     (j/assoc! world-layer :onPostCull (functions/throttle
                                         (fn [_]
-                                          (.forEach ^js/Array (j/get world-layer :opaqueMeshInstances) process-mesh-instance))
+                                          (.forEach (j/get world-layer :opaqueMeshInstances) process-mesh-instance))
                                         500))))
 
 (defn init []

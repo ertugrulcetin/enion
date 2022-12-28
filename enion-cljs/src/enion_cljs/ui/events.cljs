@@ -88,7 +88,7 @@
 (reg-event-db
   ::init-skills
   (fn [db [_ class]]
-    (let [skills (common/skills class)]
+    (let [skills (common/skill-slot-order-by-class class)]
       (assoc-in db [:player :skills] (conj (mapv second (sort skills)) :none :none)))))
 
 (reg-event-fx
@@ -109,3 +109,13 @@
                                            (into {}))]})
       (when-not (= skill :none)
         {:db (assoc-in db [:player :skill-move] {:index index :skill skill})}))))
+
+(reg-event-db
+  ::cooldown
+  (fn [db [_ skill]]
+    (assoc-in db [:player :cooldown skill] true)))
+
+(reg-event-db
+  ::clear-cooldown
+  (fn [db [_ skill]]
+    (assoc-in db [:player :cooldown skill] false)))
