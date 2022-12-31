@@ -199,3 +199,13 @@
 
 (defn clone [e]
   (j/call e :clone))
+
+(let [target #js []
+      mat (delay (j/get-in (find-by-name "terrain") [:render :meshInstances 0 :material]))]
+  (defn set-locater-target
+    ([]
+     (j/call @mat :setParameter "target_position_available" false))
+    ([x z]
+     (j/assoc! target 0 x 1 z)
+     (j/call @mat :setParameter "target_position" target)
+     (j/call @mat :setParameter "target_position_available" true))))

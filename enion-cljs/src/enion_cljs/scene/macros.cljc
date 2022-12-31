@@ -9,6 +9,7 @@
 (defmacro process-cancellable-skills [skills active-state state]
   `(when (enion-cljs.scene.keyboard/pressing-wasd?)
      (j/assoc! ~state :target-pos-available? false)
+     (enion-cljs.scene.pc/set-locater-target)
      (cond
        ~@(apply concat
                 (for [s skills]

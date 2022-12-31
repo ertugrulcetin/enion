@@ -52,10 +52,10 @@
        (js/setTimeout
          (fn []
            (dispatch [::events/clear-cooldown skill]))
-         (-> skill common/skills :cooldown)))
+         #_(-> skill common/skills :cooldown) 500))
      :reagent-render
      (fn []
-       [:div (styles/cooldown (-> skill common/skills :cooldown (/ 1000)))])}))
+       [:div (styles/cooldown (/ 500 1000) #_(-> skill common/skills :cooldown (/ 1000)))])}))
 
 (defn- skill [index skill]
   [:div {:class (styles/skill)
@@ -69,10 +69,20 @@
         [cooldown skill])])])
 
 (comment
+  (js/setInterval
+    (fn []
+      (dispatch [::events/cooldown "heal"])
+      (dispatch [::events/cooldown "cure"])
+      (dispatch [::events/cooldown "fleetFoot"])
+      (dispatch [::events/cooldown "hpPotion"])
+      (dispatch [::events/cooldown "mpPotion"]))
+    100)
+
   (dispatch [::events/cooldown "heal"])
   (dispatch [::events/cooldown "cure"])
   (dispatch [::events/cooldown "fleetFoot"])
   (dispatch [::events/cooldown "hpPotion"])
+  (dispatch [::events/cooldown "mpPotion"])
   )
 
 (defn- hp-bar []

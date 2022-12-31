@@ -42,7 +42,7 @@ Terrain.prototype.initialize = function() {
     var meshes = this.createTerrainFromHeightMap(img, this.subdivisions);
     var visualMesh = meshes[0];
     var collisionMesh = meshes[1];
-    
+
     this.entity.addComponent('render', {
         meshInstances: [new pc.MeshInstance(visualMesh, this.material.resource)],
         castShadows: false,

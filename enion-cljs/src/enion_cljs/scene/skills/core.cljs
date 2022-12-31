@@ -35,7 +35,7 @@
   (pc/set-anim-boolean model-entity "run" true))
 
 (defn skill-pressed? [e skill]
-  (= (key->skill (.-key e)) skill))
+  (= (key->skill (j/get e :key)) skill))
 
 (defn register-skill-events [state events player-entity]
   (doseq [{:keys [anim-state

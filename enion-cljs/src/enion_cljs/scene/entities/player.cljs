@@ -78,6 +78,7 @@
         ;; (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
         (j/assoc! state :target-pos (pc/setv (j/get state :target-pos) x y z)
                   :target-pos-available? true)
+        (pc/set-locater-target x z)
         (process-running)))))
 
 (defn- register-mouse-events []
@@ -181,6 +182,7 @@
             (pc/apply-force player-entity (j/get dir :x) 0 (j/get dir :z))
             (do
               (j/assoc! state :target-pos-available? false)
+              (pc/set-locater-target)
               (process-running))))
         (do
           (pc/setv world-dir 0 0 0)

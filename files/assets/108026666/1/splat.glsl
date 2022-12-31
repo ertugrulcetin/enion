@@ -3,7 +3,6 @@ uniform sampler2D texture_red;
 uniform sampler2D texture_green;
 uniform sampler2D texture_blue;
 uniform sampler2D texture_alpha;
-uniform sampler2D texture_splat;
 uniform int scale_factor;
 
 vec2 my_cord;
