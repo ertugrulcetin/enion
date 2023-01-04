@@ -86,6 +86,13 @@
       (update db :minimap-open? not))))
 
 (reg-event-db
+  ::toggle-party-list
+  (fn [db]
+    (if (-> db :chat-box :active-input?)
+      db
+      (update db :party-list-open? not))))
+
+(reg-event-db
   ::init-skills
   (fn [db [_ class]]
     (let [skills (common/skill-slot-order-by-class class)]

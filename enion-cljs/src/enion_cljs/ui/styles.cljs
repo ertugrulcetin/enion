@@ -3,8 +3,8 @@
     [spade.core :refer [defglobal defclass defattrs defkeyframes]]))
 
 #_(sr/inject!
-  "enion-cljs-ui-styles-cooldown-property"
-  "@property --cooldown {\n  syntax: \"<percentage>\";\n  inherits: false;\n  initial-value: 0%;\n}")
+    "enion-cljs-ui-styles-cooldown-property"
+    "@property --cooldown {\n  syntax: \"<percentage>\";\n  inherits: false;\n  initial-value: 0%;\n}")
 
 (defglobal defaults
   [:body
@@ -26,6 +26,21 @@
    :left "50%"
    :bottom "20px"
    :z-index 3})
+
+(defclass button []
+  {:outline :none
+   :font-size "16px"
+   :font-family "Comic Papyrus"
+   :background-color "#10131dcc"
+   :border "2px solid #10131dcc"
+   :border-radius "5px"
+   :color "white"
+   :cursor :pointer
+   :pointer-events :all
+   :user-select :none}
+  [:&:hover
+   {:border "2px solid grey"
+    :border-radius "5px"}])
 
 (defattrs hp-mp-container []
   {:position :relative
@@ -80,6 +95,65 @@
    :padding-left "4px"
    :user-select :none})
 
+(def party-member-hp-mp-height "12px")
+
+(defattrs party-list-container [minimap-open?]
+  {:position :sticky
+   :width "200px"
+   :height "100%"
+   :margin-left :auto
+   :z-index 3
+   :float :right
+   :margin-top (if minimap-open? "170px" "10px")})
+
+(defattrs party-action-button-container []
+  {:display :flex
+   :flex-direction :row
+   :justify-content :end})
+
+(defattrs party-action-button []
+  {:composes [(button)]
+   :font-size "14px"
+   :opacity 0.75
+   :margin-bottom "5px"
+   :margin-right "10px"})
+
+(defattrs party-member-hp-mp-container []
+  {:composes [(hp-mp-container)]
+   :text-align :center
+   :width "145px"
+   :height "50px"
+   :margin-right "10px"
+   :pointer-events :all})
+
+(defattrs party-member-hp-bar []
+  {:composes [(hp-bar)]
+   :height party-member-hp-mp-height})
+
+(defattrs party-member-mp-bar []
+  {:composes [(party-member-hp-bar)]
+   :margin-top "4px"})
+
+(defattrs party-member-hp []
+  {:composes [(hp)]
+   :height party-member-hp-mp-height})
+
+(defattrs party-member-mp []
+  {:composes [(party-member-hp)]
+   :background "linear-gradient(0deg, #2a4fdf 0%, #1b27bd 49%, #2a4fdf 50%)"})
+
+(defattrs party-member-hp-hit []
+  {:composes [(hp-hit)]
+   :height party-member-hp-mp-height})
+
+(defattrs party-member-mp-used []
+  {:composes [(party-member-hp-hit)]
+   :background "#2a4fdf94"})
+
+(defattrs party-member-username []
+  {:color "white"
+   :font-size "13px"})
+
 (defattrs skill-bar []
   {:background-color "#10131ca3"
    :padding "2px"
@@ -109,7 +183,7 @@
    :pointer-events :none
    :position :absolute
    :line-height "8px"
-   :font-size "14px"
+   :font-size "12px"
    :background-color "rgba(16, 19, 29, 0.8)"
    :padding "2px 1px 3px 1px"
    :border-radius "2px"
@@ -207,21 +281,6 @@
    :font-family "Comic Papyrus"
    :border "2px solid #10131dcc"
    :border-radius "2px"})
-
-(defclass button []
-  {:outline :none
-   :font-size "16px"
-   :font-family "Comic Papyrus"
-   :background-color "#10131dcc"
-   :border "2px solid #10131dcc"
-   :border-radius "5px"
-   :color "white"
-   :cursor :pointer
-   :pointer-events :all
-   :user-select :none}
-  [:&:hover
-   {:border "2px solid grey"
-    :border-radius "5px"}])
 
 (defattrs selected-player []
   {:composes [(actions-container)]

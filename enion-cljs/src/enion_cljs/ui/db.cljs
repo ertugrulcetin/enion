@@ -12,5 +12,6 @@
               :active-input? false
               :type :all}
    :minimap-open? true
+   :party-list-open? true
    :player {:skills []
             :skill-move nil}})

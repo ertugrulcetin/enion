@@ -40,6 +40,11 @@
     (:minimap-open? db)))
 
 (reg-sub
+  ::party-list-open?
+  (fn [db]
+    (:party-list-open? db)))
+
+(reg-sub
   ::skills
   (fn [db]
     (-> db :player :skills)))

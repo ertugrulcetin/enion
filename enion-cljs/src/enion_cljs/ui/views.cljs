@@ -102,6 +102,23 @@
    [hp-bar]
    [mp-bar]])
 
+(defn- party-member-hp-bar []
+  [:div (styles/party-member-hp-bar)
+   [:div (styles/party-member-hp-hit)]
+   [:div (styles/party-member-hp)]])
+
+(defn- party-member-mp-bar []
+  [:div (styles/party-member-mp-bar)
+   [:div (styles/party-member-mp-used)]
+   [:div (styles/party-member-mp)]])
+
+(defn- party-member-hp-mp-bars [username]
+  [:div (styles/party-member-hp-mp-container)
+   [party-member-hp-bar]
+   [party-member-mp-bar]
+   [:span (styles/party-member-username)
+    username]])
+
 (defn- skill-bar []
   [:div (styles/skill-bar)
    (map-indexed
@@ -295,6 +312,19 @@
       [map-holder]
       [:div (styles/minimap-player)]]]))
 
+(defn- party-list []
+  (when @(subscribe [::subs/party-list-open?])
+    [:div (styles/party-list-container @(subscribe [::subs/minimap-open?]))
+     [:div (styles/party-action-button-container)
+      [:button (styles/party-action-button)
+       "Add to party"]]
+     [:div
+      [party-member-hp-mp-bars "NeaTBuSTeR"]
+      [party-member-hp-mp-bars "xXSatirciXx"]
+      [party-member-hp-mp-bars "0000000"]
+      [party-member-hp-mp-bars "E_R_T_U_G_R_U_L"]
+      [party-member-hp-mp-bars "F9DEVIL"]]]))
+
 (defn- on-mouse-down [e]
   (when (= (j/get e :button) 0)
     (if (> js/window.innerWidth 1440)
@@ -325,13 +355,17 @@
                                          (dispatch [::events/send-message])
 
                                          (= (j/get e :code) "KeyM")
-                                         (dispatch [::events/toggle-minimap]))))
+                                         (dispatch [::events/toggle-minimap])
+
+                                         (= (j/get e :code) "KeyP")
+                                         (dispatch [::events/toggle-party-list]))))
        (on :init-skills #(dispatch [::events/init-skills %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
         [selected-player]
         [minimap]
+        [party-list]
         [chat]
         [info-box]
         [actions-section]
