@@ -37,6 +37,11 @@ ShaderSplat.attributes.add('locaterTex', {
     assetType: 'texture',
     title: 'Locater Texture'
 });
+ShaderSplat.attributes.add('spellTex', {
+    type: 'asset',
+    assetType: 'texture',
+    title: 'Spell Texture'
+});
 
 // initialize code called once per entity
 ShaderSplat.prototype.initialize = function () {
@@ -52,6 +57,9 @@ ShaderSplat.prototype.initialize = function () {
     this.material.setParameter('locater_texture', this.locaterTex.resource);
     this.material.setParameter('target_position_available', false);
     this.material.setParameter('target_position', [playerPos.x, playerPos.z]);
+    
+    this.material.setParameter('spell_position', [playerPos.x, playerPos.z]);
+    this.material.setParameter('spell_texture', this.spellTex.resource);
 
     this.material.chunks.diffusePS = this.splatShader.resource;
     this.material.setParameter('splatMap', this.splatTex.resource);

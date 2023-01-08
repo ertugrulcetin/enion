@@ -5,13 +5,13 @@ uniform sampler2D texture_blue;
 uniform sampler2D texture_alpha;
 uniform int scale_factor;
 
-vec2 my_cord;
+vec2 uv_cord;
 vec2 scale;
 
 void getAlbedo() {
    
     scale = vec2(scale_factor, scale_factor);
-    my_cord = $UV;
+    uv_cord = $UV;
     
     vec4 texture0 = texture2DSRGB( texture_red, $UV * scale);
     vec4 texture1 = texture2DSRGB( texture_green, $UV * scale);
