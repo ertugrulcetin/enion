@@ -118,9 +118,10 @@
    :margin-bottom "5px"
    :margin-right "10px"})
 
-(defattrs party-member-hp-mp-container []
+(defattrs party-member-hp-mp-container [selected?]
   {:composes [(hp-mp-container)]
    :text-align :center
+   :border (when selected? "2px solid rgb(15 188 3)")
    :width "145px"
    :height "50px"
    :margin-right "10px"

@@ -61,7 +61,16 @@
     (skills/register-skill-events state events player-entity)
     (common/on :update-skills-order skills/register-key->skills)))
 
+(defn- square [n]
+  (js/Math.pow n 2))
+
+(defn inside-circle?
+  "Clojure formula of (x - center_x)² + (y - center_y)² < radius²"
+  [x z center-x center-z radius]
+  (< (+ (square (- x center-x)) (square (- z center-z))) (square radius)))
+
 ;; TODO also need to check is char dead or alive to be able to do that
+;; TODO when char at the corner of the map, set-target-position does not work due to map wall collision
 (defn- set-target-position [e]
   (let [x (j/get e :x)
         y (j/get e :y)
@@ -72,10 +81,12 @@
     (when (and result (= "terrain" (j/get-in result [:entity :name])))
       (let [x (j/get-in result [:point :x])
             y (j/get-in result [:point :y])
-            z (j/get-in result [:point :z])]
+            z (j/get-in result [:point :z])
+            char-pos (pc/get-pos model-entity)]
         (when-not (skills/char-cant-run?)
-          (pc/look-at model-entity x (j/get (pc/get-pos model-entity) :y) z true))
+          (pc/look-at model-entity x (j/get char-pos :y) z true))
         ;; (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
+        ;; (println "inside circle: " (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 1.8))
         (j/assoc! state :target-pos (pc/setv (j/get state :target-pos) x y z)
                   :target-pos-available? true)
         (pc/set-locater-target x z)

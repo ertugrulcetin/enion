@@ -113,7 +113,7 @@
    [:div (styles/party-member-mp)]])
 
 (defn- party-member-hp-mp-bars [username]
-  [:div (styles/party-member-hp-mp-container)
+  [:div (styles/party-member-hp-mp-container false)
    [party-member-hp-bar]
    [party-member-mp-bar]
    [:span (styles/party-member-username)
