@@ -1,16 +1,18 @@
 (ns enion-backend.middleware
   (:require
-    [enion-backend.env :refer [defaults]]
     [clojure.tools.logging :as log]
+    [enion-backend.config :refer [env]]
+    [enion-backend.env :refer [defaults]]
     [enion-backend.layout :refer [error-page]]
-    [ring.middleware.anti-forgery :refer [wrap-anti-forgery]]
     [enion-backend.middleware.formats :as formats]
     [muuntaja.middleware :refer [wrap-format wrap-params]]
-    [enion-backend.config :refer [env]]
     [ring-ttl-session.core :refer [ttl-memory-store]]
+    [ring.middleware.anti-forgery :refer [wrap-anti-forgery]]
     [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
 
-(defn wrap-internal-error [handler]
+
+(defn wrap-internal-error
+  [handler]
   (let [error-result (fn [^Throwable t]
                        (log/error t (.getMessage t))
                        (error-page {:status 500
@@ -25,7 +27,9 @@
          (catch Throwable t
            (error-result t)))))))
 
-(defn wrap-csrf [handler]
+
+(defn wrap-csrf
+  [handler]
   (wrap-anti-forgery
     handler
     {:error-response
@@ -34,17 +38,20 @@
         :title "Invalid anti-forgery token"})}))
 
 
-(defn wrap-formats [handler]
+(defn wrap-formats
+  [handler]
   (let [wrapped (-> handler wrap-params (wrap-format formats/instance))]
     (fn
       ([request]
-         ;; disable wrap-formats for websockets
-         ;; since they're not compatible with this middleware
+       ;; disable wrap-formats for websockets
+       ;; since they're not compatible with this middleware
        ((if (:websocket? request) handler wrapped) request))
       ([request respond raise]
        ((if (:websocket? request) handler wrapped) request respond raise)))))
 
-(defn wrap-base [handler]
+
+(defn wrap-base
+  [handler]
   (-> ((:middleware defaults) handler)
       (wrap-defaults
         (-> site-defaults

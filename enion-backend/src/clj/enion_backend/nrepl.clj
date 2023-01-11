@@ -1,7 +1,8 @@
 (ns enion-backend.nrepl
   (:require
-    [nrepl.server :as nrepl]
-    [clojure.tools.logging :as log]))
+    [clojure.tools.logging :as log]
+    [nrepl.server :as nrepl]))
+
 
 (defn start
   "Start a network repl for debugging on specified port followed by
@@ -22,6 +23,8 @@
       (log/error t "failed to start nREPL")
       (throw t))))
 
-(defn stop [server]
+
+(defn stop
+  [server]
   (nrepl/stop-server server)
   (log/info "nREPL server stopped"))

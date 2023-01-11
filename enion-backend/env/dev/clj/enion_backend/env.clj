@@ -1,8 +1,9 @@
 (ns enion-backend.env
   (:require
-    [selmer.parser :as parser]
     [clojure.tools.logging :as log]
-    [enion-backend.dev-middleware :refer [wrap-dev]]))
+    [enion-backend.dev-middleware :refer [wrap-dev]]
+    [selmer.parser :as parser]))
+
 
 (def defaults
   {:init

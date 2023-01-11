@@ -1,14 +1,17 @@
 (ns enion-backend.handler-test
   (:require
     [clojure.test :refer :all]
-    [ring.mock.request :refer :all]
     [enion-backend.handler :refer :all]
     [enion-backend.middleware.formats :as formats]
+    [mount.core :as mount]
     [muuntaja.core :as m]
-    [mount.core :as mount]))
+    [ring.mock.request :refer :all]))
 
-(defn parse-json [body]
+
+(defn parse-json
+  [body]
   (m/decode formats/instance "application/json" body))
+
 
 (use-fixtures
   :once
@@ -16,6 +19,7 @@
     (mount/start #'enion-backend.config/env
                  #'enion-backend.handler/app-routes)
     (f)))
+
 
 (deftest test-app
   (testing "main route"

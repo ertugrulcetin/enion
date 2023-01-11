@@ -78,39 +78,98 @@
       (j/call-in entity [:children 0 :particlesystem :play])
       nil)))
 
-(comment
-  (pc/set-loc-scale (pc/find-by-name "nova") 1)
-  (pc/get-loc-scale (pc/find-by-name "nova"))
-
-  (let [e (pc/find-by-name "light_sprite")
+(defn effect-scale-down [e duration]
+  (let [_ (j/assoc! e :enabled true)
         _ (pc/set-loc-scale e 0.3)
         temp-final-scale #js {:x 0 :y 0.3 :z 0.3}
         first-scale (pc/get-loc-scale e)
         tween-scale (-> (j/call e :tween first-scale)
-                      (j/call :to temp-final-scale 0.25 js/pc.Linear))]
+                        (j/call :to temp-final-scale duration js/pc.Linear))
+        _ (j/call tween-scale :on "complete"
+                  (fn []
+                    (j/assoc! e :enabled false)))]
     (j/call tween-scale :start)
-    nil)
+    nil))
 
-  (pc/set-loc-pos (pc/find-by-name "light_sprite") 0 0 0)
+(defn effect-opacity-fade-out [e duration]
+  (let [opacity #js {:opacity 1}
+        last-opacity #js {:opacity 0}
+        _ (j/assoc! e :enabled true)
+        tween-opacity (-> (j/call e :tween opacity)
+                          (j/call :to last-opacity duration js/pc.Linear))
+        _ (j/call tween-opacity :on "update"
+                  (fn []
+                    (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))
+        _ (j/call tween-opacity :on "complete"
+                  (fn []
+                    (j/assoc! e :enabled false)))]
+    (j/call tween-opacity :start)
+    nil))
+
+(defn effect-opacity-fade-in [e duration]
+  (let [opacity #js {:opacity 1}
+        last-opacity #js {:opacity 0}
+        _ (j/assoc! e :enabled true)
+        tween-opacity (-> (j/call e :tween opacity)
+                          (j/call :to last-opacity duration js/pc.ExponentialIn))
+        _ (j/call tween-opacity :on "update"
+                  (fn []
+                    (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))
+        _ (j/call tween-opacity :on "complete"
+                  (fn []
+                    (j/assoc! e :enabled false)))]
+    (j/call tween-opacity :start)
+    nil))
+
+(def attack-dagger-one-hand
+  (let [prev-timeout-id (atom nil)]
+    (fn [e duration]
+      (when-let [id @prev-timeout-id]
+        (js/clearTimeout id))
+      (j/assoc! e :enabled true)
+      (reset! prev-timeout-id (js/setTimeout #(do
+                                                (reset! prev-timeout-id nil)
+                                                (j/assoc! e :enabled false))
+                                             (* duration 1000))))))
+
+(comment
+  (effect-scale-down (pc/find-by-name (pc/find-by-name "player") "attack_slow_down") 0.2)
+  (effect-scale-down (pc/find-by-name (pc/find-by-name "player") "portal") 2)
+
+
+  (effect-opacity-fade-out (pc/find-by-name (pc/find-by-name "player") "attack_r") 0.2)
+  (effect-opacity-fade-out (pc/find-by-name (pc/find-by-name "player") "attack_flame") 1)
+  (effect-opacity-fade-out (pc/find-by-name (pc/find-by-name "player") "attack_dagger") 1)
+  (effect-opacity-fade-out (pc/find-by-name (pc/find-by-name "player") "attack_one_hand") 1.5)
+
+  (effect-opacity-fade-in (pc/find-by-name (pc/find-by-name "player") "attack_one_hand") 1.25)
+  (effect-opacity-fade-in (pc/find-by-name (pc/find-by-name "player") "attack_dagger") 1)
+  (effect-opacity-fade-in (pc/find-by-name (pc/find-by-name "player") "attack_flame") 1)
+
+  (let [e (pc/find-by-name "attack_r")]
+    (j/assoc! e :enabled true)
+    (j/assoc-in! e [:sprite :opacity] 1)
+    (js/setTimeout #(j/assoc-in! e [:sprite :opacity] 0.5) 75)
+    (js/setTimeout #(j/assoc! e :enabled false) 150))
 
 
   (let [opacity #js {:opacity 1}
         last-opacity #js {:opacity 0}
-        e (pc/find-by-name "light_sprite")
+        e (pc/find-by-name "attack_r")
         tween-opacity (-> (j/call e :tween opacity)
-                          (j/call :to last-opacity 0.2 js/pc.Linear))
+                        (j/call :to last-opacity 0.2 js/pc.Linear))
         _ (j/call tween-opacity :on "update"
-              (fn []
-                (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))]
+            (fn []
+              (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))]
     (j/call tween-opacity :start)
     nil)
 
 
   (let [color #js {:color 1}
         last-color #js {:color 0}
-        e (pc/find-by-name "model_mesh")
+        e (pc/find-by-name "human_mage_mesh")
         tween-color (-> (j/call e :tween color)
-                      (j/call :to last-color 2 js/pc.Linear)
+                      (j/call :to last-color 1.5 js/pc.Linear)
                       ;(j/call :yoyo true)
                       ;(j/call :loop true)
                       ;(j/call :repeat )
@@ -122,23 +181,12 @@
     nil)
 
   (pc/set-loc-scale (pc/find-by-name "light_sprite2") 0.15)
-  (let [e (pc/find-by-name "light_sprite2")]
+
+  (let [e (pc/find-by-name "attack_r")]
     (j/assoc! e :enabled true)
     (j/assoc-in! e [:sprite :opacity] 1)
     (js/setTimeout #(j/assoc-in! e [:sprite :opacity] 0.5) 75)
     (js/setTimeout #(j/assoc! e :enabled false) 150))
-
-  (let [opacity #js {:opacity 1}
-        last-opacity #js {:opacity 0}
-        e (pc/find-by-name "light_sprite2")
-        _ (j/assoc! e :enabled true)
-        tween-opacity (-> (j/call e :tween opacity)
-                          (j/call :to last-opacity 0.2 js/pc.Linear))
-        _ (j/call tween-opacity :on "update"
-              (fn []
-                (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))]
-    (j/call tween-opacity :start)
-    nil)
 
   (pc/set-loc-pos (pc/find-by-name "light_sprite2") 0 -0.15 0)
 

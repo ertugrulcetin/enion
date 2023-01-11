@@ -30,7 +30,6 @@
 
 (defonce player-entity nil)
 (defonce model-entity nil)
-(defonce effects (clj->js {}))
 
 (defn- pressing-wasd-or-has-target? []
   (or (k/pressing-wasd?) (j/get state :target-pos-available?)))
@@ -118,7 +117,7 @@
   (j/call-in entity [:collision :on] "collisionstart" collision-start)
   (j/call-in entity [:collision :on] "collisionend" collision-end))
 
-(defn- get-model-entity [player-entity*]
+(defn- get-model-and-template-entity [player-entity*]
   (let [race (j/get state :race)
         class (j/get state :class)
         template-entity-name (str race "_" class)
@@ -126,7 +125,7 @@
         character-template-entity (pc/clone (pc/find-by-name template-entity-name))]
     (pc/set-loc-pos character-template-entity 0 0 0)
     (pc/add-child player-entity* character-template-entity)
-    (pc/find-by-name character-template-entity model-entity-name)))
+    [character-template-entity (pc/find-by-name character-template-entity model-entity-name)]))
 
 (defn- create-username-text [player-entity*]
   (let [username (j/get state :username)
@@ -152,20 +151,25 @@
               :class (name class)
               :mana mana
               :health health)
-    (j/call-in player [:rigidbody :teleport] x y z)))
+    (when pos
+      (j/call-in player [:rigidbody :teleport] x y z))))
 
 (defn spawn [[x y z]]
   (j/call-in player-entity [:rigidbody :teleport] x y z))
 
+(defn- add-damage-effects [template-entity]
+  (pc/add-child template-entity (pc/clone (pc/find-by-name "damage_effects"))))
+
 (defn- init-fn [this player-data]
   (let [player-entity* (j/get this :entity)
         _ (init-player player-data player-entity*)
-        model-entity* (get-model-entity player-entity*)]
+        [template-entity model-entity*] (get-model-and-template-entity player-entity*)]
     (create-username-text player-entity*)
     (j/assoc! state :camera (pc/find-by-name "camera"))
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
     (set! skills/model-entity model-entity*)
+    (add-damage-effects template-entity)
     (common/fire :init-skills (keyword (j/get state :class)))
     (register-keyboard-events)
     (register-mouse-events)
@@ -236,7 +240,23 @@
                     {:init (fnt (init-fn this player-data))
                      :update (fnt (update-fn dt this))}))
 
+(defn enable-effect [name]
+  (j/assoc! (pc/find-by-name player-entity name) :enabled true))
+
+(defn disable-effect [name]
+  (j/assoc! (pc/find-by-name player-entity name) :enabled false))
+
 (comment
+  ("asas_eyes"
+   "shield"
+   "portal"
+   "attack_slow_down"
+   "attack_r"
+   "attack_flame"
+   "attack_dagger"
+   "attack_one_hand"
+   "particle_got_defense_break")
+
   (get-position)
   (js/console.log player-entity)
   (j/call-in player-entity [:rigidbody :teleport] 31 2.3 -32)
@@ -249,4 +269,10 @@
 
   (j/get state :on-ground?)
 
+  (enable-effect "attack_slow_down")
+  (disable-effect "attack_r")
+
+  (js/console.log player-entity)
+  (for [s (j/get (pc/find-by-name "damage_effects") :children)]
+    (.-name s))
   )

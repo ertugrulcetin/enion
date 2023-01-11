@@ -13,6 +13,12 @@
   (scene.core/init #(ui.core/init) player-data))
 
 (defn init []
-  ;; (create-div-app)
-  ;; (scene.core/init #(ui.core/init))
-  )
+  (init-game {:id 1
+              :username "NeaTBuSTeR"
+              ;; :race "orc"
+              :race "human"
+              :class "mage"
+              :mana 100
+              :health 100
+              ;; :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
+              }))
