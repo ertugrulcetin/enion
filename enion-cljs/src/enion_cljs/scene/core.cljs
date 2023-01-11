@@ -4,9 +4,9 @@
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.entities.player :as entity.player]))
 
-(defn init [init-ui]
+(defn init [init-ui player-data]
   (entity.root/init init-ui)
-  (entity.player/init)
+  (entity.player/init player-data)
   (entity.camera/init))
 
 (comment

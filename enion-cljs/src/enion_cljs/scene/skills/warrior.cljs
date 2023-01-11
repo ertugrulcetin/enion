@@ -25,6 +25,7 @@
 
 (def last-one-hand-combo (atom (js/Date.now)))
 
+;; TODO w'ya basili tutarken ard arda 1'e basinca cancel oluyor sanki!
 (defn process-skills [e state]
   (when-not (-> e .-event .-repeat)
     (let [active-state (pc/get-anim-state model-entity)]

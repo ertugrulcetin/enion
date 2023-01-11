@@ -50,7 +50,7 @@
                     :description (str "Allows your character to unleash a powerful, precise strike "
                                       "with their weapon, dealing heavy damage to their enemies.")}
    "attackSlowDown" {:cooldown 10000
-                     :name "Slowing Slice "
+                     :name "Slowing Slice"
                      :description (str "Attack that targets the legs of an enemy, causing them to slow "
                                        "down and become less mobile. This skill has a 50% chance to apply a "
                                        "slowing effect on the target, reducing their movement "

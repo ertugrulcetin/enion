@@ -8,6 +8,11 @@
     (.setAttribute div "id" "app")
     (.prepend (.-body js/document) div)))
 
-(defn init []
+(defn init-game [player-data]
   (create-div-app)
-  (scene.core/init #(ui.core/init)))
+  (scene.core/init #(ui.core/init) player-data))
+
+(defn init []
+  ;; (create-div-app)
+  ;; (scene.core/init #(ui.core/init))
+  )

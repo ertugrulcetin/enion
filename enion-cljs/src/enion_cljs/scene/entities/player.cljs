@@ -22,15 +22,11 @@
                          :eulers (pc/vec3)
                          :temp-dir (pc/vec3)
                          :world-dir (pc/vec3)
-                         :health 100
                          :mouse-left-locked? false
                          :target-pos (pc/vec3)
                          :target-pos-available? false
                          :skill-locked? false
-                         :can-r-attack-interrupt? false
-                         :race :orc
-                         :class :warrior
-                         :name "NeaTBuSTeR"}))
+                         :can-r-attack-interrupt? false}))
 
 (defonce player-entity nil)
 (defonce model-entity nil)
@@ -133,7 +129,7 @@
     (pc/find-by-name character-template-entity model-entity-name)))
 
 (defn- create-username-text [player-entity*]
-  (let [username (j/get state :name)
+  (let [username (j/get state :username)
         race (j/get state :race)
         class (j/get state :class)
         template-entity-name (str race "_" class)
@@ -147,23 +143,23 @@
                    (= class "warrior")))
       (pc/set-loc-pos username-text-entity 0 0.05 0))))
 
-(comment
-  (let [username (j/get state :name)
-        race (j/get state :race)
-        class (j/get state :class)
-        template-entity-name (str race "_" class)
-        character-template-entity (pc/find-by-name player-entity template-entity-name)
-        username-text-entity (pc/find-by-name character-template-entity "char_name")]
-    ;(js/console.log username-text-entity)
-    (j/assoc-in! username-text-entity [:element :color] (pc/color (/ 355 255) (/ 0 255) (/ 0 255)))
-    (j/assoc-in! username-text-entity [:element :outlineThickness] 0)
-    (j/assoc-in! username-text-entity [:element :fontSize] 32)
+(defn- init-player [{:keys [id username class race mana health pos]} player]
+  (let [[x y z] pos]
+    (j/assoc! state
+              :id id
+              :username username
+              :race (name race)
+              :class (name class)
+              :mana mana
+              :health health)
+    (j/call-in player [:rigidbody :teleport] x y z)))
 
-    )
-  )
+(defn spawn [[x y z]]
+  (j/call-in player-entity [:rigidbody :teleport] x y z))
 
-(defn- init-fn [this]
+(defn- init-fn [this player-data]
   (let [player-entity* (j/get this :entity)
+        _ (init-player player-data player-entity*)
         model-entity* (get-model-entity player-entity*)]
     (create-username-text player-entity*)
     (j/assoc! state :camera (pc/find-by-name "camera"))
@@ -235,9 +231,9 @@
 (defn- update-fn [dt this]
   (process-movement dt this))
 
-(defn init []
+(defn init [player-data]
   (pc/create-script :player
-                    {:init (fnt (init-fn this))
+                    {:init (fnt (init-fn this player-data))
                      :update (fnt (update-fn dt this))}))
 
 (comment

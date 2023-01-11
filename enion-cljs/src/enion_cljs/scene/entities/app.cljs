@@ -28,4 +28,4 @@
                              (init-fn this)
                              (init-ui))
                      :post-init (fn []
-                                  (lod-manager/init))}))
+                                  #_(lod-manager/init))}))
