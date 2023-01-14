@@ -9,7 +9,6 @@
     [luminus.http-server :as http]
     [mount.core :as mount]))
 
-
 ;; log uncaught exceptions in threads
 (Thread/setDefaultUncaughtExceptionHandler
   (reify Thread$UncaughtExceptionHandler
@@ -19,11 +18,9 @@
                   :exception ex
                   :where (str "Uncaught exception on" (.getName thread))}))))
 
-
 (def cli-options
   [["-p" "--port PORT" "Port number"
     :parse-fn #(Integer/parseInt %)]])
-
 
 (mount/defstate ^{:on-reload :noop} http-server
                 :start
@@ -35,7 +32,6 @@
                 :stop
                 (http/stop http-server))
 
-
 (mount/defstate ^{:on-reload :noop} repl-server
                 :start
                 (when (env :nrepl-port)
@@ -45,13 +41,11 @@
                 (when repl-server
                   (nrepl/stop repl-server)))
 
-
 (defn stop-app
   []
   (doseq [component (:stopped (mount/stop))]
     (log/info component "stopped"))
   (shutdown-agents))
-
 
 (defn start-app
   [args]
@@ -62,11 +56,9 @@
     (log/info component "started"))
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
 
-
 (defn -main
   [& args]
   (start-app args))
-
 
 (comment
   (stop-app))

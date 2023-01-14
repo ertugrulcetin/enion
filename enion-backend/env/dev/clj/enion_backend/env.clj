@@ -4,7 +4,6 @@
     [enion-backend.dev-middleware :refer [wrap-dev]]
     [selmer.parser :as parser]))
 
-
 (def defaults
   {:init
    (fn []

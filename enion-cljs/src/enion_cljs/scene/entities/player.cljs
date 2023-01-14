@@ -158,7 +158,18 @@
   (j/call-in player-entity [:rigidbody :teleport] x y z))
 
 (defn- add-damage-effects [template-entity]
-  (pc/add-child template-entity (pc/clone (pc/find-by-name "damage_effects"))))
+  (pc/add-child template-entity (pc/clone (pc/find-by-name "damage_effects")))
+  ;; add damage effect initial state ids
+  (doseq [e ["asas_eyes"
+             "shield"
+             "portal"
+             "attack_slow_down"
+             "attack_r"
+             "attack_flame"
+             "attack_dagger"
+             "attack_one_hand"
+             "particle_got_defense_break"]]
+    (j/assoc-in! state [:effects e] 0)))
 
 (defn- init-fn [this player-data]
   (let [player-entity* (j/get this :entity)

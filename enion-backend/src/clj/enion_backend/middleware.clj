@@ -10,7 +10,6 @@
     [ring.middleware.anti-forgery :refer [wrap-anti-forgery]]
     [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
 
-
 (defn wrap-internal-error
   [handler]
   (let [error-result (fn [^Throwable t]
@@ -27,7 +26,6 @@
          (catch Throwable t
            (error-result t)))))))
 
-
 (defn wrap-csrf
   [handler]
   (wrap-anti-forgery
@@ -36,7 +34,6 @@
      (error-page
        {:status 403
         :title "Invalid anti-forgery token"})}))
-
 
 (defn wrap-formats
   [handler]
@@ -49,7 +46,6 @@
       ([request respond raise]
        ((if (:websocket? request) handler wrapped) request respond raise)))))
 
-
 (defn wrap-base
   [handler]
   (-> ((:middleware defaults) handler)
@@ -58,5 +54,4 @@
             (assoc-in [:security :anti-forgery] false)
             (assoc-in  [:session :store] (ttl-memory-store (* 60 30)))))
       wrap-internal-error))
-
 

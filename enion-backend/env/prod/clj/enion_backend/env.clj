@@ -2,7 +2,6 @@
   (:require
     [clojure.tools.logging :as log]))
 
-
 (def defaults
   {:init
    (fn []

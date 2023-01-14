@@ -78,8 +78,9 @@
       (j/call-in entity [:children 0 :particlesystem :play])
       nil)))
 
-(defn effect-scale-down [e duration]
-  (let [_ (j/assoc! e :enabled true)
+(defn effect-scale-down [e duration state-id]
+  (let [new-state-id (swap! state-id inc)
+        _ (j/assoc! e :enabled true)
         _ (pc/set-loc-scale e 0.3)
         temp-final-scale #js {:x 0 :y 0.3 :z 0.3}
         first-scale (pc/get-loc-scale e)
@@ -87,14 +88,16 @@
                         (j/call :to temp-final-scale duration js/pc.Linear))
         _ (j/call tween-scale :on "complete"
                   (fn []
-                    (j/assoc! e :enabled false)))]
+                    (when (= new-state-id @state-id)
+                      (j/assoc! e :enabled false))))]
     (j/call tween-scale :start)
     nil))
 
-(defn effect-opacity-fade-out [e duration]
-  (let [opacity #js {:opacity 1}
-        last-opacity #js {:opacity 0}
+(defn effect-opacity-fade-out [e duration state-id]
+  (let [new-state-id (swap! state-id inc)
         _ (j/assoc! e :enabled true)
+        opacity #js {:opacity 1}
+        last-opacity #js {:opacity 0}
         tween-opacity (-> (j/call e :tween opacity)
                           (j/call :to last-opacity duration js/pc.Linear))
         _ (j/call tween-opacity :on "update"
@@ -102,22 +105,8 @@
                     (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))
         _ (j/call tween-opacity :on "complete"
                   (fn []
-                    (j/assoc! e :enabled false)))]
-    (j/call tween-opacity :start)
-    nil))
-
-(defn effect-opacity-fade-in [e duration]
-  (let [opacity #js {:opacity 1}
-        last-opacity #js {:opacity 0}
-        _ (j/assoc! e :enabled true)
-        tween-opacity (-> (j/call e :tween opacity)
-                          (j/call :to last-opacity duration js/pc.ExponentialIn))
-        _ (j/call tween-opacity :on "update"
-                  (fn []
-                    (j/assoc-in! e [:sprite :opacity] (j/get opacity :opacity))))
-        _ (j/call tween-opacity :on "complete"
-                  (fn []
-                    (j/assoc! e :enabled false)))]
+                    (when (= new-state-id @state-id)
+                      (j/assoc! e :enabled false))))]
     (j/call tween-opacity :start)
     nil))
 
@@ -133,18 +122,13 @@
                                              (* duration 1000))))))
 
 (comment
-  (effect-scale-down (pc/find-by-name (pc/find-by-name "player") "attack_slow_down") 0.2)
+  (effect-scale-down (pc/find-by-name (pc/find-by-name "player") "attack_slow_down") 0.2 (atom 0))
   (effect-scale-down (pc/find-by-name (pc/find-by-name "player") "portal") 2)
-
 
   (effect-opacity-fade-out (pc/find-by-name (pc/find-by-name "player") "attack_r") 0.2)
   (effect-opacity-fade-out (pc/find-by-name (pc/find-by-name "player") "attack_flame") 1)
   (effect-opacity-fade-out (pc/find-by-name (pc/find-by-name "player") "attack_dagger") 1)
   (effect-opacity-fade-out (pc/find-by-name (pc/find-by-name "player") "attack_one_hand") 1.5)
-
-  (effect-opacity-fade-in (pc/find-by-name (pc/find-by-name "player") "attack_one_hand") 1.25)
-  (effect-opacity-fade-in (pc/find-by-name (pc/find-by-name "player") "attack_dagger") 1)
-  (effect-opacity-fade-in (pc/find-by-name (pc/find-by-name "player") "attack_flame") 1)
 
   (let [e (pc/find-by-name "attack_r")]
     (j/assoc! e :enabled true)

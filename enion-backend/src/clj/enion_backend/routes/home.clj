@@ -15,18 +15,15 @@
     (java.time
       Instant)))
 
-
 (def max-number-of-players 50)
 (def max-number-of-same-race-players (/ max-number-of-players 2))
 
 (defonce id-generator (atom 0))
 (defonce world (atom {}))
 
-
 (defn home-page
   [request]
   (layout/render request "home.html" {:docs (-> "docs/docs.md" io/resource slurp)}))
-
 
 (comment
   (s/put! @my-soc (msg/pack {0 2}))
@@ -38,22 +35,18 @@
     (s/put! @my-soc (msg/pack {:code (rand-int 10000)}))
     (Thread/sleep (/ 1000 20))))
 
-
 (defn random-pos-for-orc
   []
   [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))])
-
 
 (defn random-pos-for-human
   []
   [(- (+ 38 (rand 5.5))) 0.55 (+ 39 (rand 1.5))])
 
-
 (reg-pro
   :spawn
   (fn [_]
     (random-pos-for-human)))
-
 
 (reg-pro
   :init-player
@@ -68,7 +61,6 @@
                  :pos (random-pos-for-orc)}]
       (swap! world assoc id attrs)
       attrs)))
-
 
 (defn- ws-handler
   [req]
@@ -89,7 +81,6 @@
                                                      (when result
                                                        (s/put! socket (msg/pack (hash-map id result)))))})))
             socket)))))
-
 
 (defn home-routes
   []

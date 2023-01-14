@@ -7,11 +7,9 @@
     [muuntaja.core :as m]
     [ring.mock.request :refer :all]))
 
-
 (defn parse-json
   [body]
   (m/decode formats/instance "application/json" body))
-
 
 (use-fixtures
   :once
@@ -19,7 +17,6 @@
     (mount/start #'enion-backend.config/env
                  #'enion-backend.handler/app-routes)
     (f)))
-
 
 (deftest test-app
   (testing "main route"

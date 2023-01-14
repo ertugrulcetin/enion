@@ -9,11 +9,9 @@
     [selmer.filters :as filters]
     [selmer.parser :as parser]))
 
-
 (parser/set-resource-path!  (clojure.java.io/resource "html"))
 (parser/add-tag! :csrf-field (fn [_ _] (anti-forgery-field)))
 (filters/add-filter! :markdown (fn [content] [:safe (md-to-html-string content)]))
-
 
 (defn render
   "renders the HTML template located relative to resources/html"
@@ -26,7 +24,6 @@
                :page template
                :csrf-token *anti-forgery-token*)))
     "text/html; charset=utf-8"))
-
 
 (defn error-page
   "error-details should be a map containing the following keys:

@@ -158,6 +158,7 @@
                             ^{:key idx}
                             [chat-message msg])])})))
 
+;; TODO add Player A has defeated Player B
 (defn- chat []
   (let [open? @(subscribe [::subs/box-open? :chat-box])
         input-active? @(subscribe [::subs/chat-input-active?])
@@ -272,24 +273,12 @@
     [:div (styles/hp-hit)]
     [:div (styles/hp)]]])
 
-(defonce x (r/atom 0))
-(defonce y (r/atom 0))
-
-(comment
-  (player/get-position)
-  (js/clearInterval 35281)
-  (js/setInterval
-    (fn []
-      (when-not (= "idle" (player/get-state))
-        (let [pos (player/get-position)]
-          (reset! x (+ (* (j/get pos :x) 5) 175))
-          (reset! y (+ (* (j/get pos :z) 5) 175)))))
-    250)
-  )
+(def x (r/atom 0))
+(def y (r/atom 0))
 
 ;; Math formula of map
-;; let scale = Map zoom size (#holder) / terrain size (100) ratio
-;; let gap = (Map zoom size (#holder) - Minimap size) / 2
+;; scale = Map zoom size (#holder) / terrain size (100) ratio
+;; gap = (Map zoom size (#holder) - Minimap size) / 2
 ;; (+ (* (j/get pos :x) scale) gap)
 
 ;; (when-not (= "idle" (player/get-state))
@@ -306,11 +295,24 @@
      :src "http://localhost:8280/img/minimap.png"}]])
 
 (defn- minimap []
-  (when @(subscribe [::subs/minimap-open?])
-    [:div (styles/minimap)
-     [:div (styles/map-overflow)
-      [map-holder]
-      [:div (styles/minimap-player)]]]))
+  (let [interval-id (atom nil)]
+    (r/create-class
+      {:component-did-mount (fn []
+                              (reset! interval-id (js/setInterval
+                                                    (fn []
+                                                      (when-not (= "idle" (player/get-state))
+                                                        (let [pos (player/get-position)]
+                                                          (reset! x (+ (* (j/get pos :x) 5) 175))
+                                                          (reset! y (+ (* (j/get pos :z) 5) 175)))))
+                                                    250)))
+       :component-will-unmount (fn []
+                                 (when-let [id @interval-id]
+                                   (js/clearInterval id)))
+       :reagent-render (fn []
+                         [:div (styles/minimap)
+                          [:div (styles/map-overflow)
+                           [map-holder]
+                           [:div (styles/minimap-player)]]])})))
 
 (defn- party-list []
   (when @(subscribe [::subs/party-list-open?])
@@ -364,7 +366,8 @@
      (fn []
        [:div (styles/ui-panel)
         [selected-player]
-        [minimap]
+        (when @(subscribe [::subs/minimap-open?])
+          [minimap])
         [party-list]
         [chat]
         [info-box]
