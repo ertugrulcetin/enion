@@ -17,6 +17,9 @@
                     (str/starts-with? (name (first %)) "MOUSEBUTTON_")))
        (into {})))
 
+(defn root []
+  (j/get app :root))
+
 (defn find-by-name
   ([name]
    (j/call-in app [:root :findByName] name))
@@ -80,8 +83,11 @@
 (defn get-pos [e]
   (j/call e :getPosition))
 
-(defn set-pos [e v]
-  (j/call e :setPosition v))
+(defn set-pos
+  ([e v]
+   (j/call e :setPosition v))
+  ([e x y z]
+   (j/call e :setPosition x y z)))
 
 (defn get-loc-pos [e]
   (j/call e :getLocalPosition))
@@ -209,3 +215,8 @@
      (j/assoc! target 0 x 1 z)
      (j/call @mat :setParameter "target_position" target)
      (j/call @mat :setParameter "target_position_available" true))))
+
+(defn update-anim-speed [e clip-name speed]
+  (some-> e
+          (j/call-in [:anim :layers 0 :_controller :_animEvaluator :findClip] clip-name)
+          (j/assoc! :speed speed)))

@@ -21,9 +21,13 @@
 
 (def common-states
   [{:anim-state "idle" :event "onIdleStart"}
-   {:anim-state "run" :event "onRunStart"}
+   {:anim-state "run"
+    :event "onRunStart"
+    :f (fn [_ state]
+         (when (j/get state :runs-fast?)
+           (pc/update-anim-speed model-entity "run" 1.5)))}
    {:anim-state "jump" :event "onJumpEnd" :end? true}
-   {:anim-state "jump" :event "onJumpStart" :call? true :f (fn [player-entity]
+   {:anim-state "jump" :event "onJumpStart" :call? true :f (fn [player-entity _]
                                                              (pc/apply-impulse player-entity 0 200 0))}])
 
 (defn can-skill-be-cancelled? [anim-state active-state state]
@@ -49,7 +53,7 @@
     (pc/on-anim model-entity event
                 (fn []
                   (when f
-                    (f player-entity))
+                    (f player-entity state))
                   (when end?
                     (pc/set-anim-boolean model-entity anim-state false)
                     (when (k/pressing-wasd?)

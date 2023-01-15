@@ -6,6 +6,13 @@
     [enion-cljs.scene.pc :as pc :refer [app]]
     [goog.functions :as functions]))
 
+;; TODO ranges for other player
+;; x < 2 -> LOD 0
+;; 2 < X < 5 -> LOD 1
+;; 5 < X < 35 -> LOD 2
+;; X < 35 -> Disable
+;; X < 20 -> Run animations
+
 (defonce entities (atom {}))
 
 (def lod-ranges

@@ -62,6 +62,17 @@
       (swap! world assoc id attrs)
       attrs)))
 
+(reg-pro
+  :player-joined
+  (fn [{:keys [data]}]
+    {:id (rand-int 100000)
+     :username "New Player"
+     :race :orc
+     :class :warrior
+     :health 100
+     :mana 100
+     :pos (random-pos-for-orc)}))
+
 (defn- ws-handler
   [req]
   (-> (http/websocket-connection req)

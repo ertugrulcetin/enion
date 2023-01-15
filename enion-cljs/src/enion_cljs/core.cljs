@@ -16,7 +16,7 @@
   (init-game {:id 1
               :username "NeaTBuSTeR"
               ;; :race "orc"
-              :race "human"
+              :race "orc"
               :class "priest"
               :mana 100
               :health 100
