@@ -5,6 +5,9 @@
 (defonce app nil)
 (defonce state (clj->js {}))
 
+(def dev?
+  ^boolean goog.DEBUG)
+
 (def skill-slot-order-by-class
   {:asas {1 "attackDagger"
           2 "phantomVision"

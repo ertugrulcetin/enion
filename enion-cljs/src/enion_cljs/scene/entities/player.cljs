@@ -1,12 +1,13 @@
 (ns enion-cljs.scene.entities.player
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :as common]
+    [enion-cljs.common :as common :refer [dev?]]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.asas :as skills.asas]
     [enion-cljs.scene.skills.core :as skills]
+    [enion-cljs.scene.skills.effects :as skills.effects]
     [enion-cljs.scene.skills.mage :as skills.mage]
     [enion-cljs.scene.skills.mage :as skills.mage]
     [enion-cljs.scene.skills.priest :as skills.priest]
@@ -126,6 +127,7 @@
         model-entity-name (str race "_" class "_model")
         character-template-entity (pc/clone (pc/find-by-name template-entity-name))
         character-model-entity (pc/find-by-name character-template-entity model-entity-name)]
+    (j/assoc! character-template-entity :enabled true)
     (when other-player?
       (j/assoc! (pc/find-by-name character-model-entity (str race "_" class "_mesh")) :enabled false)
       (j/assoc! (pc/find-by-name character-model-entity (str race "_" class "_mesh_lod_0")) :enabled true))
@@ -133,6 +135,7 @@
     (pc/add-child entity character-template-entity)
     [character-template-entity character-model-entity]))
 
+;; TODO username text elementleri faceCamera.js kullaniyor, o scripti kaldir, toplu bir sekilde yap kodda
 (defn- create-username-text [{:keys [entity username race class enemy?]}]
   (let [template-entity-name (str race "_" class)
         character-template-entity (pc/find-by-name entity template-entity-name)
@@ -164,21 +167,24 @@
 (defn spawn [[x y z]]
   (j/call-in player-entity [:rigidbody :teleport] x y z))
 
-(defn- add-damage-effects [template-entity state]
+(defn- add-skill-effects [template-entity]
   (pc/add-child template-entity (pc/clone (pc/find-by-name "damage_effects")))
-  ;; add damage effect initial state ids
-  (doseq [e ["asas_eyes"
-             "shield"
-             "portal"
-             "attack_slow_down"
-             "attack_r"
-             "attack_flame"
-             "attack_dagger"
-             "attack_one_hand"
-             "particle_got_defense_break"]]
-    (j/assoc-in! state [:effects e] 0)))
+  ;; add skill effect initial counters and related entities
+  (->> ["asas_eyes"
+        "shield"
+        "portal"
+        "attack_slow_down"
+        "attack_r"
+        "attack_flame"
+        "attack_dagger"
+        "attack_one_hand"
+        "particle_got_defense_break"]
+       (map (fn [e] [e {:counter 0
+                        :entity (pc/find-by-name template-entity e)}]))
+       (into {})
+       clj->js))
 
-(defn create-other-player [{:keys [username class race pos] :as opts}]
+(defn create-player [{:keys [username class race pos] :as opts}]
   (let [enemy? (not= race (j/get state :race))
         entity-name (if enemy? "enemy_player" "ally_player")
         entity (pc/clone (pc/find-by-name entity-name))
@@ -189,20 +195,38 @@
                 :race race
                 :enemy? enemy?
                 :other-player? true}
-        state #js {:enemy? enemy?}
         _ (pc/add-child (pc/root) entity)
-        [character-template-entity _] (create-model-and-template-entity params)]
+        [character-template-entity model-entity] (create-model-and-template-entity params)
+        effects (add-skill-effects character-template-entity)]
     (create-username-text params)
-    ;; (add-damage-effects character-template-entity state)
     (if enemy?
       (j/call-in entity [:rigidbody :teleport] x y z)
       (pc/set-pos entity x y z))
-    (assoc opts :entity entity
-           :state state)))
+    (-> opts
+        (dissoc :pos)
+        (assoc :entity entity
+               :model-entity model-entity
+               :effects effects
+               :enemy? enemy?)
+        clj->js)))
 
 (comment
-   (j/assoc! state :runs-fast? true)
-   (j/assoc! state :runs-fast? false)
+  (j/assoc! player-entity :name "asdsad")
+  (skills.effects/apply-effect-attack-r state)
+  (skills.effects/apply-effect-attack-flame state)
+  (skills.effects/apply-effect-attack-dagger state)
+  (skills.effects/apply-effect-attack-one-hand state)
+  (skills.effects/apply-effect-attack-slow-down state)
+  (skills.effects/apply-effect-attack-portal state)
+  (let [p (create-player {:id 0
+                          :username "F9Devil"
+                          :race (first (shuffle ["human" "orc"]))
+                          :class (first (shuffle ["priest" "asas" "warrior" "mage"]))
+                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]})]
+    (j/assoc! ee (:id p) p))
+
+  (j/assoc! state :runs-fast? true)
+  (j/assoc! state :runs-fast? false)
 
   (do
     (j/assoc! state :speed 550)
@@ -213,10 +237,10 @@
   (j/call-in player-entity [:rigidbody :teleport] 8.323365211486816 0.583661675453186 32.249542236328125)
 
   (dotimes [_ 10]
-    (create-other-player {:username "F9Devil"
-                          :race (first (shuffle ["human" "orc"]))
-                          :class (first (shuffle ["priest" "asas" "warrior" "mage"]))
-                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]}))
+    (create-player {:username "F9Devil"
+                    :race (first (shuffle ["human" "orc"]))
+                    :class (first (shuffle ["priest" "asas" "warrior" "mage"]))
+                    :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]}))
 
   (pc/distance
     (pc/vec3 34.4639892578125 0.5908540487289429 -28.19676399230957)
@@ -239,7 +263,7 @@
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
     (set! skills/model-entity model-entity*)
-    (add-damage-effects template-entity state)
+    (j/assoc! state :effects (add-skill-effects template-entity))
     (common/fire :init-skills (keyword (j/get state :class)))
     (register-keyboard-events)
     (register-mouse-events)
@@ -308,7 +332,9 @@
 (defn init [player-data]
   (pc/create-script :player
                     {:init (fnt (init-fn this player-data))
-                     :update (fnt (update-fn dt this))}))
+                     :update (fnt (update-fn dt this))
+                     :post-init (fnt (when-not dev?
+                                       (j/assoc! player-entity :name (str (random-uuid)))))}))
 
 (defn enable-effect [name]
   (j/assoc! (pc/find-by-name player-entity name) :enabled true))

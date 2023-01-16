@@ -49,7 +49,7 @@
     (random-pos-for-human)))
 
 (reg-pro
-  :init-player
+  :init
   (fn [{:keys [data]}]
     (let [id (swap! id-generator inc)
           attrs {:id id

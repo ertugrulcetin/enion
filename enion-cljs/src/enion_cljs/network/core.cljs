@@ -8,6 +8,8 @@
 (defonce socket (atom nil))
 (defonce open? (atom false))
 
+(defonce players #js {})
+
 (defn connect [{:keys [url on-open on-message on-close on-error]}]
   (reset! socket (js/WebSocket. url))
   (j/assoc! @socket :binaryType "arraybuffer")
@@ -28,8 +30,11 @@
 
 (defmulti dispatch-pro-response ffirst)
 
-(defmethod dispatch-pro-response :init-player [params]
-  (core/init-game (:init-player params)))
+(defmethod dispatch-pro-response :init [params]
+  (core/init-game (:init params)))
+
+(defmethod dispatch-pro-response :create-player [params]
+  (j/assoc! players (-> params :create-player :id) (entity.player/create-player (:create-player params))))
 
 (defmethod dispatch-pro-response :spawn [params]
   (entity.player/spawn (:spawn params)))

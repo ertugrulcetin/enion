@@ -14,7 +14,10 @@
                          :rotation-speed 50
                          :target-angle (pc/vec3)
                          :wheel-clicked? false
-                         :wheel-x 0}))
+                         :wheel-x 0
+                         :time 0
+                         :time-since-last-shake 0
+                         :last-shake-time (js/Date.now)}))
 
 (defonce entity nil)
 
@@ -81,6 +84,43 @@
       (j/get hit :point)
       to)))
 
+;; TODO: There should be at least 5 seconds since the previous shake effect before a new shake effect can be activated,
+;; otherwise the camera actions may become overwhelming for the players.
+(let [duration 1
+      shake-interval 0.05
+      max-shake-distance 1
+      clamp js/pc.math.clamp
+      random js/pc.math.random]
+  (defn update-fn [dt]
+    (when (j/get state :shaking?)
+      (j/update! state :time + dt)
+      (let [time (j/get state :time)]
+        (if (< (j/get state :time) duration)
+          (do
+            (j/update! state :time-since-last-shake + dt)
+            (if (>= (j/get state :time-since-last-shake) shake-interval)
+              (let [v (- 1 (clamp (/ time duration) 0 1))
+                    t (* 2 Math/PI (random 0 1))
+                    u (+ (* (random 0 max-shake-distance) v) (* (random 0 max-shake-distance) v))
+                    r (if (> u 1) (- 2 u) u)
+                    x (+ (* r (js/Math.cos t)))
+                    y (* r (js/Math.sin t))
+                    start-euler (j/get state :start-euler)]
+                (pc/set-loc-euler entity (+ (j/get start-euler :x) x) (+ (j/get start-euler :y) y) (j/get start-euler :z))
+                (j/update! state :time-since-last-shake - shake-interval))))
+          (j/assoc! state :shaking? false))))))
+
+(defn shake-camera []
+  (when (> (- (js/Date.now) (j/get state :last-shake-time)) 10000)
+    (j/assoc-in! state [:start-euler] (pc/clone (pc/get-loc-euler entity)))
+    (j/assoc! state :time 0
+              :shaking? true
+              :last-shake-time (js/Date.now))))
+
+(comment
+  (shake-camera)
+  )
+
 (defn- post-update-fn [dt _]
   (let [origin-entity (j/get entity :parent)
         eulers (j/get state :eulers)
@@ -101,9 +141,10 @@
         target-angle (j/get state :target-angle)
         page-x (j/get state :page-x)]
     (pc/setv target-angle target-x target-y 0)
-    (pc/set-euler origin-entity target-angle)
     (pc/set-pos entity (get-world-point))
-    (pc/look-at entity (pc/get-pos origin-entity))
+    (when-not (j/get state :shaking?)
+      (pc/set-euler origin-entity target-angle)
+      (pc/look-at entity (pc/get-pos origin-entity)))
     (when (and (j/get state :mouse-over?)
                (not (j/get state :right-click?))
                page-x
@@ -129,4 +170,5 @@
 (defn init []
   (pc/create-script :camera
                     {:init (fnt (init-fn this))
+                     :update (fnt (update-fn dt))
                      :post-update (fnt (post-update-fn dt this))}))
