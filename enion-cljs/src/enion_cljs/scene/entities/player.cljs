@@ -26,7 +26,9 @@
                          :target-pos (pc/vec3)
                          :target-pos-available? false
                          :skill-locked? false
-                         :can-r-attack-interrupt? false}))
+                         :can-r-attack-interrupt? false
+                         :ray (pc/ray)
+                         :hit-position (pc/vec3)}))
 
 (defonce player-entity nil)
 (defonce model-entity nil)
@@ -70,6 +72,11 @@
 
 ;; TODO also need to check is char dead or alive to be able to do that
 ;; TODO when char at the corner of the map, set-target-position does not work due to map wall collision
+;;  this.ray.origin.copy(this.cameraEntity.getPosition());
+;;  this.ray.direction.sub(this.ray.origin).normalize();
+
+(defonce other-player nil)
+
 (defn- set-target-position [e]
   (let [x (j/get e :x)
         y (j/get e :y)
@@ -91,6 +98,18 @@
         (pc/set-locater-target x z)
         (process-running)))))
 
+(defn- ally-selected? [e]
+  (let [x (j/get e :x)
+        y (j/get e :y)
+        camera (j/get entity.camera/entity :camera)
+        _ (pc/screen-to-world camera x y (j/get-in state [:ray :direction]))
+        _ (j/call-in state [:ray :origin :copy] (pc/get-pos entity.camera/entity))
+        rr-dir (j/call-in state [:ray :direction :sub] (j/get-in state [:ray :origin]))
+        _ (j/call rr-dir :normalize)
+        mesh (pc/find-by-name (j/get other-player :entity) "orc_warrior_mesh")
+        aabb (j/get-in mesh [:render :meshInstances 0 :aabb])]
+    (j/call aabb :intersectsRay (j/get state :ray) (j/get state :hit-position))))
+
 (defn- register-mouse-events []
   (pc/on-mouse :EVENT_MOUSEDOWN
                (fn [e]
@@ -99,6 +118,7 @@
                                 (not= "all" (-> (j/call js/window :getComputedStyle (j/get e :element))
                                                 (j/get :pointerEvents)))))
                    (j/assoc! state :mouse-left-locked? true)
+                   #_(when-not (ally-selected? e))
                    (set-target-position e))))
   (pc/on-mouse :EVENT_MOUSEUP
                (fn [e]
@@ -215,7 +235,54 @@
         clj->js)))
 
 (comment
-  (j/assoc! player-entity :name "asdsad")
+  (pc/set-selected-char-position)
+  (js/clearInterval 927)
+  (js/setInterval
+    (fn []
+      (let [s (pc/get-pos player-entity)]
+       (pc/set-selected-char-position (j/get s :x) (j/get s :z))))
+    16.6)
+
+  (let [mesh (pc/find-by-name (j/get other-player :entity) "orc_warrior_mesh")
+        aabb (j/get-in mesh [:render :meshInstances 0 :aabb])]
+    (js/console.log (j/get-in mesh [:render :meshInstances 0 :aabb])))
+
+
+  (j/call-in player-entity [:rigidbody :teleport] 29.1888 0.55 -30.958)
+  (pc/set-selected-char-position 28.410 -30.16)
+  (pc/get-pos player-entity)
+  (set! other-player (create-player {:id 0
+                                     :username "F9Devil"
+                                     :race "orc"
+                                     :class "warrior"
+                                     :pos [38.5690803527832 0.550000011920929 -41.28248596191406]}))
+
+  (j/assoc! (j/get-in other-player [:entity :rigidbody]) :enabled true)
+  (j/assoc! (j/get-in other-player [:entity :rigidbody]) :enabled false)
+  (j/assoc! (j/get-in other-player [:entity :collision]) :enabled true)
+  (j/assoc! (j/get-in other-player [:entity :collision]) :enabled false)
+  (js/console.log (j/get-in other-player [:entity :rigidbody]))
+  (js/console.log (j/get-in other-player [:entity]))
+  (j/get-in other-player [:entity :rigidbody :enabled])
+
+  (pc/set-anim-boolean other-player "attackOneHand" true)
+  (pc/set-anim-boolean other-player "attackOneHand" false)
+  (pc/set-anim-boolean other-player "attackSlowDown" true)
+  (pc/set-anim-boolean other-player "attackSlowDown" false)
+  (pc/set-anim-boolean other-player "attackR" true)
+  (pc/set-anim-boolean other-player "attackR" false)
+
+  (pc/set-anim-boolean other-player "run" true)
+  (pc/set-anim-boolean other-player "run" false)
+  (pc/set-anim-int other-player "health" 100)
+  (pc/reset-anim other-player)
+  (pc/play-anim other-player)
+
+  (pc/get-anim-state other-player)
+  (pc/set-anim-boolean other-player "attackOneHand" true)
+  (j/assoc! other-player :enabled false)
+  (j/assoc! other-player :enabled true)
+
   (skills.effects/apply-effect-attack-r state)
   (skills.effects/apply-effect-attack-flame state)
   (skills.effects/apply-effect-attack-dagger state)
@@ -326,7 +393,9 @@
             (pc/pressed? :KEY_S) (j/update! state :target-y + 180))
           (when (pressing-wasd-or-has-target?)
             (pc/set-loc-euler model-entity 0 (j/get state :target-y) 0)
-            (pc/set-anim-boolean model-entity "run" true)))))))
+            (pc/set-anim-boolean model-entity "run" true)))))
+    #_(let [{:keys [x z]} (pc/get-pos player-entity)]
+        (pc/set-selected-char-position x z))))
 
 (defn get-position []
   (pc/get-pos player-entity))

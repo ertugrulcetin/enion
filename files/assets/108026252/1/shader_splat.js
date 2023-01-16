@@ -57,6 +57,9 @@ ShaderSplat.prototype.initialize = function () {
     this.material.setParameter('locater_texture', this.locaterTex.resource);
     this.material.setParameter('target_position_available', false);
     this.material.setParameter('target_position', [playerPos.x, playerPos.z]);
+
+    this.material.setParameter('selected_char_position', [29.1888, -30.958]);
+    this.material.setParameter('selected_char_color', [0, 1, 0]);
     
     this.material.setParameter('spell_position', [playerPos.x, playerPos.z]);
     this.material.setParameter('spell_texture', this.spellTex.resource);

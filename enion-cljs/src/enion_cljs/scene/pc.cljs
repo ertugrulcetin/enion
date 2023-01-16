@@ -184,8 +184,11 @@
 (defn play-anim [e]
   (j/call-in e [:anim :layers 0 :play]))
 
-(defn screen-to-world [camera x y]
-  (j/call camera :screenToWorld x y (j/get camera :farClip)))
+(defn screen-to-world
+  ([camera x y]
+   (j/call camera :screenToWorld x y (j/get camera :farClip)))
+  ([camera x y ray-dir]
+   (j/call camera :screenToWorld x y (j/get camera :farClip) ray-dir)))
 
 (let [temp (vec3)]
   (defn get-map-pos [e]
@@ -206,17 +209,35 @@
 (defn clone [e]
   (j/call e :clone))
 
-(let [target #js []
-      mat (delay (j/get-in (find-by-name "terrain") [:render :meshInstances 0 :material]))]
+(def terrain-mat (delay (j/get-in (find-by-name "terrain") [:render :meshInstances 0 :material])))
+
+(let [target #js []]
   (defn set-locater-target
     ([]
-     (j/call @mat :setParameter "target_position_available" false))
+     (j/call @terrain-mat :setParameter "target_position_available" false))
     ([x z]
      (j/assoc! target 0 x 1 z)
-     (j/call @mat :setParameter "target_position" target)
-     (j/call @mat :setParameter "target_position_available" true))))
+     (j/call @terrain-mat :setParameter "target_position" target)
+     (j/call @terrain-mat :setParameter "target_position_available" true))))
+
+(let [target #js []]
+  (defn set-selected-char-position
+    ([]
+     (j/call @terrain-mat :setParameter "selected_char_position_available" false))
+    ([x z]
+     (j/assoc! target 0 x 1 z)
+     (j/call @terrain-mat :setParameter "selected_char_position" target)
+     (j/call @terrain-mat :setParameter "selected_char_position_available" true))))
+
+(let [ally-color #js [0 1 0]
+      enemy-color #js [1 0 0]]
+  (defn set-selected-char-color [ally?]
+    (j/call @terrain-mat :setParameter "selected_char_color" (if ally? ally-color enemy-color))))
 
 (defn update-anim-speed [e clip-name speed]
   (some-> e
           (j/call-in [:anim :layers 0 :_controller :_animEvaluator :findClip] clip-name)
           (j/assoc! :speed speed)))
+
+(defn ray []
+  (js/pc.Ray.))
