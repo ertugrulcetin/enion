@@ -9,7 +9,6 @@
     [enion-cljs.scene.skills.core :as skills]
     [enion-cljs.scene.skills.effects :as skills.effects]
     [enion-cljs.scene.skills.mage :as skills.mage]
-    [enion-cljs.scene.skills.mage :as skills.mage]
     [enion-cljs.scene.skills.priest :as skills.priest]
     [enion-cljs.scene.skills.warrior :as skills.warrior])
   (:require-macros
@@ -85,7 +84,7 @@
             char-pos (pc/get-pos model-entity)]
         (when-not (skills/char-cant-run?)
           (pc/look-at model-entity x (j/get char-pos :y) z true))
-        ;; (skills.mage/throw-nova (pc/find-by-name "nova") (j/get result :point))
+        ;; ((j/get state :throw-nova-fn) (j/get result :point))
         ;; (println "inside circle: " (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 1.8))
         (j/assoc! state :target-pos (pc/setv (j/get state :target-pos) x y z)
                   :target-pos-available? true)
@@ -184,6 +183,9 @@
        (into {})
        clj->js))
 
+(defn- create-throw-nova-fn [character-template-entity]
+  (some-> (pc/find-by-name character-template-entity "nova") skills.mage/create-throw-nova-fn))
+
 (defn create-player [{:keys [username class race pos] :as opts}]
   (let [enemy? (not= race (j/get state :race))
         entity-name (if enemy? "enemy_player" "ally_player")
@@ -197,7 +199,8 @@
                 :other-player? true}
         _ (pc/add-child (pc/root) entity)
         [character-template-entity model-entity] (create-model-and-template-entity params)
-        effects (add-skill-effects character-template-entity)]
+        effects (add-skill-effects character-template-entity)
+        nova-fn (create-throw-nova-fn character-template-entity)]
     (create-username-text params)
     (if enemy?
       (j/call-in entity [:rigidbody :teleport] x y z)
@@ -207,7 +210,8 @@
         (assoc :entity entity
                :model-entity model-entity
                :effects effects
-               :enemy? enemy?)
+               :enemy? enemy?
+               :throw-nova-fn nova-fn)
         clj->js)))
 
 (comment
@@ -234,7 +238,7 @@
 
   (j/assoc! state :speed 1750)
 
-  (j/call-in player-entity [:rigidbody :teleport] 8.323365211486816 0.583661675453186 32.249542236328125)
+  (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
 
   (dotimes [_ 10]
     (create-player {:username "F9Devil"
@@ -248,6 +252,7 @@
 
   (pc/distance (pc/vec3 8.323365211486816 0.583661675453186 32.249542236328125) (pc/get-pos player-entity))
 
+  (j/assoc! state :throw-nova-fn (create-throw-nova-fn (j/get state :template-entity)))
   )
 
 (defn- init-fn [this player-data]
@@ -263,7 +268,10 @@
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
     (set! skills/model-entity model-entity*)
-    (j/assoc! state :effects (add-skill-effects template-entity))
+    (j/assoc! state
+              :effects (add-skill-effects template-entity)
+              :throw-nova-fn (create-throw-nova-fn template-entity)
+              :template-entity template-entity)
     (common/fire :init-skills (keyword (j/get state :class)))
     (register-keyboard-events)
     (register-mouse-events)

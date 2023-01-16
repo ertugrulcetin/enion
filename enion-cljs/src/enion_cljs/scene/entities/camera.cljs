@@ -84,8 +84,6 @@
       (j/get hit :point)
       to)))
 
-;; TODO: There should be at least 5 seconds since the previous shake effect before a new shake effect can be activated,
-;; otherwise the camera actions may become overwhelming for the players.
 (let [duration 1
       shake-interval 0.05
       max-shake-distance 1
