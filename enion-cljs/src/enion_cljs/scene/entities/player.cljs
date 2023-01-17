@@ -143,16 +143,15 @@
         (process-running)))))
 
 (comment
-
   (let [[player player2] [(create-player {:id 1
-                                          :username "Hey"
+                                          :username "Human_Warrior"
                                           :race "human"
                                           :class "warrior"
                                           ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
                                           :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
                                           })
                           (create-player {:id 2
-                                          :username "xXx_War_xXx"
+                                          :username "Orc_Warrior"
                                           :race "orc"
                                           :class "warrior"
                                           ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
@@ -160,7 +159,8 @@
                                           })]]
     (j/assoc! players (j/get player :id) player)
     (j/assoc! players (j/get player2 :id) player2))
-  (pc/distance (pc/get-pos player-entity) (pc/get-pos (j/get-in players [0 :entity])))
+  (skills.effects/apply-effect-attack-flame (j/get players 1))
+  (skills.effects/apply-effect-attack-dagger (j/get players 1))
   )
 
 (defn- register-mouse-events []
@@ -330,7 +330,7 @@
     (j/assoc! state :speed 550)
     (j/assoc-in! model-entity [:anim :speed] 1))
 
-  (j/assoc! state :speed 1750)
+  (j/assoc! state :speed 750)
 
   (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
 
@@ -422,11 +422,29 @@
             (pc/set-loc-euler model-entity 0 (j/get state :target-y) 0)
             (pc/set-anim-boolean model-entity "run" true)))))))
 
+;; TODO also update UI as well
+(defn- cancel-selected-char []
+  (pc/set-selected-char-position)
+  (j/assoc! state :selected-char-id nil))
+
+(def char-selection-distance-threshold 35)
+
 (defn- show-char-selection-circle []
   (when-let [selected-char-id (j/get state :selected-char-id)]
-    (when-let [p (j/get players selected-char-id)]
-      (let [pos (pc/get-pos (j/get p :entity))]
-        (pc/set-selected-char-position (j/get pos :x) (j/get pos :z))))))
+    (if-let [player (j/get players selected-char-id)]
+      (let [e (j/get player :entity)
+            pos (pc/get-pos e)
+            distance (pc/distance pos (pc/get-pos player-entity))]
+        (cond
+          (< distance char-selection-distance-threshold)
+          (pc/set-selected-char-position (j/get pos :x) (j/get pos :z))
+
+          (and (j/get player :enemy?) (> distance char-selection-distance-threshold))
+          (cancel-selected-char)
+
+          (and (not (j/get player :enemy?)) (> distance char-selection-distance-threshold))
+          (pc/set-selected-char-position)))
+      (cancel-selected-char))))
 
 (defn get-position []
   (pc/get-pos player-entity))

@@ -365,7 +365,7 @@
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
-        [selected-player]
+        #_[selected-player]
         (when @(subscribe [::subs/minimap-open?])
           [minimap])
         [party-list]
