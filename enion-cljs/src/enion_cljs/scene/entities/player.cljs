@@ -45,6 +45,12 @@
     (pc/set-anim-boolean model-entity "run" true)
     (pc/set-anim-boolean model-entity "run" false)))
 
+(defn- process-esc [e]
+  (when (= "Escape" (j/get-in e [:event :key]))
+    (when (j/get state :selected-char-id)
+      (j/assoc! state :selected-char-id nil)
+      (pc/set-selected-char-position))))
+
 (defn- register-keyboard-events []
   (let [class (j/get state :class)
         [process-skills events] (case class
@@ -55,6 +61,7 @@
     (skills/register-key->skills (common/skill-slot-order-by-class (keyword class)))
     (pc/on-keyboard :EVENT_KEYDOWN
                     (fn [e]
+                      (process-esc e)
                       (process-skills e state)))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
@@ -74,17 +81,54 @@
 ;; TODO when char at the corner of the map, set-target-position does not work due to map wall collision
 ;;  this.ray.origin.copy(this.cameraEntity.getPosition());
 ;;  this.ray.direction.sub(this.ray.origin).normalize();
+(defonce players #js {})
 
-(defonce other-player nil)
+(defn- get-selected-ally-id [e]
+  (let [x (j/get e :x)
+        y (j/get e :y)
+        camera (j/get entity.camera/entity :camera)
+        _ (pc/screen-to-world camera x y (j/get-in state [:ray :direction]))
+        _ (j/call-in state [:ray :origin :copy] (pc/get-pos entity.camera/entity))
+        rr-dir (j/call-in state [:ray :direction :sub] (j/get-in state [:ray :origin]))
+        _ (j/call rr-dir :normalize)]
+    (some
+      (fn [id]
+        (when-not (j/get-in players [id :enemy?])
+          (let [player (j/get players id)
+                race (j/get player :race)
+                class (j/get player :class)
+                model-entity (j/get player :model-entity)
+                mesh-names [(str race "_" class "_mesh_lod_0")
+                            (str race "_" class "_mesh_lod_1")
+                            (str race "_" class "_mesh_lod_2")]
+                mesh (some (fn [m]
+                             (let [e (pc/find-by-name model-entity m)]
+                               (j/get e :enabled)
+                               e)) mesh-names)
+                aabb (j/get-in mesh [:render :meshInstances 0 :aabb])
+                hit? (j/call aabb :intersectsRay (j/get state :ray) (j/get state :hit-position))]
+            (when hit?
+              id))))
+      (js/Object.keys players))))
 
-(defn- set-target-position [e]
+(defn- raycast-rigid-body [e]
   (let [x (j/get e :x)
         y (j/get e :y)
         camera (j/get entity.camera/entity :camera)
         from (pc/get-pos entity.camera/entity)
-        to (pc/screen-to-world camera x y)
-        result (pc/raycast-first from to)]
-    (when (and result (= "terrain" (j/get-in result [:entity :name])))
+        to (pc/screen-to-world camera x y)]
+    (pc/raycast-first from to)))
+
+(defn- get-selected-enemy-id [e]
+  (let [result (raycast-rigid-body e)
+        hit-entity-name (j/get-in result [:entity :name])]
+    (when (= "enemy_player" hit-entity-name)
+      (j/get-in result [:entity :id]))))
+
+(defn- set-target-position [e]
+  (let [result (raycast-rigid-body e)
+        hit-entity-name (j/get-in result [:entity :name])]
+    (when (= "terrain" hit-entity-name)
       (let [x (j/get-in result [:point :x])
             y (j/get-in result [:point :y])
             z (j/get-in result [:point :z])
@@ -98,17 +142,26 @@
         (pc/set-locater-target x z)
         (process-running)))))
 
-(defn- ally-selected? [e]
-  (let [x (j/get e :x)
-        y (j/get e :y)
-        camera (j/get entity.camera/entity :camera)
-        _ (pc/screen-to-world camera x y (j/get-in state [:ray :direction]))
-        _ (j/call-in state [:ray :origin :copy] (pc/get-pos entity.camera/entity))
-        rr-dir (j/call-in state [:ray :direction :sub] (j/get-in state [:ray :origin]))
-        _ (j/call rr-dir :normalize)
-        mesh (pc/find-by-name (j/get other-player :entity) "orc_warrior_mesh")
-        aabb (j/get-in mesh [:render :meshInstances 0 :aabb])]
-    (j/call aabb :intersectsRay (j/get state :ray) (j/get state :hit-position))))
+(comment
+
+  (let [[player player2] [(create-player {:id 1
+                                          :username "Hey"
+                                          :race "human"
+                                          :class "warrior"
+                                          ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
+                                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
+                                          })
+                          (create-player {:id 2
+                                          :username "xXx_War_xXx"
+                                          :race "orc"
+                                          :class "warrior"
+                                          ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
+                                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
+                                          })]]
+    (j/assoc! players (j/get player :id) player)
+    (j/assoc! players (j/get player2 :id) player2))
+  (pc/distance (pc/get-pos player-entity) (pc/get-pos (j/get-in players [0 :entity])))
+  )
 
 (defn- register-mouse-events []
   (pc/on-mouse :EVENT_MOUSEDOWN
@@ -118,8 +171,15 @@
                                 (not= "all" (-> (j/call js/window :getComputedStyle (j/get e :element))
                                                 (j/get :pointerEvents)))))
                    (j/assoc! state :mouse-left-locked? true)
-                   #_(when-not (ally-selected? e))
-                   (set-target-position e))))
+                   (if-let [ally-id (get-selected-ally-id e)]
+                     (do
+                       (pc/set-selected-char-color true)
+                       (j/assoc! state :selected-char-id ally-id))
+                     (if-let [enemy-id (get-selected-enemy-id e)]
+                       (do
+                         (pc/set-selected-char-color false)
+                         (j/assoc! state :selected-char-id enemy-id))
+                       (set-target-position e))))))
   (pc/on-mouse :EVENT_MOUSEUP
                (fn [e]
                  (when (pc/button? e :MOUSEBUTTON_LEFT)
@@ -206,10 +266,11 @@
 (defn- create-throw-nova-fn [character-template-entity]
   (some-> (pc/find-by-name character-template-entity "nova") skills.mage/create-throw-nova-fn))
 
-(defn create-player [{:keys [username class race pos] :as opts}]
+(defn create-player [{:keys [id username class race pos] :as opts}]
   (let [enemy? (not= race (j/get state :race))
         entity-name (if enemy? "enemy_player" "ally_player")
         entity (pc/clone (pc/find-by-name entity-name))
+        _ (j/assoc! entity :id id)
         [x y z] pos
         params {:entity entity
                 :username username
@@ -240,48 +301,12 @@
   (js/setInterval
     (fn []
       (let [s (pc/get-pos player-entity)]
-       (pc/set-selected-char-position (j/get s :x) (j/get s :z))))
+        (pc/set-selected-char-position (j/get s :x) (j/get s :z))))
     16.6)
-
-  (let [mesh (pc/find-by-name (j/get other-player :entity) "orc_warrior_mesh")
-        aabb (j/get-in mesh [:render :meshInstances 0 :aabb])]
-    (js/console.log (j/get-in mesh [:render :meshInstances 0 :aabb])))
-
 
   (j/call-in player-entity [:rigidbody :teleport] 29.1888 0.55 -30.958)
   (pc/set-selected-char-position 28.410 -30.16)
   (pc/get-pos player-entity)
-  (set! other-player (create-player {:id 0
-                                     :username "F9Devil"
-                                     :race "orc"
-                                     :class "warrior"
-                                     :pos [38.5690803527832 0.550000011920929 -41.28248596191406]}))
-
-  (j/assoc! (j/get-in other-player [:entity :rigidbody]) :enabled true)
-  (j/assoc! (j/get-in other-player [:entity :rigidbody]) :enabled false)
-  (j/assoc! (j/get-in other-player [:entity :collision]) :enabled true)
-  (j/assoc! (j/get-in other-player [:entity :collision]) :enabled false)
-  (js/console.log (j/get-in other-player [:entity :rigidbody]))
-  (js/console.log (j/get-in other-player [:entity]))
-  (j/get-in other-player [:entity :rigidbody :enabled])
-
-  (pc/set-anim-boolean other-player "attackOneHand" true)
-  (pc/set-anim-boolean other-player "attackOneHand" false)
-  (pc/set-anim-boolean other-player "attackSlowDown" true)
-  (pc/set-anim-boolean other-player "attackSlowDown" false)
-  (pc/set-anim-boolean other-player "attackR" true)
-  (pc/set-anim-boolean other-player "attackR" false)
-
-  (pc/set-anim-boolean other-player "run" true)
-  (pc/set-anim-boolean other-player "run" false)
-  (pc/set-anim-int other-player "health" 100)
-  (pc/reset-anim other-player)
-  (pc/play-anim other-player)
-
-  (pc/get-anim-state other-player)
-  (pc/set-anim-boolean other-player "attackOneHand" true)
-  (j/assoc! other-player :enabled false)
-  (j/assoc! other-player :enabled true)
 
   (skills.effects/apply-effect-attack-r state)
   (skills.effects/apply-effect-attack-flame state)
@@ -289,6 +314,8 @@
   (skills.effects/apply-effect-attack-one-hand state)
   (skills.effects/apply-effect-attack-slow-down state)
   (skills.effects/apply-effect-attack-portal state)
+  (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
+
   (let [p (create-player {:id 0
                           :username "F9Devil"
                           :race (first (shuffle ["human" "orc"]))
@@ -393,9 +420,13 @@
             (pc/pressed? :KEY_S) (j/update! state :target-y + 180))
           (when (pressing-wasd-or-has-target?)
             (pc/set-loc-euler model-entity 0 (j/get state :target-y) 0)
-            (pc/set-anim-boolean model-entity "run" true)))))
-    #_(let [{:keys [x z]} (pc/get-pos player-entity)]
-        (pc/set-selected-char-position x z))))
+            (pc/set-anim-boolean model-entity "run" true)))))))
+
+(defn- show-char-selection-circle []
+  (when-let [selected-char-id (j/get state :selected-char-id)]
+    (when-let [p (j/get players selected-char-id)]
+      (let [pos (pc/get-pos (j/get p :entity))]
+        (pc/set-selected-char-position (j/get pos :x) (j/get pos :z))))))
 
 (defn get-position []
   (pc/get-pos player-entity))
@@ -404,7 +435,8 @@
   (pc/get-anim-state model-entity))
 
 (defn- update-fn [dt this]
-  (process-movement dt this))
+  (process-movement dt this)
+  (show-char-selection-circle))
 
 (defn init [player-data]
   (pc/create-script :player
