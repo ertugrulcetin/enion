@@ -246,6 +246,9 @@
   (defn set-selected-char-color [ally?]
     (j/call @terrain-mat :setParameter "selected_char_color" (if ally? ally-color enemy-color))))
 
+(defn set-elapsed-time-for-terrain [et]
+  (j/call @terrain-mat :setParameter "elapsed_time" et))
+
 (defn update-anim-speed [e clip-name speed]
   (some-> e
           (j/call-in [:anim :layers 0 :_controller :_animEvaluator :findClip] clip-name)

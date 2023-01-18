@@ -105,26 +105,29 @@
 (defn apply-effect-attack-portal [state]
   (effect-scale-down (j/get-in state [:effects :portal]) 0.5 2))
 
-(defn- update-fn []
-  (if-let [ids (seq healed-player-ids)]
-    (let [positions (remove
-                      nil?
-                      (mapcat
-                        (fn [id]
-                          (when-let [e (if (= id "-1")
-                                         (j/get player :entity)
-                                         (j/get-in other-players [id :entity]))]
-                            (let [pos (pc/get-pos e)
-                                  x (j/get pos :x)
-                                  z (j/get pos :z)]
-                              [x z])))
-                        ids))]
-      (pc/set-heal-positions (/ (count positions) 2) positions))
-    (pc/set-heal-positions)))
+(let [elapsed-time (volatile! 0)]
+ (defn- update-fn [dt]
+   (if-let [ids (seq healed-player-ids)]
+     (let [et (vswap! elapsed-time + dt)
+           _ (pc/set-elapsed-time-for-terrain et)
+           positions (remove
+                       nil?
+                       (mapcat
+                         (fn [id]
+                           (when-let [e (if (= id "-1")
+                                          (j/get player :entity)
+                                          (j/get-in other-players [id :entity]))]
+                             (let [pos (pc/get-pos e)
+                                   x (j/get pos :x)
+                                   z (j/get pos :z)]
+                               [x z])))
+                         ids))]
+       (pc/set-heal-positions (/ (count positions) 2) positions))
+     (pc/set-heal-positions))))
 
 (defn init []
   (pc/create-script :effects
-                    {:update (fnt (update-fn))}))
+                    {:update (fnt (update-fn dt))}))
 
 ;; TODO maybe implement later on... (when health goes down below %35 the char gets red for a while)
 #_(let [color #js {:color 1}

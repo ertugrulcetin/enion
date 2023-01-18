@@ -85,10 +85,5 @@ ShaderSplat.prototype.initialize = function () {
 
 // update code called every frame
 ShaderSplat.prototype.update = function (dt) {
-    this.elapsedTime += dt;
-    this.material.setParameter('elapsed_time',  this.elapsedTime);
-    
-    // var playerPos = this.player.getPosition();
-    // this.material.setParameter('heal_position_lengths', 2);
-    // this.material.setParameter('heal_positions[0]', [playerPos.x, playerPos.z, playerPos.x + 1.0, playerPos.z + 1.0]);
+   
 };

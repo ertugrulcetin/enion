@@ -16,7 +16,7 @@
 (def project-unzip-dir (str project-dir ".zip"))
 (def sleep-timeout 1000)
 
-(def asset-id 113651303)
+(def asset-id 118396797)
 (def empty-app-js-file-path "/Users/ertugrulcetin/IdeaProjects/enion/enion-cljs/app.js")
 
 (println "Uploading empty app.js")

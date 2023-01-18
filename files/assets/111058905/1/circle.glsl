@@ -26,7 +26,7 @@ uniform vec2 heal_positions[MAX_PLAYER_SIZE];
 uniform int heal_position_lengths;
 uniform sampler2D heal_texture;
 const int heal_texture_scale = 100;
-const float heal_range = 2.;
+const float heal_range = 1.;
 vec2 heal_uv_offset_vec = vec2(0.495);
 
 const int locater_texture_scale = 400;
