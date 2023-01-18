@@ -3,7 +3,8 @@
     [applied-science.js-interop :as j]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.skills.core :as skills :refer [model-entity]])
+    [enion-cljs.scene.skills.core :as skills :refer [model-entity]]
+    [enion-cljs.scene.skills.effects :as skills.effects])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
 
@@ -30,13 +31,19 @@
         (pc/set-anim-boolean model-entity "jump" true)
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "breakDefense"))
-        (pc/set-anim-boolean model-entity "breakDefense" true)
+        (do
+          (pc/set-anim-boolean model-entity "breakDefense" true)
+          (skills.effects/apply-effect-defense-break-particles state))
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "heal"))
-        (pc/set-anim-boolean model-entity "heal" true)
+        (do
+          (pc/set-anim-boolean model-entity "heal" true)
+          (skills.effects/apply-effect-heal-particles state))
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "cure"))
-        (pc/set-anim-boolean model-entity "cure" true)
+        (do
+          (pc/set-anim-boolean model-entity "cure" true)
+          (skills.effects/apply-effect-cure-particles state))
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackR"))
         (pc/set-anim-boolean model-entity "attackR" true)))))

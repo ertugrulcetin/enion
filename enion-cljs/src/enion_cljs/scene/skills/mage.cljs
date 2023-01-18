@@ -3,7 +3,8 @@
     [applied-science.js-interop :as j]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.skills.core :as skills :refer [model-entity]])
+    [enion-cljs.scene.skills.core :as skills :refer [model-entity]]
+    [enion-cljs.scene.skills.effects :as skills.effects])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
 
@@ -32,10 +33,14 @@
         (pc/set-anim-boolean model-entity "jump" true)
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackRange"))
-        (pc/set-anim-boolean model-entity "attackRange" true)
+        (do
+          (pc/set-anim-boolean model-entity "attackRange" true)
+          (skills.effects/apply-effect-flame-particles state))
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackSingle"))
-        (pc/set-anim-boolean model-entity "attackSingle" true)
+        (do
+          (pc/set-anim-boolean model-entity "attackSingle" true)
+          (skills.effects/apply-effect-fire-hands state))
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "teleport"))
         (pc/set-anim-boolean model-entity "teleport" true)
@@ -73,7 +78,6 @@
                         (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" (j/get opacity :opacity))))
             _ (j/call tween-opacity :on "complete"
                       (fn []
-                        (println "complete!!")
                         (j/call-in entity [:children 0 :particlesystem :stop])
                         (j/call-in entity [:children 0 :particlesystem :reset])
                         (j/assoc! entity :enabled false)))]

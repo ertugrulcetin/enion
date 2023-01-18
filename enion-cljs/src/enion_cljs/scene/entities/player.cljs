@@ -30,6 +30,9 @@
                          :ray (pc/ray)
                          :hit-position (pc/vec3)}))
 
+(when dev?
+  (defonce state-default state))
+
 (defonce player-entity nil)
 (defonce model-entity nil)
 
@@ -143,6 +146,14 @@
         (process-running)))))
 
 (comment
+  (let [p (j/get-in state [:effects :particle_got_defense_break :entity])
+        _ (j/assoc! p :enabled true)
+        par (j/get-in p [:children 0 :particlesystem])]
+    (j/call par :reset)
+    (j/call par :play)
+    ;(js/console.log (j/call par :isPlaying))
+    )
+
   (let [[player player2] [(create-player {:id 1
                                           :username "Human_Warrior"
                                           :race "human"
@@ -162,7 +173,7 @@
     (set! skills.effects/other-players players))
 
   (j/call-in players [1 :entity :rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
-  (j/call-in players [2 :entity :setPosition ] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
+  (j/call-in players [2 :entity :setPosition] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
 
   (skills.effects/apply-effect-attack-flame (j/get players 1))
   (skills.effects/apply-effect-attack-dagger (j/get players 1))
@@ -255,7 +266,7 @@
   (j/call-in player-entity [:rigidbody :teleport] x y z))
 
 (defn- add-skill-effects [template-entity]
-  (pc/add-child template-entity (pc/clone (pc/find-by-name "damage_effects")))
+  (pc/add-child template-entity (pc/clone (pc/find-by-name "effects")))
   ;; add skill effect initial counters and related entities
   (->> ["asas_eyes"
         "shield"
@@ -265,9 +276,17 @@
         "attack_flame"
         "attack_dagger"
         "attack_one_hand"
-        "particle_got_defense_break"]
-       (map (fn [e] [e {:counter 0
-                        :entity (pc/find-by-name template-entity e)}]))
+        "particle_got_defense_break"
+        "particle_fire_hands"
+        "particle_flame_dots"
+        "particle_heal_hands"
+        "particle_cure_hands"
+        "particle_defense_break_hands"]
+       (keep
+         (fn [e]
+           (when-let [entity (pc/find-by-name template-entity e)]
+             [e {:counter 0
+                 :entity entity}])))
        (into {})
        clj->js))
 
@@ -325,6 +344,7 @@
     nil))
 
 (comment
+  (j/assoc! state :throw-nova-fn (create-throw-nova-fn (j/get state :template-entity)))
   (move-player (j/get-in players [1 :entity]))
 
   (pc/set-selected-char-position)
@@ -347,6 +367,8 @@
   (skills.effects/apply-effect-attack-one-hand state)
   (skills.effects/apply-effect-attack-slow-down state)
   (skills.effects/apply-effect-attack-portal state)
+  (skills.effects/apply-effect-got-defense-break state)
+  (skills.effects/apply-effect-fire-hands state)
   (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
 
   (let [p (create-player {:id 0
@@ -392,6 +414,7 @@
     (set! model-entity model-entity*)
     (set! skills/model-entity model-entity*)
     (j/assoc! state
+              :this this
               :effects (add-skill-effects template-entity)
               :throw-nova-fn (create-throw-nova-fn template-entity)
               :template-entity template-entity
@@ -493,6 +516,20 @@
                      :update (fnt (update-fn dt this))
                      :post-init (fnt (when-not dev?
                                        (j/assoc! player-entity :name (str (random-uuid)))))}))
+
+(comment
+  (let [this (j/get state :this)]
+    (j/call-in state [:template-entity :destroy])
+    (set! state state-default)
+    (init-fn this {:id 1
+                   :username "NeaTBuSTeR"
+                   :race "human"
+                   :class "mage"
+                   :mana 100
+                   :health 100
+                   ;; :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
+                   }))
+  )
 
 (defn enable-effect [name]
   (j/assoc! (pc/find-by-name player-entity name) :enabled true))

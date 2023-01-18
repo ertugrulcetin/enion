@@ -43,15 +43,6 @@
           (remove-from-healed-ids)))
       2000)))
 
-(comment
-  (add-to-healed-ids)
-
-  (add-player-id-to-healed-ids 1)
-  (add-player-id-to-healed-ids 2)
-  (j/get-in other-players [2 :heal-counter])
-  (seq healed-player-ids)
-  )
-
 ;; TODO THESE ARE SINGLETONS, UPDATE , LIKE WE DID FOR NOVA!!!
 (let [temp-final-scale #js {:x 0 :y 0.3 :z 0.3}]
   (defn- effect-scale-down [skill init-scale duration]
@@ -87,6 +78,24 @@
       (j/call tween-opacity :start)
       nil)))
 
+(let [last-state #js {:particle 0}]
+  (defn- effect-particle-fade-out [skill duration]
+    (let [new-counter (-> skill (j/update! :counter inc) (j/get :counter))
+          entity (j/get skill :entity)
+          _ (j/assoc! entity :enabled true)
+          par (j/get-in entity [:children 0 :particlesystem])
+          _ (j/call par :reset)
+          _ (j/call par :play)
+          opacity #js {:particle 1}
+          tween-particle (-> (j/call entity :tween opacity)
+                             (j/call :to last-state duration js/pc.Linear))
+          _ (j/call tween-particle :on "complete"
+                    (fn []
+                      (when (= new-counter (j/get skill :counter))
+                        (j/assoc! entity :enabled false))))]
+      (j/call tween-particle :start)
+      nil)))
+
 (defn apply-effect-attack-r [state]
   (effect-opacity-fade-out (j/get-in state [:effects :attack_r]) 0.2))
 
@@ -105,25 +114,43 @@
 (defn apply-effect-attack-portal [state]
   (effect-scale-down (j/get-in state [:effects :portal]) 0.5 2))
 
+(defn apply-effect-got-defense-break [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_got_defense_break]) 2))
+
+(defn apply-effect-fire-hands [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_fire_hands]) 2))
+
+(defn apply-effect-flame-particles [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_flame_dots]) 2.5))
+
+(defn apply-effect-heal-particles [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_heal_hands]) 2))
+
+(defn apply-effect-cure-particles [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_cure_hands]) 2))
+
+(defn apply-effect-defense-break-particles [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_defense_break_hands]) 2.2))
+
 (let [elapsed-time (volatile! 0)]
- (defn- update-fn [dt]
-   (if-let [ids (seq healed-player-ids)]
-     (let [et (vswap! elapsed-time + dt)
-           _ (pc/set-elapsed-time-for-terrain et)
-           positions (remove
-                       nil?
-                       (mapcat
-                         (fn [id]
-                           (when-let [e (if (= id "-1")
-                                          (j/get player :entity)
-                                          (j/get-in other-players [id :entity]))]
-                             (let [pos (pc/get-pos e)
-                                   x (j/get pos :x)
-                                   z (j/get pos :z)]
-                               [x z])))
-                         ids))]
-       (pc/set-heal-positions (/ (count positions) 2) positions))
-     (pc/set-heal-positions))))
+  (defn- update-fn [dt]
+    (if-let [ids (seq healed-player-ids)]
+      (let [et (vswap! elapsed-time + dt)
+            _ (pc/set-elapsed-time-for-terrain et)
+            positions (remove
+                        nil?
+                        (mapcat
+                          (fn [id]
+                            (when-let [e (if (= id "-1")
+                                           (j/get player :entity)
+                                           (j/get-in other-players [id :entity]))]
+                              (let [pos (pc/get-pos e)
+                                    x (j/get pos :x)
+                                    z (j/get pos :z)]
+                                [x z])))
+                          ids))]
+        (pc/set-heal-positions (/ (count positions) 2) positions))
+      (pc/set-heal-positions))))
 
 (defn init []
   (pc/create-script :effects

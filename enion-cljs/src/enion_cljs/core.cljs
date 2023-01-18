@@ -17,7 +17,7 @@
               :username "NeaTBuSTeR"
               ;; :race "orc"
               :race "orc"
-              :class "mage"
+              :class "priest"
               :mana 100
               :health 100
               ;; :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
