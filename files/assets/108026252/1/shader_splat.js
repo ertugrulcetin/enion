@@ -42,6 +42,11 @@ ShaderSplat.attributes.add('spellTex', {
     assetType: 'texture',
     title: 'Spell Texture'
 });
+ShaderSplat.attributes.add('healTex', {
+    type: 'asset',
+    assetType: 'texture',
+    title: 'Heal Texture'
+});
 
 // initialize code called once per entity
 ShaderSplat.prototype.initialize = function () {
@@ -49,6 +54,8 @@ ShaderSplat.prototype.initialize = function () {
     var app = this.app;
     var render = this.entity.render;
     this.material = render.meshInstances[0].material;
+    
+    this.elapsedTime = 0;
 
     this.player = app.root.findByName("player");
     var playerPos = this.player.getPosition();
@@ -60,6 +67,8 @@ ShaderSplat.prototype.initialize = function () {
 
     this.material.setParameter('selected_char_position', [29.1888, -30.958]);
     this.material.setParameter('selected_char_color', [0, 1, 0]);
+
+    this.material.setParameter('heal_texture', this.healTex.resource);
     
     this.material.setParameter('spell_position', [playerPos.x, playerPos.z]);
     this.material.setParameter('spell_texture', this.spellTex.resource);
@@ -76,4 +85,10 @@ ShaderSplat.prototype.initialize = function () {
 
 // update code called every frame
 ShaderSplat.prototype.update = function (dt) {
+    this.elapsedTime += dt;
+    this.material.setParameter('elapsed_time',  this.elapsedTime);
+    
+    // var playerPos = this.player.getPosition();
+    // this.material.setParameter('heal_position_lengths', 2);
+    // this.material.setParameter('heal_positions[0]', [playerPos.x, playerPos.z, playerPos.x + 1.0, playerPos.z + 1.0]);
 };

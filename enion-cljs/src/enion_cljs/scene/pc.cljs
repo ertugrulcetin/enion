@@ -229,6 +229,18 @@
      (j/call @terrain-mat :setParameter "selected_char_position" target)
      (j/call @terrain-mat :setParameter "selected_char_position_available" true))))
 
+(let [heal-positions #js []
+      into-arr (fn [aseq]
+                 (j/assoc! heal-positions :length 0)
+                 (reduce (fn [a x] (j/call a :push x) a) heal-positions aseq))]
+  (defn set-heal-positions
+    ([]
+     (j/call @terrain-mat :setParameter "heal_position_lengths" 0))
+    ([length positions]
+     (into-arr positions)
+     (j/call @terrain-mat :setParameter "heal_position_lengths" length)
+     (j/call @terrain-mat :setParameter "heal_positions[0]" positions))))
+
 (let [ally-color #js [0 1 0]
       enemy-color #js [1 0 0]]
   (defn set-selected-char-color [ally?]

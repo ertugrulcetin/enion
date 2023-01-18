@@ -158,9 +158,16 @@
                                           :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
                                           })]]
     (j/assoc! players (j/get player :id) player)
-    (j/assoc! players (j/get player2 :id) player2))
+    (j/assoc! players (j/get player2 :id) player2)
+    (set! skills.effects/other-players players))
+
+  (j/call-in players [1 :entity :rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
+  (j/call-in players [2 :entity :setPosition ] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
+
   (skills.effects/apply-effect-attack-flame (j/get players 1))
   (skills.effects/apply-effect-attack-dagger (j/get players 1))
+  (move-player (j/get-in players [1 :entity]))
+
   )
 
 (defn- register-mouse-events []
@@ -239,7 +246,8 @@
               :race (name race)
               :class (name class)
               :mana mana
-              :health health)
+              :health health
+              :heal-counter 0)
     (when pos
       (j/call-in player [:rigidbody :teleport] x y z))))
 
@@ -266,7 +274,7 @@
 (defn- create-throw-nova-fn [character-template-entity]
   (some-> (pc/find-by-name character-template-entity "nova") skills.mage/create-throw-nova-fn))
 
-(defn create-player [{:keys [id username class race pos] :as opts}]
+(defn create-player [{:keys [id username class race pos health mana] :as opts}]
   (let [enemy? (not= race (j/get state :race))
         entity-name (if enemy? "enemy_player" "ally_player")
         entity (pc/clone (pc/find-by-name entity-name))
@@ -292,10 +300,33 @@
                :model-entity model-entity
                :effects effects
                :enemy? enemy?
-               :throw-nova-fn nova-fn)
+               :health health
+               :mana mana
+               :throw-nova-fn nova-fn
+               :heal-counter 0)
         clj->js)))
 
+(defn- move-player [entity]
+  (js/console.log entity)
+  (let [{:keys [x y z]} (j/lookup (pc/get-pos entity))
+        temp-first-pos #js {:x x :y y :z z}
+        temp-final-pos #js {:x (+ 38 (rand 1))
+                            :y 0.55
+                            :z (- (+ 39 (rand 4)))}
+        tween-pos (-> (j/call entity :tween temp-first-pos)
+                      (j/call :to temp-final-pos 0.3 js/pc.Linear))
+        _ (j/call tween-pos :on "update"
+                  (fn []
+                    (j/call-in entity [:rigidbody :teleport]
+                               (j/get temp-first-pos :x)
+                               (j/get temp-first-pos :y)
+                               (j/get temp-first-pos :z))))]
+    (j/call tween-pos :start)
+    nil))
+
 (comment
+  (move-player (j/get-in players [1 :entity]))
+
   (pc/set-selected-char-position)
   (js/clearInterval 927)
   (js/setInterval
@@ -305,6 +336,8 @@
     16.6)
 
   (j/call-in player-entity [:rigidbody :teleport] 29.1888 0.55 -30.958)
+  (j/call-in (j/get-in players [1 :entity]) [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
+
   (pc/set-selected-char-position 28.410 -30.16)
   (pc/get-pos player-entity)
 
@@ -326,11 +359,7 @@
   (j/assoc! state :runs-fast? true)
   (j/assoc! state :runs-fast? false)
 
-  (do
-    (j/assoc! state :speed 550)
-    (j/assoc-in! model-entity [:anim :speed] 1))
-
-  (j/assoc! state :speed 750)
+  (j/assoc! state :speed 550)
 
   (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
 
@@ -365,8 +394,10 @@
     (j/assoc! state
               :effects (add-skill-effects template-entity)
               :throw-nova-fn (create-throw-nova-fn template-entity)
-              :template-entity template-entity)
+              :template-entity template-entity
+              :entity player-entity*)
     (common/fire :init-skills (keyword (j/get state :class)))
+    (skills.effects/register-player state)
     (register-keyboard-events)
     (register-mouse-events)
     (register-collision-events player-entity*)))
