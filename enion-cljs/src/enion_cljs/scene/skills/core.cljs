@@ -4,6 +4,7 @@
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]))
 
+(defonce state nil)
 (defonce model-entity nil)
 
 (def key->skill)

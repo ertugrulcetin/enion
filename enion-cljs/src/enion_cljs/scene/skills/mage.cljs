@@ -48,7 +48,8 @@
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackR"))
         (pc/set-anim-boolean model-entity "attackR" true)))))
 
-;; TODO check temp-final-pos, when there are multiple novas, what to do? override may happen...
+;; TODO BUG: nova karakter ilerledikce onla geliyor!!!
+;; sanirim nova mage'e bagli diye
 (defn create-throw-nova-fn [entity]
   (let [temp-first-pos #js {}
         temp-final-pos #js {}
@@ -71,8 +72,7 @@
             _ (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" 1)
             _ (j/assoc! opacity :opacity 1)
             tween-opacity (-> (j/call entity :tween opacity)
-                              (j/call :to last-opacity 1 js/pc.Linear)
-                              (j/call :delay 0.5))
+                              (j/call :to last-opacity 2.5 js/pc.Linear))
             _ (j/call tween-opacity :on "update"
                       (fn []
                         (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" (j/get opacity :opacity))))

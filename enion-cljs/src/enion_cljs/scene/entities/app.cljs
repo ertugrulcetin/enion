@@ -11,9 +11,11 @@
   (let [layer (j/call-in pc/app [:scene :layers :getLayerByName] "Clear Depth")]
     (j/assoc! layer :clearDepthBuffer true)))
 
+;; We did this due to water blending problem, but had to revert - otherwise we can't update opacity of chars
+;; let's keep this code for a while
 (defn- update-orc-human-materials []
-  (some-> (pc/find-asset-by-name "orc_material") (j/assoc-in! [:resource :blendType] js/pc.BLEND_NONE))
-  (some-> (pc/find-asset-by-name "human_material") (j/assoc-in! [:resource :blendType] js/pc.BLEND_NONE)))
+  #_(some-> (pc/find-asset-by-name "orc_material") (j/assoc-in! [:resource :blendType] js/pc.BLEND_NONE))
+  #_(some-> (pc/find-asset-by-name "human_material") (j/assoc-in! [:resource :blendType] js/pc.BLEND_NONE)))
 
 (defn- init-fn [this]
   (set! pc/app (j/get this :app))

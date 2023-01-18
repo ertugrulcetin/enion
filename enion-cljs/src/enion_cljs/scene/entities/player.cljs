@@ -138,7 +138,8 @@
             char-pos (pc/get-pos model-entity)]
         (when-not (skills/char-cant-run?)
           (pc/look-at model-entity x (j/get char-pos :y) z true))
-        ;; ((j/get state :throw-nova-fn) (j/get result :point))
+        (when (= "mage" (j/get state :class))
+          ((j/get state :throw-nova-fn) (j/get result :point)))
         ;; (println "inside circle: " (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 1.8))
         (j/assoc! state :target-pos (pc/setv (j/get state :target-pos) x y z)
                   :target-pos-available? true)
@@ -326,7 +327,6 @@
         clj->js)))
 
 (defn- move-player [entity]
-  (js/console.log entity)
   (let [{:keys [x y z]} (j/lookup (pc/get-pos entity))
         temp-first-pos #js {:x x :y y :z z}
         temp-final-pos #js {:x (+ 38 (rand 1))
@@ -413,6 +413,7 @@
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
     (set! skills/model-entity model-entity*)
+    (set! skills/state state)
     (j/assoc! state
               :this this
               :effects (add-skill-effects template-entity)
@@ -522,8 +523,8 @@
     (j/call-in state [:template-entity :destroy])
     (set! state state-default)
     (init-fn this {:id 1
-                   :username "NeaTBuSTeR"
-                   :race "human"
+                   :username "0000000"
+                   :race "orc"
                    :class "mage"
                    :mana 100
                    :health 100
