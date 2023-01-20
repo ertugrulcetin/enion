@@ -26,3 +26,7 @@
 
 (defn get-model-entity []
   (j/get player :model-entity))
+
+(defn destroy [player-id]
+  (j/call-in other-players [player-id :entity :destroy])
+  (js-delete other-players player-id))

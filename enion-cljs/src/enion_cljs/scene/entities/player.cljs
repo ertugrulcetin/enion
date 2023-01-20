@@ -11,7 +11,7 @@
     [enion-cljs.scene.skills.mage :as skills.mage]
     [enion-cljs.scene.skills.priest :as skills.priest]
     [enion-cljs.scene.skills.warrior :as skills.warrior]
-    [enion-cljs.scene.states :refer [player other-players get-model-entity get-player-entity]])
+    [enion-cljs.scene.states :refer [player other-players get-model-entity get-player-entity destroy]])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -503,6 +503,10 @@
     (j/assoc! players (j/get player :id) player)
     (j/assoc! players (j/get player2 :id) player2)
     (set! other-players players))
+  (destroy 1)
+  (destroy 2)
+  (j/assoc! player :phantom-vision? false)
+  (j/assoc! player :phantom-vision? true)
 
   (create-skill-fns)
 

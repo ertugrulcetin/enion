@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.skills.asas
   (:require
     [applied-science.js-interop :as j]
+    [enion-cljs.scene.entities.other-players :as op]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.core :as skills]
@@ -74,7 +75,7 @@
         char-name-entity (pc/find-by-name template-entity "char_name")]
     (fn []
       (j/assoc! other-player :hide? true)
-      (j/assoc! initial-opacity :opacity 1)
+      (j/assoc! initial-opacity :opacity (or (pc/get-mesh-opacity mesh-lod-0) 1))
       (when enemy?
         (pc/disable dagger-right)
         (pc/disable dagger-left)
@@ -83,6 +84,7 @@
                               (j/call :to last-opacity 2 js/pc.Linear))]
         (j/call tween-opacity :on "update"
                 (fn []
+                  (println "aga")
                   (if (j/get other-player :hide?)
                     (doseq [e [mesh-lod-0 mesh-lod-1 mesh-lod-2]]
                       (pc/set-mesh-opacity e (j/get initial-opacity :opacity)))
@@ -90,14 +92,16 @@
         (when enemy?
           (j/call tween-opacity :on "complete"
                   (fn []
-                    ;; TODO if phantom vision enabled
-                    (when true
+                    (when (j/get player :phantom-vision?)
                       (doseq [e [mesh-lod-0 mesh-lod-1 mesh-lod-2]]
                         (pc/set-mesh-opacity e 0.1))))))
         (j/call tween-opacity :start)
         nil))))
 
-(defn apply-phantom-vision [])
+(defn apply-phantom-vision []
+  (j/assoc! player :phantom-vision? true)
+  (doseq [a (op/get-hidden-enemy-asases)]
+    (j/call-in a [:skills :hide])))
 
 (defn create-appear-fn-other-player [other-player]
   (let [{:keys [race class model-entity enemy? template-entity]} (j/lookup other-player)
