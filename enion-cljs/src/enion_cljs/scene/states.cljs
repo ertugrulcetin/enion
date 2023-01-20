@@ -1,5 +1,7 @@
 (ns enion-cljs.scene.states
-  (:require [enion-cljs.scene.pc :as pc]))
+  (:require
+    [applied-science.js-interop :as j]
+    [enion-cljs.scene.pc :as pc]))
 
 (defonce player (clj->js {:speed 550
                           :x 0
@@ -15,5 +17,12 @@
                           :can-r-attack-interrupt? false
                           :ray (pc/ray)
                           :hit-position (pc/vec3)}))
+
 (defonce other-players #js {})
-(defonce settings #js #{})
+(defonce settings #js {})
+
+(defn get-player-entity []
+  (j/get player :entity))
+
+(defn get-model-entity []
+  (j/get player :model-entity))

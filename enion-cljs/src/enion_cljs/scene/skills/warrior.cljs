@@ -3,7 +3,8 @@
     [applied-science.js-interop :as j]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.skills.core :as skills :refer [model-entity]]
+    [enion-cljs.scene.skills.core :as skills]
+    [enion-cljs.scene.states :refer [player get-model-entity]]
     [enion-cljs.scene.utils :as utils])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
@@ -26,14 +27,15 @@
 (def last-one-hand-combo (atom (js/Date.now)))
 
 ;; TODO w'ya basili tutarken ard arda 1'e basinca cancel oluyor sanki!
-(defn process-skills [e state]
+(defn process-skills [e]
   (when-not (-> e .-event .-repeat)
-    (let [active-state (pc/get-anim-state model-entity)]
-      (m/process-cancellable-skills ["attackOneHand" "attackSlowDown" "attackR"] active-state state)
+    (let [model-entity (get-model-entity)
+          active-state (pc/get-anim-state model-entity)]
+      (m/process-cancellable-skills ["attackOneHand" "attackSlowDown" "attackR"] active-state player)
       (cond
         (and (= active-state "attackOneHand")
              (skills/skill-pressed? e "attackR")
-             (j/get state :can-r-attack-interrupt?))
+             (j/get player :can-r-attack-interrupt?))
         (do
           (println "R combo!")
           (pc/set-anim-boolean model-entity "attackOneHand" false)
@@ -41,7 +43,7 @@
 
         (and (= active-state "attackR")
              (skills/skill-pressed? e "attackOneHand")
-             (j/get state :can-r-attack-interrupt?)
+             (j/get player :can-r-attack-interrupt?)
              (> (- (js/Date.now) @last-one-hand-combo) (utils/rand-between 750 1200)))
         (do
           (println "one hand combo...!")
@@ -52,7 +54,7 @@
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (skills/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get state :on-ground?))
+        (and (skills/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get player :on-ground?))
         (pc/set-anim-boolean model-entity "jump" true)
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackOneHand"))

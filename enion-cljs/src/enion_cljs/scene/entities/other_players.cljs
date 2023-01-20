@@ -5,10 +5,7 @@
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
-(defonce players #js {})
-
-(defn- init-fn [_]
-  (skills.effects/register-other-players players))
+(defn- init-fn [_])
 
 (defn init []
   (pc/create-script :other-players

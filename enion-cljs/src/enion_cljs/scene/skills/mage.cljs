@@ -3,8 +3,9 @@
     [applied-science.js-interop :as j]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.skills.core :as skills :refer [model-entity]]
-    [enion-cljs.scene.skills.effects :as skills.effects])
+    [enion-cljs.scene.skills.core :as skills]
+    [enion-cljs.scene.skills.effects :as skills.effects]
+    [enion-cljs.scene.states :refer [player get-model-entity]])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
 
@@ -21,26 +22,27 @@
      {:anim-state "teleport" :event "onTeleportCall" :call? true}
      {:anim-state "teleport" :event "onTeleportEnd" :skill? true :end? true}]))
 
-(defn process-skills [e state]
+(defn process-skills [e]
   (when-not (-> e .-event .-repeat)
-    (let [active-state (pc/get-anim-state model-entity)]
-      (m/process-cancellable-skills ["attackRange" "attackSingle" "attackR" "teleport"] active-state state)
+    (let [model-entity (get-model-entity)
+          active-state (pc/get-anim-state model-entity)]
+      (m/process-cancellable-skills ["attackRange" "attackSingle" "attackR" "teleport"] active-state player)
       (cond
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (skills/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get state :on-ground?))
+        (and (skills/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get player :on-ground?))
         (pc/set-anim-boolean model-entity "jump" true)
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackRange"))
         (do
           (pc/set-anim-boolean model-entity "attackRange" true)
-          (skills.effects/apply-effect-flame-particles state))
+          (skills.effects/apply-effect-flame-particles player))
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackSingle"))
         (do
           (pc/set-anim-boolean model-entity "attackSingle" true)
-          (skills.effects/apply-effect-fire-hands state))
+          (skills.effects/apply-effect-fire-hands player))
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "teleport"))
         (pc/set-anim-boolean model-entity "teleport" true)

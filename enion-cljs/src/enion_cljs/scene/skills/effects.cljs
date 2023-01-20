@@ -1,20 +1,12 @@
 (ns enion-cljs.scene.skills.effects
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.scene.pc :as pc])
+    [enion-cljs.scene.pc :as pc]
+    [enion-cljs.scene.states :refer [player other-players]])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
 (defonce healed-player-ids (js/Set.))
-
-(defonce player nil)
-(defonce other-players nil)
-
-(defn register-player [player*]
-  (set! player player*))
-
-(defn register-other-players [players]
-  (set! other-players players))
 
 (defn remove-player-id-from-healed-ids [id]
   (j/call healed-player-ids :delete (str id)))
@@ -62,8 +54,10 @@
 
 (let [last-opacity #js {:opacity 0}]
   (defn- effect-opacity-fade-out [skill duration]
+    (println "a")
     (let [new-counter (-> skill (j/update! :counter inc) (j/get :counter))
           entity (j/get skill :entity)
+          _ (js/console.log entity)
           _ (j/assoc! entity :enabled true)
           opacity #js {:opacity 1}
           tween-opacity (-> (j/call entity :tween opacity)

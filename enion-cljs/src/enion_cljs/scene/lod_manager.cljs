@@ -2,8 +2,8 @@
   (:require
     [applied-science.js-interop :as j]
     [clojure.set :as set]
-    [enion-cljs.scene.entities.player :as entity.player]
     [enion-cljs.scene.pc :as pc :refer [app]]
+    [enion-cljs.scene.states :refer [get-player-entity]]
     [goog.functions :as functions]))
 
 ;; TODO ranges for other player
@@ -92,7 +92,8 @@
                   lod-0 (parent->entity-attr parent-guid "lod-0")
                   lod-1 (parent->entity-attr parent-guid "lod-1")
                   lod-2 (parent->entity-attr parent-guid "lod-2")
-                  distance (pc/distance (pc/get-pos entity.player/player-entity) (parent->entity-attr parent-guid "position"))]
+                  distance (pc/distance (pc/get-pos (get-player-entity))
+                                        (parent->entity-attr parent-guid "position"))]
               (cond
                 (< distance (inc lod-0-range))
                 (do
