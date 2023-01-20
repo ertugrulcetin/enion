@@ -25,22 +25,108 @@
 
 (def last-one-hand-combo (atom (js/Date.now)))
 
-(let [initial-opacity #js {:opacity 1}
-      last-opacity #js {:opacity 0.3}
-      entity (delay
-               (let [race (j/get state :race)
-                     class (j/get state :class)]
-                 (pc/find-by-name model-entity (str race "_" class "_mesh"))))]
-  (defn- hide []
-    (let [_ (j/assoc! initial-opacity :opacity 1)
-          entity @entity
-          tween-opacity (-> (j/call entity :tween initial-opacity)
-                            (j/call :to last-opacity 2 js/pc.Linear))
-          _ (j/call tween-opacity :on "update"
-                    (fn []
-                      (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" (j/get initial-opacity :opacity))))]
-      (j/call tween-opacity :start)
-      nil)))
+;; TODO hide olurken gelip birisi vurunca appear olunmali, appear hide asamasini iptal etmeli
+;; su an hide olurken ortasinda appear gelince hide devam ediyor...
+
+(defn create-hide-fn [state]
+  (let [{:keys [race class model-entity]} (j/lookup state)
+        initial-opacity #js {:opacity 1}
+        last-opacity #js {:opacity 0.3}
+        entity (pc/find-by-name model-entity (str race "_" class "_mesh"))]
+    (fn []
+      (j/assoc! state :hide? true)
+      (j/assoc! initial-opacity :opacity (or (pc/get-mesh-opacity entity) 1))
+      (let [tween-opacity (-> (j/call entity :tween initial-opacity)
+                              (j/call :to last-opacity 2 js/pc.Linear))
+            _ (j/call tween-opacity :on "update"
+                      (fn []
+                        (if (j/get state :hide?)
+                          (pc/set-mesh-opacity entity (j/get initial-opacity :opacity))
+                          (j/call tween-opacity :stop))))]
+        (j/call tween-opacity :start)
+        nil))))
+
+(defn create-appear-fn [state]
+  (let [{:keys [race class model-entity]} (j/lookup state)
+        initial-opacity #js {:opacity nil}
+        last-opacity #js {:opacity 1}
+        entity (pc/find-by-name model-entity (str race "_" class "_mesh"))]
+    (fn []
+      (j/assoc! state :hide? false)
+      (j/assoc! initial-opacity :opacity (or (pc/get-mesh-opacity entity) 1))
+      (let [tween-opacity (-> (j/call entity :tween initial-opacity)
+                              (j/call :to last-opacity 0.3 js/pc.Linear))
+            _ (j/call tween-opacity :on "update"
+                      (fn []
+                        (pc/set-mesh-opacity entity (j/get initial-opacity :opacity))))]
+        (j/call tween-opacity :start)
+        nil))))
+
+(defn create-hide-fn-other-player [state]
+  (let [{:keys [race class model-entity enemy? template-entity]} (j/lookup state)
+        initial-opacity #js {:opacity 1}
+        last-opacity #js {:opacity (if enemy? 0 0.3)}
+        mesh-lod-0 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_0"))
+        mesh-lod-1 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_1"))
+        mesh-lod-2 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_2"))
+        dagger-left (j/get-in (pc/find-by-name model-entity "asas_dagger_1") [:children 0])
+        dagger-right (j/get-in (pc/find-by-name model-entity "asas_dagger_2") [:children 0])
+        char-name-entity (pc/find-by-name template-entity "char_name")]
+    (fn []
+      (j/assoc! state :hide? true)
+      (j/assoc! initial-opacity :opacity 1)
+      (when enemy?
+        (pc/disable dagger-right)
+        (pc/disable dagger-left)
+        (pc/disable char-name-entity))
+      (let [tween-opacity (-> (j/call mesh-lod-0 :tween initial-opacity)
+                              (j/call :to last-opacity 2 js/pc.Linear))]
+        (j/call tween-opacity :on "update"
+                (fn []
+                  (if (j/get state :hide?)
+                    (doseq [e [mesh-lod-0 mesh-lod-1 mesh-lod-2]]
+                      (pc/set-mesh-opacity e (j/get initial-opacity :opacity)))
+                    (j/call tween-opacity :stop))))
+        (when enemy?
+          (j/call tween-opacity :on "complete"
+                  (fn []
+                    ;; TODO if phantom vision enabled
+                    (when true
+                      (doseq [e [mesh-lod-0 mesh-lod-1 mesh-lod-2]]
+                        (pc/set-mesh-opacity e 0.1))))))
+        (j/call tween-opacity :start)
+        nil))))
+
+(defn create-appear-fn-other-player [state]
+  (let [{:keys [race class model-entity enemy? template-entity]} (j/lookup state)
+        initial-opacity #js {:opacity nil}
+        last-opacity #js {:opacity 1}
+        mesh-lod-0 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_0"))
+        mesh-lod-1 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_1"))
+        mesh-lod-2 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_2"))
+        dagger-left (j/get-in (pc/find-by-name model-entity "asas_dagger_1") [:children 0])
+        dagger-right (j/get-in (pc/find-by-name model-entity "asas_dagger_2") [:children 0])
+        char-name-entity (pc/find-by-name template-entity "char_name")]
+    (fn []
+      (j/assoc! state :hide? false)
+      (j/assoc! initial-opacity :opacity (or (pc/get-mesh-opacity mesh-lod-0) 1))
+      (when enemy?
+        (pc/enable dagger-right)
+        (pc/enable dagger-left)
+        (pc/enable char-name-entity))
+      (let [tween-opacity (-> (j/call mesh-lod-0 :tween initial-opacity)
+                              (j/call :to last-opacity 0.3 js/pc.Linear))]
+        (j/call tween-opacity :on "update"
+                (fn []
+                  (doseq [e [mesh-lod-0 mesh-lod-1 mesh-lod-2]]
+                    (pc/set-mesh-opacity e (j/get initial-opacity :opacity)))))
+        (j/call tween-opacity :start)
+        nil))))
+
+(comment
+  (hide)
+  (appear)
+  )
 
 (defn process-skills [e state]
   (when-not (-> e .-event .-repeat)
@@ -75,9 +161,7 @@
         (pc/set-anim-boolean model-entity "attackDagger" true)
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "hide"))
-        (do
-          (pc/set-anim-boolean model-entity "hide" true)
-          (hide))
+        (pc/set-anim-boolean model-entity "hide" true)
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackR"))
         (pc/set-anim-boolean model-entity "attackR" true)))))

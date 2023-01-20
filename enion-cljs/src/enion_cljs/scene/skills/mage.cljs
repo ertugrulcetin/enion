@@ -69,13 +69,13 @@
             first-scale (pc/get-loc-scale entity)
             tween-scale (-> (j/call entity :tween first-scale)
                             (j/call :to temp-final-scale 1 js/pc.Linear))
-            _ (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" 1)
+            _ (pc/set-mesh-opacity entity 1)
             _ (j/assoc! opacity :opacity 1)
             tween-opacity (-> (j/call entity :tween opacity)
                               (j/call :to last-opacity 2.5 js/pc.Linear))
             _ (j/call tween-opacity :on "update"
                       (fn []
-                        (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" (j/get opacity :opacity))))
+                        (pc/set-mesh-opacity entity (j/get opacity :opacity))))
             _ (j/call tween-opacity :on "complete"
                       (fn []
                         (j/call-in entity [:children 0 :particlesystem :stop])

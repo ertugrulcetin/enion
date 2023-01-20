@@ -146,42 +146,6 @@
         (pc/set-locater-target x z)
         (process-running)))))
 
-(comment
-  (let [p (j/get-in state [:effects :particle_got_defense_break :entity])
-        _ (j/assoc! p :enabled true)
-        par (j/get-in p [:children 0 :particlesystem])]
-    (j/call par :reset)
-    (j/call par :play)
-    ;(js/console.log (j/call par :isPlaying))
-    )
-
-  (let [[player player2] [(create-player {:id 1
-                                          :username "Human_Warrior"
-                                          :race "human"
-                                          :class "warrior"
-                                          ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
-                                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
-                                          })
-                          (create-player {:id 2
-                                          :username "Orc_Warrior"
-                                          :race "orc"
-                                          :class "warrior"
-                                          ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
-                                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
-                                          })]]
-    (j/assoc! players (j/get player :id) player)
-    (j/assoc! players (j/get player2 :id) player2)
-    (set! skills.effects/other-players players))
-
-  (j/call-in players [1 :entity :rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
-  (j/call-in players [2 :entity :setPosition] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
-
-  (skills.effects/apply-effect-attack-flame (j/get players 1))
-  (skills.effects/apply-effect-attack-dagger (j/get players 1))
-  (move-player (j/get-in players [1 :entity]))
-
-  )
-
 (defn- register-mouse-events []
   (pc/on-mouse :EVENT_MOUSEDOWN
                (fn [e]
@@ -220,10 +184,11 @@
   (j/call-in entity [:collision :on] "collisionstart" collision-start)
   (j/call-in entity [:collision :on] "collisionend" collision-end))
 
-(defn- create-model-and-template-entity [{:keys [entity race class other-player?]}]
+(defn- create-model-and-template-entity [{:keys [id entity race class other-player?]}]
   (let [template-entity-name (str race "_" class)
         model-entity-name (str race "_" class "_model")
         character-template-entity (pc/clone (pc/find-by-name template-entity-name))
+        _ (j/assoc! character-template-entity :name (str template-entity-name "_" id))
         character-model-entity (pc/find-by-name character-template-entity model-entity-name)]
     (j/assoc! character-template-entity :enabled true)
     (when other-player?
@@ -234,16 +199,14 @@
     [character-template-entity character-model-entity]))
 
 ;; TODO username text elementleri faceCamera.js kullaniyor, o scripti kaldir, toplu bir sekilde yap kodda
-(defn- create-username-text [{:keys [entity username race class enemy?]}]
-  (let [template-entity-name (str race "_" class)
-        character-template-entity (pc/find-by-name entity template-entity-name)
-        username-text-entity (pc/clone (pc/find-by-name "char_name"))]
+(defn- create-username-text [{:keys [template-entity username race class enemy?]}]
+  (let [username-text-entity (pc/clone (pc/find-by-name "char_name"))]
     (j/assoc-in! username-text-entity [:element :text] username)
     (j/assoc-in! username-text-entity [:element :color] username-color)
     (when enemy?
       (j/assoc-in! username-text-entity [:element :color] username-enemy-color))
     (j/assoc-in! username-text-entity [:element :outlineThickness] 1.5)
-    (pc/add-child character-template-entity username-text-entity)
+    (pc/add-child template-entity username-text-entity)
     (when (and (= race "orc")
                (or (= class "priest")
                    (= class "warrior")))
@@ -294,73 +257,24 @@
 (defn- create-throw-nova-fn [character-template-entity]
   (some-> (pc/find-by-name character-template-entity "nova") skills.mage/create-throw-nova-fn))
 
-(defn create-player [{:keys [id username class race pos health mana] :as opts}]
-  (let [enemy? (not= race (j/get state :race))
-        entity-name (if enemy? "enemy_player" "ally_player")
-        entity (pc/clone (pc/find-by-name entity-name))
-        _ (j/assoc! entity :id id)
-        [x y z] pos
-        params {:entity entity
-                :username username
-                :class class
-                :race race
-                :enemy? enemy?
-                :other-player? true}
-        _ (pc/add-child (pc/root) entity)
-        [character-template-entity model-entity] (create-model-and-template-entity params)
-        effects (add-skill-effects character-template-entity)
-        nova-fn (create-throw-nova-fn character-template-entity)]
-    (create-username-text params)
-    (if enemy?
-      (j/call-in entity [:rigidbody :teleport] x y z)
-      (pc/set-pos entity x y z))
-    (-> opts
-        (dissoc :pos)
-        (assoc :entity entity
-               :model-entity model-entity
-               :effects effects
-               :enemy? enemy?
-               :health health
-               :mana mana
-               :throw-nova-fn nova-fn
-               :heal-counter 0)
-        clj->js)))
-
-(defn- move-player [entity]
-  (let [{:keys [x y z]} (j/lookup (pc/get-pos entity))
-        temp-first-pos #js {:x x :y y :z z}
-        temp-final-pos #js {:x (+ 38 (rand 1))
-                            :y 0.55
-                            :z (- (+ 39 (rand 4)))}
-        tween-pos (-> (j/call entity :tween temp-first-pos)
+#_(defn- move-player [entity]
+    (let [{:keys [x y z]} (j/lookup (pc/get-pos entity))
+          temp-first-pos #js {:x x :y y :z z}
+          temp-final-pos #js {:x (+ 38 (rand 1))
+                              :y 0.55
+                              :z (- (+ 39 (rand 4)))}
+          tween-pos (-> (j/call entity :tween temp-first-pos)
                       (j/call :to temp-final-pos 0.3 js/pc.Linear))
-        _ (j/call tween-pos :on "update"
-                  (fn []
-                    (j/call-in entity [:rigidbody :teleport]
-                               (j/get temp-first-pos :x)
-                               (j/get temp-first-pos :y)
-                               (j/get temp-first-pos :z))))]
-    (j/call tween-pos :start)
-    nil))
+          _ (j/call tween-pos :on "update"
+              (fn []
+                (j/call-in entity [:rigidbody :teleport]
+                  (j/get temp-first-pos :x)
+                  (j/get temp-first-pos :y)
+                  (j/get temp-first-pos :z))))]
+      (j/call tween-pos :start)
+      nil))
 
 (comment
-  (j/assoc! state :throw-nova-fn (create-throw-nova-fn (j/get state :template-entity)))
-  (move-player (j/get-in players [1 :entity]))
-
-  (pc/set-selected-char-position)
-  (js/clearInterval 927)
-  (js/setInterval
-    (fn []
-      (let [s (pc/get-pos player-entity)]
-        (pc/set-selected-char-position (j/get s :x) (j/get s :z))))
-    16.6)
-
-  (j/call-in player-entity [:rigidbody :teleport] 29.1888 0.55 -30.958)
-  (j/call-in (j/get-in players [1 :entity]) [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
-
-  (pc/set-selected-char-position 28.410 -30.16)
-  (pc/get-pos player-entity)
-
   (skills.effects/apply-effect-attack-r state)
   (skills.effects/apply-effect-attack-flame state)
   (skills.effects/apply-effect-attack-dagger state)
@@ -371,44 +285,75 @@
   (skills.effects/apply-effect-fire-hands state)
   (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
 
-  (let [p (create-player {:id 0
-                          :username "F9Devil"
-                          :race (first (shuffle ["human" "orc"]))
-                          :class (first (shuffle ["priest" "asas" "warrior" "mage"]))
-                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]})]
-    (j/assoc! ee (:id p) p))
-
   (j/assoc! state :runs-fast? true)
-  (j/assoc! state :runs-fast? false)
-
   (j/assoc! state :speed 550)
 
-  (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
-
-  (dotimes [_ 10]
-    (create-player {:username "F9Devil"
-                    :race (first (shuffle ["human" "orc"]))
-                    :class (first (shuffle ["priest" "asas" "warrior" "mage"]))
-                    :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]}))
-
-  (pc/distance
-    (pc/vec3 34.4639892578125 0.5908540487289429 -28.19676399230957)
-    (pc/vec3 32.44767379760742 1.6244267225265503 26.892711639404297))
-
-  (pc/distance (pc/vec3 8.323365211486816 0.583661675453186 32.249542236328125) (pc/get-pos player-entity))
-
-  (j/assoc! state :throw-nova-fn (create-throw-nova-fn (j/get state :template-entity)))
   )
+
+(defn- create-asas-skill-fns [state other-player?]
+  (if other-player?
+    (-> state
+        (j/assoc-in! [:skills :hide] (skills.asas/create-hide-fn-other-player state))
+        (j/assoc-in! [:skills :appear] (skills.asas/create-appear-fn-other-player state)))
+    (-> state
+        (j/assoc-in! [:skills :hide] (skills.asas/create-hide-fn state))
+        (j/assoc-in! [:skills :appear] (skills.asas/create-appear-fn state)))))
+
+(defn- create-skill-fns
+  ([state]
+   (create-skill-fns state false))
+  ([state other-player?]
+   (let [{:keys [class template-entity]} (j/lookup state)]
+     (case class
+       "mage" (j/assoc-in! state [:skills :throw-nova] (create-throw-nova-fn template-entity))
+       "asas" (create-asas-skill-fns state other-player?)
+       nil))))
+
+(defn create-player [{:keys [id username class race pos health mana] :as opts}]
+  (let [enemy? (not= race (j/get state :race))
+        entity-name (if enemy? "enemy_player" "ally_player")
+        ;; TODO belki ana kullanilan entityleri bir kere fetch edip cachleyip oradan kullaniriz yoksa karisiklik olabilir
+        ;; ayni isimden dolayi, bir kere template entitye oldu 2 kere username sprite'i olusmustu
+        entity (pc/clone (pc/find-by-name entity-name))
+        _ (j/assoc! entity :id id)
+        [x y z] pos
+        params {:entity entity
+                :username username
+                :class class
+                :race race
+                :enemy? enemy?
+                :other-player? true}
+        _ (pc/add-child (pc/root) entity)
+        [template-entity model-entity] (create-model-and-template-entity params)
+        effects (add-skill-effects template-entity)
+        state (-> opts
+                  (dissoc :pos)
+                  (assoc :entity entity
+                         :model-entity model-entity
+                         :template-entity template-entity
+                         :effects effects
+                         :enemy? enemy?
+                         :health health
+                         :mana mana
+                         :heal-counter 0)
+                  clj->js)]
+    (create-username-text (assoc params :template-entity template-entity))
+    (create-skill-fns state true)
+    (if enemy?
+      (j/call-in entity [:rigidbody :teleport] x y z)
+      (pc/set-pos entity x y z))
+    state))
 
 (defn- init-fn [this player-data]
   (let [player-entity* (j/get this :entity)
         _ (init-player player-data player-entity*)
-        params {:entity player-entity*
-                :username (j/get state :username)
-                :race (j/get state :race)
-                :class (j/get state :class)}
-        [template-entity model-entity*] (create-model-and-template-entity params)]
-    (create-username-text params)
+        opts {:id (:id player-data)
+              :entity player-entity*
+              :username (j/get state :username)
+              :race (j/get state :race)
+              :class (j/get state :class)}
+        [template-entity model-entity*] (create-model-and-template-entity opts)]
+    (create-username-text (assoc opts :template-entity template-entity))
     (j/assoc! state :camera (pc/find-by-name "camera"))
     (set! player-entity player-entity*)
     (set! model-entity model-entity*)
@@ -417,14 +362,41 @@
     (j/assoc! state
               :this this
               :effects (add-skill-effects template-entity)
-              :throw-nova-fn (create-throw-nova-fn template-entity)
               :template-entity template-entity
+              :model-entity model-entity*
               :entity player-entity*)
+    (create-skill-fns state)
     (common/fire :init-skills (keyword (j/get state :class)))
     (skills.effects/register-player state)
     (register-keyboard-events)
     (register-mouse-events)
-    (register-collision-events player-entity*)))
+    (register-collision-events player-entity*))
+
+  (let [[player player2] [(create-player {:id 1
+                                          :username "Human_Warrior"
+                                          :race "human"
+                                          :class "asas"
+                                          ;; :pos [39.0690803527832 0.550000011920929 -42.08248596191406]
+                                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]})
+                          (create-player {:id 2
+                                          :username "Orc_Warrior"
+                                          :race "orc"
+                                          :class "asas"
+                                          ;; :pos [39.0690803527832 0.550000011920929 -42.08248596191406]
+                                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]})]]
+    (j/assoc! players (j/get player :id) player)
+    (j/assoc! players (j/get player2 :id) player2)
+    (set! skills.effects/other-players players))
+  (js/document.addEventListener "keydown"
+                                (fn [e]
+                                  (when (= (j/get e :code) "KeyH")
+                                    (j/call-in skills.effects/other-players [1 :skills :hide]))
+                                  (when (= (j/get e :code) "KeyJ")
+                                    (j/call-in skills.effects/other-players [1 :skills :appear]))
+                                  (when (= (j/get e :code) "KeyK")
+                                    (j/call-in skills.effects/other-players [2 :skills :hide]))
+                                  (when (= (j/get e :code) "KeyL")
+                                    (j/call-in skills.effects/other-players [2 :skills :appear])))))
 
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [_ _]
@@ -519,18 +491,57 @@
                                        (j/assoc! player-entity :name (str (random-uuid)))))}))
 
 (comment
+  (let [[player player2] [(create-player {:id 1
+                                          :username "Human_Warrior"
+                                          :race "human"
+                                          :class "asas"
+                                          ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
+                                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
+                                          })
+                          (create-player {:id 2
+                                          :username "Orc_Warrior"
+                                          :race "orc"
+                                          :class "asas"
+                                          ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
+                                          :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
+                                          })]]
+    (j/assoc! players (j/get player :id) player)
+    (j/assoc! players (j/get player2 :id) player2)
+    (set! skills.effects/other-players players))
+
+  (create-skill-fns)
+
+  (j/call-in skills.effects/other-players [1 :skills :hide])
+  (j/call-in skills.effects/other-players [1 :skills :appear])
+
+  (pc/set-mesh-opacity (j/get-in skills.effects/other-players [1 :model-entity :children 2]) 0.1)
+
+  (pc/disable (j/get-in skills.effects/other-players [1 :model-entity :children 2]))
+  (pc/enable (j/get-in skills.effects/other-players [1 :model-entity :children 2]))
+  (js/console.log (j/get-in skills.effects/other-players [1 :model-entity :children 2]))
+
+  (j/call-in players [1 :entity :rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
+  (j/call-in players [2 :entity :setPosition] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
+
+  (skills.effects/apply-effect-attack-flame (j/get players 1))
+  (skills.effects/apply-effect-attack-dagger (j/get players 1))
+  (move-player (j/get-in players [1 :entity]))
+
+  (j/call-in state [:skills :hide])
+  (j/call-in state [:skills :appear])
+  (j/get-in state [:skills :hide])
+
   (let [this (j/get state :this)]
     (j/call-in state [:template-entity :destroy])
     (set! state state-default)
     (init-fn this {:id 1
                    :username "0000000"
                    :race "orc"
-                   :class "mage"
+                   :class "asas"
                    :mana 100
                    :health 100
                    ;; :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
-                   }))
-  )
+                   })))
 
 (defn enable-effect [name]
   (j/assoc! (pc/find-by-name player-entity name) :enabled true))

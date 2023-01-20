@@ -256,3 +256,15 @@
 
 (defn ray []
   (js/pc.Ray.))
+
+(defn set-mesh-opacity [entity opacity]
+  (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" opacity))
+
+(defn get-mesh-opacity [entity]
+  (j/get-in entity [:render :meshInstances 0 :parameters :material_opacity :data]))
+
+(defn enable [entity]
+  (j/assoc! entity :enabled true))
+
+(defn disable [entity]
+  (j/assoc! entity :enabled false))
