@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.entities.player
   (:require
     [applied-science.js-interop :as j]
+    [enion-cljs.scene.states :as st]
     [enion-cljs.common :as common :refer [dev?]]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
@@ -31,7 +32,7 @@
                          :hit-position (pc/vec3)}))
 
 (when dev?
-  (defonce state-default state))
+  (defonce player-default st/player))
 
 (defonce player-entity nil)
 (defonce model-entity nil)
@@ -533,7 +534,7 @@
 
   (let [this (j/get state :this)]
     (j/call-in state [:template-entity :destroy])
-    (set! state state-default)
+    (set! state player-default)
     (init-fn this {:id 1
                    :username "0000000"
                    :race "orc"

@@ -97,6 +97,9 @@
         (j/call tween-opacity :start)
         nil))))
 
+(defn apply-phantom-vision []
+  )
+
 (defn create-appear-fn-other-player [state]
   (let [{:keys [race class model-entity enemy? template-entity]} (j/lookup state)
         initial-opacity #js {:opacity nil}
