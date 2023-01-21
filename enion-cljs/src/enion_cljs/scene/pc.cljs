@@ -246,6 +246,19 @@
   (defn set-selected-char-color [ally?]
     (j/call @terrain-mat :setParameter "selected_char_color" (if ally? ally-color enemy-color))))
 
+(let [target #js []
+      nova-pos (vec3)]
+  (defn set-nova-circle-pos
+    ([]
+     (j/call @terrain-mat :setParameter "spell_available" false))
+    ([player x y z]
+     (j/assoc! target 0 x 1 z)
+     (j/assoc! player :nova-pos target)
+     (setv nova-pos x y z)
+     (j/call @terrain-mat :setParameter "spell_opacity" (if (> (distance nova-pos (get-pos (j/get player :entity))) 13) 0.1 1.0))
+     (j/call @terrain-mat :setParameter "spell_position" target)
+     (j/call @terrain-mat :setParameter "spell_available" true))))
+
 (defn set-elapsed-time-for-terrain [et]
   (j/call @terrain-mat :setParameter "elapsed_time" et))
 

@@ -36,8 +36,10 @@
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackRange"))
         (do
-          (pc/set-anim-boolean model-entity "attackRange" true)
-          (skills.effects/apply-effect-flame-particles player))
+          (j/assoc! player :positioning-nova? true)
+          ;; (pc/set-anim-boolean model-entity "attackRange" true)
+          ;; (skills.effects/apply-effect-flame-particles player)
+          )
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackSingle"))
         (do
@@ -77,7 +79,10 @@
                               (j/call :to last-opacity 2.5 js/pc.Linear))
             _ (j/call tween-opacity :on "update"
                       (fn []
-                        (pc/set-mesh-opacity entity (j/get opacity :opacity))))
+                        (pc/set-mesh-opacity entity (j/get opacity :opacity))
+                        ;; nova entity is a child entity of the mage entity so we're kinda updating its local pos
+                        ;; so had to set in here as well, this tween takes the longest time
+                        (pc/set-pos entity (j/get temp-first-pos :x) (j/get temp-first-pos :y) (j/get temp-first-pos :z))))
             _ (j/call tween-opacity :on "complete"
                       (fn []
                         (j/call-in entity [:children 0 :particlesystem :stop])

@@ -200,7 +200,7 @@
         (when-not (skills/char-cant-run?)
           (pc/look-at model-entity x (j/get char-pos :y) z true))
         (when (= "mage" (j/get player :class))
-          ((j/get player :throw-nova-fn) (j/get result :point)))
+          ((j/get-in player [:skills :throw-nova]) (j/get result :point)))
         ;; (println "inside circle: " (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 1.8))
         (j/assoc! player :target-pos (pc/setv (j/get player :target-pos) x y z)
                   :target-pos-available? true)
@@ -219,6 +219,16 @@
         (j/assoc! player :selected-player-id enemy-id))
       (set-target-position e))))
 
+(defn- show-nova-circle [e]
+  (when (and (st/mage?) (j/get player :positioning-nova?))
+    (let [result (raycast-rigid-body e)
+          hit-entity-name (j/get-in result [:entity :name])]
+      (when (= "terrain" hit-entity-name)
+        (let [x (j/get-in result [:point :x])
+              y (j/get-in result [:point :y])
+              z (j/get-in result [:point :z])]
+          (pc/set-nova-circle-pos player x y z))))))
+
 (defn- register-mouse-events []
   (pc/on-mouse :EVENT_MOUSEDOWN
                (fn [e]
@@ -226,16 +236,22 @@
                             (or (= "CANVAS" (j/get-in e [:element :nodeName]))
                                 (not= "all" (-> (j/call js/window :getComputedStyle (j/get e :element))
                                                 (j/get :pointerEvents)))))
-                   (j/assoc! player :mouse-left-locked? true)
-                   (select-player-or-set-target e))))
+                   (if (j/get player :positioning-nova?)
+                     (do
+                       (j/assoc! player :positioning-nova? false)
+                       (pc/set-nova-circle-pos))
+                     (do
+                       (j/assoc! player :mouse-left-locked? true)
+                       (select-player-or-set-target e))))))
   (pc/on-mouse :EVENT_MOUSEUP
                (fn [e]
                  (when (pc/button? e :MOUSEBUTTON_LEFT)
                    (j/assoc! player :mouse-left-locked? false))))
   (pc/on-mouse :EVENT_MOUSEMOVE
                (fn [e]
-                 (when (j/get player :mouse-left-locked?)
-                   (set-target-position e)))))
+                 (if (j/get player :mouse-left-locked?)
+                   (set-target-position e)
+                   (show-nova-circle e)))))
 
 (defn- collision-start [result]
   (when (= "terrain" (j/get-in result [:other :name]))
@@ -597,7 +613,7 @@
     (init-fn this {:id 1
                    :username "0000000"
                    :race "orc"
-                   :class "asas"
+                   :class "mage"
                    :mana 100
                    :health 100
                    ;; :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]

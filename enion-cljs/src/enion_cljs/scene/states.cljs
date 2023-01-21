@@ -50,3 +50,14 @@
 
 (defn get-selected-player-id []
   (j/get player :selected-player-id))
+
+(defn enemy-selected? []
+  (j/get-in other-players [(get-selected-player-id) :enemy?]))
+
+(defn ally-selected? []
+  (boolean
+    (when-let [id (get-selected-player-id)]
+      (not (j/get-in other-players [id :enemy?])))))
+
+(defn mage? []
+  (= "mage" (j/get player :class)))
