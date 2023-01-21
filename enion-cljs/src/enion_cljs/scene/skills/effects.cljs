@@ -54,10 +54,8 @@
 
 (let [last-opacity #js {:opacity 0}]
   (defn- effect-opacity-fade-out [skill duration]
-    (println "a")
     (let [new-counter (-> skill (j/update! :counter inc) (j/get :counter))
           entity (j/get skill :entity)
-          _ (js/console.log entity)
           _ (j/assoc! entity :enabled true)
           opacity #js {:opacity 1}
           tween-opacity (-> (j/call entity :tween opacity)

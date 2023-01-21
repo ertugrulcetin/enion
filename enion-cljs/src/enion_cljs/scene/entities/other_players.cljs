@@ -6,7 +6,7 @@
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
-(defn get-hidden-enemy-asases []
+#_(defn get-hidden-enemy-asases []
   (reduce
     (fn [acc id]
       (let [other-player (j/get other-players id)]

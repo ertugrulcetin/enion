@@ -27,6 +27,26 @@
 (defn get-model-entity []
   (j/get player :model-entity))
 
-(defn destroy [player-id]
+(defn destroy-player [player-id]
   (j/call-in other-players [player-id :entity :destroy])
   (js-delete other-players player-id))
+
+(defn destroy-players []
+  (doseq [id (js/Object.keys other-players)]
+    (destroy-player id)))
+
+(defn get-other-player [player-id]
+  (j/get other-players player-id))
+
+(defn get-other-player-entity [id]
+  (j/get-in other-players [id :entity]))
+
+(defn cancel-selected-player []
+  (pc/set-selected-player-position)
+  (j/assoc! player :selected-player-id nil))
+
+(defn enemy? [id]
+  (j/get (get-other-player id) :enemy?))
+
+(defn get-selected-player-id []
+  (j/get player :selected-player-id))

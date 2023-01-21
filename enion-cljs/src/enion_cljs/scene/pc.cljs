@@ -221,7 +221,7 @@
      (j/call @terrain-mat :setParameter "target_position_available" true))))
 
 (let [target #js []]
-  (defn set-selected-char-position
+  (defn set-selected-player-position
     ([]
      (j/call @terrain-mat :setParameter "selected_char_position_available" false))
     ([x z]

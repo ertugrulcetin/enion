@@ -1,11 +1,10 @@
 (ns enion-cljs.scene.skills.asas
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.scene.entities.other-players :as op]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.core :as skills]
-    [enion-cljs.scene.states :refer [player get-model-entity]]
+    [enion-cljs.scene.states :as st :refer [player]]
     [enion-cljs.scene.utils :as utils])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
@@ -84,7 +83,6 @@
                               (j/call :to last-opacity 2 js/pc.Linear))]
         (j/call tween-opacity :on "update"
                 (fn []
-                  (println "aga")
                   (if (j/get other-player :hide?)
                     (doseq [e [mesh-lod-0 mesh-lod-1 mesh-lod-2]]
                       (pc/set-mesh-opacity e (j/get initial-opacity :opacity)))
@@ -92,16 +90,13 @@
         (when enemy?
           (j/call tween-opacity :on "complete"
                   (fn []
-                    (when (j/get player :phantom-vision?)
+                    (if (j/get player :phantom-vision?)
                       (doseq [e [mesh-lod-0 mesh-lod-1 mesh-lod-2]]
-                        (pc/set-mesh-opacity e 0.1))))))
+                        (pc/set-mesh-opacity e 0.1))
+                      (when (= (j/get other-player :id) (st/get-selected-player-id))
+                        (st/cancel-selected-player))))))
         (j/call tween-opacity :start)
         nil))))
-
-(defn apply-phantom-vision []
-  (j/assoc! player :phantom-vision? true)
-  (doseq [a (op/get-hidden-enemy-asases)]
-    (j/call-in a [:skills :hide])))
 
 (defn create-appear-fn-other-player [other-player]
   (let [{:keys [race class model-entity enemy? template-entity]} (j/lookup other-player)
@@ -131,7 +126,7 @@
 
 (defn process-skills [e]
   (when-not (-> e .-event .-repeat)
-    (let [model-entity (get-model-entity)
+    (let [model-entity (st/get-model-entity)
           active-state (pc/get-anim-state model-entity)]
       (m/process-cancellable-skills ["attackDagger" "attackR" "hide"] active-state player)
       (cond
