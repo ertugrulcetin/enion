@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.skills.core
   (:require
     [applied-science.js-interop :as j]
+    [enion-cljs.common :as common :refer [fire]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.states :refer [player get-model-entity get-player-entity]]))
@@ -43,6 +44,9 @@
 (defn skill-pressed? [e skill]
   (= (key->skill (j/get e :key)) skill))
 
+;; TODO remove this
+(def latency 100)
+
 (defn register-skill-events [events]
   (let [player-entity (get-player-entity)
         model-entity (get-model-entity)]
@@ -53,7 +57,8 @@
                     end?
                     r-lock?
                     r-release?
-                    f]} events]
+                    f
+                    call-name]} events]
       (pc/on-anim model-entity event
                   (fn []
                     (when f
@@ -71,7 +76,10 @@
                                              (j/get player :target-pos))]
                         (pc/look-at model-entity (j/get target :x) (j/get (pc/get-pos model-entity) :y) (j/get target :z) true)))
                     (cond
-                      call? (j/assoc! player :skill-locked? true)
+                      call? (do
+                              (j/assoc! player :skill-locked? true)
+                              (when call-name
+                                (js/setTimeout #(fire call-name true) latency)))
                       r-release? (j/assoc! player :can-r-attack-interrupt? true)
                       r-lock? (j/assoc! player :can-r-attack-interrupt? false)))))))
 

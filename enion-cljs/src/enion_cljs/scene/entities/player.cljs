@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.entities.player
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :as common :refer [dev?]]
+    [enion-cljs.common :as common :refer [dev? fire on]]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
@@ -35,7 +35,7 @@
 (defn- process-esc [e]
   (when (= "Escape" (j/get-in e [:event :key]))
     (when (j/get player :selected-player-id)
-      (j/assoc! player :selected-player-id nil)
+      (st/cancel-selected-player)
       (pc/set-selected-player-position))))
 
 (defn- square [n]
@@ -132,11 +132,12 @@
                              player-pos (pc/get-pos (j/get player :entity))
                              distance (pc/distance (get-position) player-pos)
                              ally? (not (j/get player :enemy?))
-                             hide? (j/get player :hide?)]
-                         [id distance ally? hide?])))
+                             hide? (j/get player :hide?)
+                             health (j/get player :health)]
+                         [id distance ally? hide? health])))
                    (remove
-                     (fn [[_ distance ally? hide?]]
-                       (or ally? hide? (> distance char-selection-distance-threshold))))
+                     (fn [[_ distance ally? hide? health]]
+                       (or ally? hide? (> distance char-selection-distance-threshold) (zero? health))))
                    (sort-by second)
                    ffirst)]
     (do
@@ -165,7 +166,7 @@
                     (fn [e]
                       (process-running)))
     (skills/register-skill-events events)
-    (common/on :update-skills-order skills/register-key->skills)))
+    (on :update-skills-order skills/register-key->skills)))
 
 (defn enable-phantom-vision []
   (j/assoc! player :phantom-vision? true)
@@ -330,7 +331,8 @@
          (fn [e]
            (when-let [entity (pc/find-by-name template-entity e)]
              [e {:counter 0
-                 :entity entity}])))
+                 :entity entity
+                 :state #js {:value 0}}])))
        (into {})
        clj->js))
 
@@ -453,42 +455,13 @@
               :model-entity model-entity
               :entity player-entity)
     (create-skill-fns player)
-    (common/fire :init-skills (keyword (j/get player :class)))
+    (fire :init-skills (keyword (j/get player :class)))
     (register-keyboard-events)
     (register-mouse-events)
-    (register-collision-events player-entity))
-
-  (let [[p p2 p3] [(create-player {:id 1
-                                   :username "0000000"
-                                   :race "human"
-                                   :class "asas"
-                                   ;; :pos [39.0690803527832 0.550000011920929 -42.08248596191406]
-                                   :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]})
-                   (create-player {:id 2
-                                   :username "Gandalf"
-                                   :race "human"
-                                   :class "mage"
-                                   ;; :pos [39.0690803527832 0.550000011920929 -42.08248596191406]
-                                   :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]})
-                   (create-player {:id 3
-                                   :username "Orc_Warrior"
-                                   :race "orc"
-                                   :class "asas"
-                                   ;; :pos [39.0690803527832 0.550000011920929 -42.08248596191406]
-                                   :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]})]]
-    (j/assoc! other-players (j/get p :id) p)
-    (j/assoc! other-players (j/get p2 :id) p2)
-    (j/assoc! other-players (j/get p3 :id) p3))
-  (js/document.addEventListener "keydown"
-                                (fn [e]
-                                  (when (= (j/get e :code) "KeyH")
-                                    (j/call-in other-players [1 :skills :hide]))
-                                  (when (= (j/get e :code) "KeyJ")
-                                    (j/call-in other-players [1 :skills :appear]))
-                                  (when (= (j/get e :code) "KeyK")
-                                    (j/call-in other-players [2 :skills :hide]))
-                                  (when (= (j/get e :code) "KeyL")
-                                    (j/call-in other-players [2 :skills :appear])))))
+    (register-collision-events player-entity)
+    (on :create-players (fn [players]
+                          (doseq [p players]
+                            (st/add-player (create-player p)))))))
 
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [_ _]
@@ -553,12 +526,26 @@
   (process-movement dt this)
   (show-player-selection-circle))
 
+(defn re-init-player [{:keys [id username race class]}]
+  (let [this (j/get player :this)]
+    (j/call-in player [:template-entity :destroy])
+    (set! player player-default)
+    (init-fn this {:id id
+                   :username username
+                   :race race
+                   :class class
+                   :mana 100
+                   :health 100
+                   ;; :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
+                   })))
+
 (defn init [player-data]
   (pc/create-script :player
                     {:init (fnt (init-fn this player-data))
                      :update (fnt (update-fn dt this))
-                     :post-init (fnt (when-not dev?
-                                       (j/assoc! (st/get-player-entity) :name (str (random-uuid)))))}))
+                     :post-init (fnt
+                                  (when-not dev?
+                                    (j/assoc! (st/get-player-entity) :name (str (random-uuid)))))}))
 
 (comment
   (pc/enable (j/get-in player [:effects :attack_r :entity]))
@@ -606,14 +593,10 @@
   (j/call-in player [:skills :appear])
   (j/get-in player [:skills :hide])
 
-  (let [this (j/get player :this)]
-    (j/call-in player [:template-entity :destroy])
-    (set! player player-default)
-    (init-fn this {:id 1
+  (re-init-player {:id 0
                    :username "0000000"
                    :race "orc"
-                   :class "mage"
+                   :class "warrior"
                    :mana 100
-                   :health 100
-                   ;; :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
-                   })))
+                   :health 100})
+  )

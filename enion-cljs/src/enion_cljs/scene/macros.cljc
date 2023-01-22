@@ -2,12 +2,14 @@
   (:require
     [applied-science.js-interop :as j]))
 
+(def wasd-codes #{"KeyW" "KeyA" "KeyS" "KeyD"})
+
 (defmacro fnt [& body]
   `(fn [~'dt]
      (cljs.core/this-as ~'this ~@body)))
 
-(defmacro process-cancellable-skills [skills active-state state]
-  `(when (enion-cljs.scene.keyboard/pressing-wasd?)
+(defmacro process-cancellable-skills [skills key-code active-state state]
+  `(when (~wasd-codes ~key-code)
      (j/assoc! ~state :target-pos-available? false)
      (enion-cljs.scene.pc/set-locater-target)
      (cond

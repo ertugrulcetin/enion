@@ -5,6 +5,8 @@
 (defonce app nil)
 (defonce state (clj->js {}))
 
+(defonce global-on-listeners (atom []))
+
 (def dev?
   ^boolean goog.DEBUG)
 
@@ -102,6 +104,8 @@
   (set! app app*))
 
 (defn fire
+  ([event]
+   (j/call app :fire (name event)))
   ([event x]
    (j/call app :fire (name event) x))
   ([event x y]
@@ -109,7 +113,17 @@
   ([event x y z]
    (j/call app :fire (name event) x y z)))
 
-(defn on [event f]
+(defn- on* [event f]
   (when (j/call app :hasEvent (name event))
     (j/call app :off (name event)))
   (j/call app :on (name event) f))
+
+(defn on [event f]
+  (if app
+    (on* event f)
+    (swap! global-on-listeners conj #(on* event f))))
+
+(defn enable-global-on-listeners []
+  (doseq [f @global-on-listeners]
+    (f))
+  (reset! global-on-listeners []))

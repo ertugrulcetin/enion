@@ -1,9 +1,10 @@
 (ns enion-cljs.scene.entities.app
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :as common]
+    [enion-cljs.common :as common :refer [dev?]]
     [enion-cljs.scene.lod-manager :as lod-manager]
-    [enion-cljs.scene.pc :as pc])
+    [enion-cljs.scene.pc :as pc]
+    [enion-cljs.scene.simulation :as simulation])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -22,7 +23,8 @@
   (common/set-app pc/app)
   (pc/disable-context-menu)
   (update-orc-human-materials)
-  (clear-depth-buffer-layer))
+  (clear-depth-buffer-layer)
+  (common/enable-global-on-listeners))
 
 (defn init [init-ui]
   (pc/create-script :app
@@ -30,4 +32,6 @@
                              (init-fn this)
                              (init-ui))
                      :post-init (fn []
-                                  (lod-manager/init))}))
+                                  (lod-manager/init)
+                                  (when dev?
+                                    (simulation/init)))}))

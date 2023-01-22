@@ -35,7 +35,6 @@
           (remove-from-healed-ids)))
       2000)))
 
-;; TODO THESE ARE SINGLETONS, UPDATE , LIKE WE DID FOR NOVA!!!
 (let [temp-final-scale #js {:x 0 :y 0.3 :z 0.3}]
   (defn- effect-scale-down [skill init-scale duration]
     (let [new-counter (-> skill (j/update! :counter inc) (j/get :counter))
@@ -52,17 +51,18 @@
       (j/call tween-scale :start)
       nil)))
 
-(let [last-opacity #js {:opacity 0}]
+(let [last-opacity #js {:value 0}]
   (defn- effect-opacity-fade-out [skill duration]
     (let [new-counter (-> skill (j/update! :counter inc) (j/get :counter))
           entity (j/get skill :entity)
           _ (j/assoc! entity :enabled true)
-          opacity #js {:opacity 1}
+          _ (j/assoc-in! skill [:state :value] 1)
+          opacity (j/get skill :state)
           tween-opacity (-> (j/call entity :tween opacity)
                             (j/call :to last-opacity duration js/pc.ExponentialIn))
           _ (j/call tween-opacity :on "update"
                     (fn []
-                      (j/assoc-in! entity [:sprite :opacity] (j/get opacity :opacity))))
+                      (j/assoc-in! entity [:sprite :opacity] (j/get opacity :value))))
           _ (j/call tween-opacity :on "complete"
                     (fn []
                       (when (= new-counter (j/get skill :counter))
@@ -70,7 +70,7 @@
       (j/call tween-opacity :start)
       nil)))
 
-(let [last-state #js {:particle 0}]
+(let [last-state #js {:value 0}]
   (defn- effect-particle-fade-out [skill duration]
     (let [new-counter (-> skill (j/update! :counter inc) (j/get :counter))
           entity (j/get skill :entity)
@@ -78,7 +78,8 @@
           par (j/get-in entity [:children 0 :particlesystem])
           _ (j/call par :reset)
           _ (j/call par :play)
-          opacity #js {:particle 1}
+          _ (j/assoc-in! skill [:state :value] 1)
+          opacity (j/get skill :state)
           tween-particle (-> (j/call entity :tween opacity)
                              (j/call :to last-state duration js/pc.Linear))
           _ (j/call tween-particle :on "complete"
@@ -98,7 +99,7 @@
   (effect-opacity-fade-out (j/get-in state [:effects :attack_dagger]) 0.5))
 
 (defn apply-effect-attack-one-hand [state]
-  (effect-opacity-fade-out (j/get-in state [:effects :attack_one_hand]) 0.65))
+  (effect-opacity-fade-out (j/get-in state [:effects :attack_one_hand]) 0.8))
 
 (defn apply-effect-attack-slow-down [state]
   (effect-scale-down (j/get-in state [:effects :attack_slow_down]) 0.3 0.2))

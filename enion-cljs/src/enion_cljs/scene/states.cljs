@@ -24,8 +24,11 @@
 (defn get-player-entity []
   (j/get player :entity))
 
-(defn get-model-entity []
-  (j/get player :model-entity))
+(defn get-model-entity
+  ([]
+   (j/get player :model-entity))
+  ([player-id]
+   (j/get-in other-players [player-id :model-entity])))
 
 (defn destroy-player [player-id]
   (j/call-in other-players [player-id :entity :destroy])
@@ -51,13 +54,34 @@
 (defn get-selected-player-id []
   (j/get player :selected-player-id))
 
-(defn enemy-selected? []
-  (j/get-in other-players [(get-selected-player-id) :enemy?]))
+(defn enemy-selected? [player-id]
+  (j/get-in other-players [player-id :enemy?]))
 
-(defn ally-selected? []
+(defn ally-selected? [player-id]
   (boolean
-    (when-let [id (get-selected-player-id)]
-      (not (j/get-in other-players [id :enemy?])))))
+    (when player-id
+      (not (j/get-in other-players [player-id :enemy?])))))
+
+(defn alive? [player-id]
+  (> (j/get-in other-players [player-id :health]) 0))
+
+(defn distance-to [player-id]
+  (pc/distance (pc/get-pos (get-player-entity)) (pc/get-pos (get-other-player-entity player-id))))
 
 (defn mage? []
   (= "mage" (j/get player :class)))
+
+(defn add-player [player]
+  (j/assoc! other-players (j/get player :id) player))
+
+(defn disable-player-collision [player-id]
+  (j/assoc-in! (get-other-player-entity player-id) [:collision :enabled] false))
+
+(defn enable-player-collision [player-id]
+  (j/assoc-in! (get-other-player-entity player-id) [:collision :enabled] true))
+
+(defn set-health
+  ([health]
+   (j/assoc! player :health health))
+  ([player-id health]
+   (j/assoc-in! other-players [player-id :health] health)))

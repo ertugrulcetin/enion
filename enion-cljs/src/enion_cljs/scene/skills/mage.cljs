@@ -26,7 +26,7 @@
   (when-not (-> e .-event .-repeat)
     (let [model-entity (get-model-entity)
           active-state (pc/get-anim-state model-entity)]
-      (m/process-cancellable-skills ["attackRange" "attackSingle" "attackR" "teleport"] active-state player)
+      (m/process-cancellable-skills ["attackRange" "attackSingle" "attackR" "teleport"] (j/get e :code) active-state player)
       (cond
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)

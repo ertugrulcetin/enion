@@ -128,7 +128,7 @@
   (when-not (-> e .-event .-repeat)
     (let [model-entity (st/get-model-entity)
           active-state (pc/get-anim-state model-entity)]
-      (m/process-cancellable-skills ["attackDagger" "attackR" "hide"] active-state player)
+      (m/process-cancellable-skills ["attackDagger" "attackR" "hide"] (j/get e :code) active-state player)
       (cond
         (and (= active-state "attackDagger")
              (skills/skill-pressed? e "attackR")
