@@ -54,12 +54,12 @@ void main(void)
     color.rgba += WaterLines.r * 0.1;
     
     float worldDepth = getLinearDepth(WorldPosition);
-    float screenDepth = getLinearScreenDepth();
-    float foamLine = clamp((screenDepth - worldDepth),0.0,1.0) ;
+    // float screenDepth = getLinearScreenDepth();
+    // float foamLine = clamp((screenDepth - worldDepth),0.0,1.0) ;
     
-    if(foamLine < 0.7){
-        color.rgba += 0.2;
-    }
+    // if(foamLine < 0.7){
+    //     color.rgba += 0.2;
+    // }
     
     if(isMask){
        color = vec4(1.0); 

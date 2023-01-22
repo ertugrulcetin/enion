@@ -18,6 +18,8 @@
     "heal"
     "cure"})
 
+;; TODO eger karakter stateti idle ve run degilse, ve belirlenen sureden fazla o statete kalmissa duzenleme yap
+;; networkten gelen koddan dolayi sikinti olabilir
 (def common-states
   [{:anim-state "idle" :event "onIdleStart"}
    {:anim-state "run"

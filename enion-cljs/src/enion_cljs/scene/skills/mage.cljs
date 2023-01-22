@@ -52,8 +52,6 @@
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackR"))
         (pc/set-anim-boolean model-entity "attackR" true)))))
 
-;; TODO BUG: nova karakter ilerledikce onla geliyor!!!
-;; sanirim nova mage'e bagli diye
 (defn create-throw-nova-fn [entity]
   (let [temp-first-pos #js {}
         temp-final-pos #js {}

@@ -212,7 +212,6 @@
     (do
       (pc/set-selected-char-color true)
       (j/assoc! player :selected-player-id ally-id))
-    ;; TODO hidden asas can't be selected!
     (if-let [enemy-id (get-selected-enemy-id e)]
       (do
         (pc/set-selected-char-color false)
