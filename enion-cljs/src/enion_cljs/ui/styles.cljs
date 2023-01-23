@@ -66,28 +66,28 @@
   {:composes [(hp-bar)]
    :margin-top "4px"})
 
-(defattrs hp []
+(defattrs hp [health]
   {:position :absolute
-   :width "100%"
+   :width (str health "%")
    :font-size "1.3em"
    :border-radius "1.5px"
    :height "100%"
    :background "linear-gradient(0deg, #c0403f 0%, #af1a1b 49%, #c0403f 50%)"
-   :transition "width .5s linear"})
+   :transition "width .3s linear"})
 
-(defattrs mp []
-  {:composes [(hp)]
+(defattrs mp [mana]
+  {:composes [(hp mana)]
    :background "linear-gradient(0deg, #2a4fdf 0%, #1b27bd 49%, #2a4fdf 50%)"})
 
-(defattrs hp-hit []
+(defattrs hp-hit [health]
   {:position :absolute
    :background "#c0403f9b"
-   :width "100%"
+   :width (str health "%")
    :height "100%"
-   :transition "width .8s linear"})
+   :transition "width .5s linear"})
 
-(defattrs mp-used []
-  {:composes [(hp-hit)]
+(defattrs mp-used [mana]
+  {:composes [(hp-hit mana)]
    :background "#2a4fdf94"})
 
 (defattrs hp-mp-text []
@@ -135,20 +135,20 @@
   {:composes [(party-member-hp-bar)]
    :margin-top "4px"})
 
-(defattrs party-member-hp []
-  {:composes [(hp)]
+(defattrs party-member-hp [health]
+  {:composes [(hp health)]
    :height party-member-hp-mp-height})
 
-(defattrs party-member-mp []
-  {:composes [(party-member-hp)]
+(defattrs party-member-mp [mana]
+  {:composes [(party-member-hp mana)]
    :background "linear-gradient(0deg, #2a4fdf 0%, #1b27bd 49%, #2a4fdf 50%)"})
 
-(defattrs party-member-hp-hit []
-  {:composes [(hp-hit)]
+(defattrs party-member-hp-hit [health]
+  {:composes [(hp-hit health)]
    :height party-member-hp-mp-height})
 
-(defattrs party-member-mp-used []
-  {:composes [(party-member-hp-hit)]
+(defattrs party-member-mp-used [mana]
+  {:composes [(party-member-hp-hit mana)]
    :background "#2a4fdf94"})
 
 (defattrs party-member-username []
@@ -290,9 +290,9 @@
    :text-align :center
    :pointer-events :none})
 
-(defattrs selected-player-text []
+(defattrs selected-player-text [enemy?]
   {:font-size "30px"
-   :color "#b62c2b"
+   :color (if enemy? "#b62c2b" "white")
    :text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;"})
 
 (defattrs hp-bar-selected-player []

@@ -46,16 +46,19 @@
        :src (skill->img (:skill skill-move))}]]))
 
 (defn- cooldown [skill]
-  (r/create-class
-    {:component-did-mount
-     (fn []
-       (js/setTimeout
-         (fn []
-           (dispatch [::events/clear-cooldown skill]))
-         #_(-> skill common/skills :cooldown) 500))
-     :reagent-render
-     (fn []
-       [:div (styles/cooldown (/ 500 1000) #_(-> skill common/skills :cooldown (/ 1000)))])}))
+  (let [cooldown-secs (-> skill common/skills :cooldown)]
+    (r/create-class
+      {:component-did-mount
+       (fn []
+         (let [id (js/setTimeout
+                    (fn []
+                      (dispatch [::events/clear-cooldown skill])
+                      (dispatch [::events/set-cooldown-timeout-id nil skill]))
+                    cooldown-secs)]
+           (dispatch [::events/set-cooldown-timeout-id id skill])))
+       :reagent-render
+       (fn []
+         [:div (styles/cooldown (/ cooldown-secs 1000))])})))
 
 (defn- skill [index skill]
   [:div {:class (styles/skill)
@@ -65,7 +68,7 @@
      [:div (styles/childs-overlayed)
       [:img {:class (styles/skill-img)
              :src (skill->img skill)}]
-      (when @(subscribe [::subs/cooldown skill])
+      (when @(subscribe [::subs/cooldown-in-progress? skill])
         [cooldown skill])])])
 
 (comment
@@ -77,24 +80,34 @@
       (dispatch [::events/cooldown "hpPotion"])
       (dispatch [::events/cooldown "mpPotion"]))
     100)
+  (js/clearInterval 117963)
 
-  (dispatch [::events/cooldown "heal"])
-  (dispatch [::events/cooldown "cure"])
+  (dispatch [::events/cooldown "attackOneHand"])
+  (dispatch [::events/cooldown "attackSlowDown"])
+  (dispatch [::events/cooldown "shieldWall"])
   (dispatch [::events/cooldown "fleetFoot"])
   (dispatch [::events/cooldown "hpPotion"])
   (dispatch [::events/cooldown "mpPotion"])
+
+  (dispatch [::events/cooldown "heal"])
+  (dispatch [::events/cooldown "cure"])
+
+  (dispatch [::events/cooldown "attackSlowDown"])
+
+  (dispatch [::events/cooldown "attackOneHand"])
+  (dispatch [::events/cancel-skill "attackOneHand"])
   )
 
 (defn- hp-bar []
   [:div (styles/hp-bar)
-   [:div (styles/hp-hit)]
-   [:div (styles/hp)]
+   [:div (styles/hp-hit 100)]
+   [:div (styles/hp 100)]
    [:span (styles/hp-mp-text) "100/100"]])
 
 (defn- mp-bar []
   [:div (styles/mp-bar)
-   [:div (styles/mp-used)]
-   [:div (styles/mp)]
+   [:div (styles/mp-used 100)]
+   [:div (styles/mp 100)]
    [:span (styles/hp-mp-text) "100/100"]])
 
 (defn- hp-mp-bars []
@@ -104,13 +117,13 @@
 
 (defn- party-member-hp-bar []
   [:div (styles/party-member-hp-bar)
-   [:div (styles/party-member-hp-hit)]
-   [:div (styles/party-member-hp)]])
+   [:div (styles/party-member-hp-hit 100)]
+   [:div (styles/party-member-hp 100)]])
 
 (defn- party-member-mp-bar []
   [:div (styles/party-member-mp-bar)
-   [:div (styles/party-member-mp-used)]
-   [:div (styles/party-member-mp)]])
+   [:div (styles/party-member-mp-used 100)]
+   [:div (styles/party-member-mp 100)]])
 
 (defn- party-member-hp-mp-bars [username]
   [:div (styles/party-member-hp-mp-container false)
@@ -266,12 +279,20 @@
           [info-message-box]])])))
 
 (defn- selected-player []
-  [:div (styles/selected-player)
-   [:span (styles/selected-player-text)
-    "0000000"]
-   [:div (styles/hp-bar-selected-player)
-    [:div (styles/hp-hit)]
-    [:div (styles/hp)]]])
+  (when-let [{:keys [username health enemy?]} @(subscribe [::subs/selected-player])]
+    [:div (styles/selected-player)
+     [:span (styles/selected-player-text enemy?)
+      username]
+     [:div (styles/hp-bar-selected-player)
+      [:div (styles/hp-hit health)]
+      [:div (styles/hp health)]]]))
+
+(comment
+
+  (do
+    (set! (.-width (.-style (js/document.getElementById "ertus"))) "50%")
+    (set! (.-width (.-style (js/document.getElementById "ertus-hit"))) "50%"))
+  )
 
 (def x (r/atom 0))
 (def y (r/atom 0))
@@ -361,11 +382,12 @@
 
                                          (= (j/get e :code) "KeyP")
                                          (dispatch [::events/toggle-party-list]))))
-       (on :init-skills #(dispatch [::events/init-skills %])))
+       (on :init-skills #(dispatch [::events/init-skills %]))
+       (on :ui-selected-player #(dispatch [::events/set-selected-player %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
-        #_[selected-player]
+        [selected-player]
         (when @(subscribe [::subs/minimap-open?])
           [minimap])
         [party-list]

@@ -1,5 +1,6 @@
 (ns enion-cljs.ui.events
   (:require
+    [applied-science.js-interop :as j]
     [enion-cljs.common :as common :refer [fire]]
     [enion-cljs.ui.db :as db]
     [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx]]))
@@ -117,12 +118,44 @@
       (when-not (= skill :none)
         {:db (assoc-in db [:player :skill-move] {:index index :skill skill})}))))
 
-(reg-event-db
+(reg-event-fx
   ::cooldown
-  (fn [db [_ skill]]
-    (assoc-in db [:player :cooldown skill] true)))
+  (fn [{:keys [db]} [_ skill]]
+    {:db (assoc-in db [:player :cooldown skill :in-progress?] true)
+     ::fire [:cooldown-ready? {:ready? false
+                               :skill skill}]}))
+
+(reg-event-fx
+  ::clear-cooldown
+  (fn [{:keys [db]} [_ skill]]
+    {:db (assoc-in db [:player :cooldown skill :in-progress?] false)
+     ::fire [:cooldown-ready? {:ready? true
+                               :skill skill}]}))
 
 (reg-event-db
-  ::clear-cooldown
-  (fn [db [_ skill]]
-    (assoc-in db [:player :cooldown skill] false)))
+  ::set-cooldown-timeout-id
+  (fn [db [_ id skill]]
+    (assoc-in db [:player :cooldown skill :timeout-id] id)))
+
+(reg-event-db
+  ::set-selected-player
+  (fn [db [_ player]]
+    (if player
+      (-> db
+          (assoc-in [:selected-player :username] (j/get player :username))
+          (assoc-in [:selected-player :health] (j/get player :health))
+          (assoc-in [:selected-player :enemy?] (j/get player :enemy?)))
+      (assoc db :selected-player nil))))
+
+(reg-fx
+  ::clear-timeout
+  (fn [id]
+    (js/clearTimeout id)))
+
+(reg-event-fx
+  ::cancel-skill
+  (fn [{:keys [db]} [_ skill]]
+    (let [timeout-id (-> db :player :cooldown (get skill) :timeout-id)]
+      {:dispatch [::clear-cooldown skill]
+       :fx [(when timeout-id
+              [::clear-timeout timeout-id])]})))

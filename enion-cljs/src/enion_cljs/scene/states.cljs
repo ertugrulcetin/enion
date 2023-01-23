@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.states
   (:require
     [applied-science.js-interop :as j]
+    [enion-cljs.common :refer [fire]]
     [enion-cljs.scene.pc :as pc]))
 
 (defonce player (clj->js {:speed 550
@@ -44,9 +45,25 @@
 (defn get-other-player-entity [id]
   (j/get-in other-players [id :entity]))
 
+;; TODO when other player's health changes (network tick), in there we will trigger :ui-selected-player
+(def temp-selected-player #js {})
+
+(defn set-selected-player [player-id]
+  (j/assoc! player :selected-player-id player-id)
+  (if-let [selected-player (get-other-player player-id)]
+    (let [username (j/get selected-player :username)
+          health (j/get selected-player :health)
+          enemy? (j/get selected-player :enemy?)]
+      (j/assoc! temp-selected-player
+                :username username
+                :health health
+                :enemy? enemy?)
+      (fire :ui-selected-player temp-selected-player))
+    (fire :ui-selected-player nil)))
+
 (defn cancel-selected-player []
   (pc/set-selected-player-position)
-  (j/assoc! player :selected-player-id nil))
+  (set-selected-player nil))
 
 (defn enemy? [id]
   (j/get (get-other-player id) :enemy?))
@@ -80,8 +97,26 @@
 (defn enable-player-collision [player-id]
   (j/assoc-in! (get-other-player-entity player-id) [:collision :enabled] true))
 
+;; TODO use kezban lib for nested when-lets
 (defn set-health
   ([health]
    (j/assoc! player :health health))
   ([player-id health]
-   (j/assoc-in! other-players [player-id :health] health)))
+   (j/assoc-in! other-players [player-id :health] health)
+   (when-let [id (get-selected-player-id)]
+     (when (= id player-id)
+       (when-let [player (get-other-player id)]
+         (let [username (j/get player :username)
+               health (j/get player :health)
+               enemy? (j/get player :enemy?)]
+           (j/assoc! temp-selected-player
+                     :username username
+                     :health health
+                     :enemy? enemy?)
+           (fire :ui-selected-player temp-selected-player)))))))
+
+(defn set-cooldown [ready? skill]
+  (j/assoc-in! player [:cooldown skill] ready?))
+
+(defn cooldown-ready? [skill]
+  (not (false? (j/get-in player [:cooldown skill]))))

@@ -55,6 +55,11 @@
     (-> db :player :skill-move)))
 
 (reg-sub
-  ::cooldown
+  ::cooldown-in-progress?
   (fn [db [_ skill]]
-    (-> db :player :cooldown (get skill))))
+    (-> db :player :cooldown (get skill) :in-progress?)))
+
+(reg-sub
+  ::selected-player
+  (fn [db]
+    (:selected-player db)))

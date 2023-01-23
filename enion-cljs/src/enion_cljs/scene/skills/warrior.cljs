@@ -64,10 +64,12 @@
       (let [player-id (st/get-selected-player-id)
             enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-one-hand enemy)
-        (when (> (rand-int 10) 8)
-          (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
-          (st/disable-player-collision player-id)
-          (st/set-health player-id 0)))))
+        (if (> (rand-int 10) 8)
+          (do
+            (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
+            (st/disable-player-collision player-id)
+            (st/set-health player-id 0))
+          (st/set-health player-id (rand-int 100))))))
 
 (on :attack-slow-down
     (fn []
@@ -84,8 +86,8 @@
   (sm/spawn-all)
   )
 
-;; TODO w'ya basili tutarken ard arda 1'e basinca cancel oluyor sanki!
 (defn process-skills [e]
+  ;; TODO add check if our char is alive
   (when-not (-> e .-event .-repeat)
     (let [model-entity (st/get-model-entity)
           active-state (pc/get-anim-state model-entity)
@@ -119,6 +121,7 @@
         (and
           (skills/idle-run-states active-state)
           (skills/skill-pressed? e "attackOneHand")
+          (st/cooldown-ready? "attackOneHand")
           (st/enemy-selected? selected-player-id)
           (st/alive? selected-player-id)
           (<= (st/distance-to selected-player-id) 0.75))
@@ -127,6 +130,7 @@
         (and
           (skills/idle-run-states active-state)
           (skills/skill-pressed? e "attackSlowDown")
+          (st/cooldown-ready? "attackSlowDown")
           (st/enemy-selected? selected-player-id)
           (st/alive? selected-player-id)
           (<= (st/distance-to selected-player-id) 0.75))

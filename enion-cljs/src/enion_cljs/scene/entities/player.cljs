@@ -35,8 +35,7 @@
 (defn- process-esc [e]
   (when (= "Escape" (j/get-in e [:event :key]))
     (when (j/get player :selected-player-id)
-      (st/cancel-selected-player)
-      (pc/set-selected-player-position))))
+      (st/cancel-selected-player))))
 
 (defn- square [n]
   (js/Math.pow n 2))
@@ -84,7 +83,7 @@
 
 ;; TODO also update UI as well
 (defn- show-player-selection-circle []
-  (when-let [selected-player-id (j/get player :selected-player-id)]
+  (if-let [selected-player-id (j/get player :selected-player-id)]
     (if-let [other-player (j/get other-players selected-player-id)]
       (let [e (j/get other-player :entity)
             pos (pc/get-pos e)
@@ -99,7 +98,8 @@
 
           (and (not (j/get other-player :enemy?)) (> distance char-selection-distance-threshold))
           (pc/set-selected-player-position)))
-      (st/cancel-selected-player))))
+      (st/cancel-selected-player))
+    (st/cancel-selected-player)))
 
 (defn get-state []
   (pc/get-anim-state (st/get-model-entity)))
@@ -142,9 +142,10 @@
                    ffirst)]
     (do
       (pc/set-selected-char-color false)
-      (j/assoc! player :selected-player-id id))
+      (st/set-selected-player id))
     (st/cancel-selected-player)))
 
+;; TODO chat acikken de oluyor, fix it
 (defn- process-closest-enemy [e]
   (when (= "KeyZ" (j/get-in e [:event :code]))
     (select-closest-enemy)))
@@ -212,11 +213,11 @@
   (if-let [ally-id (get-selected-ally-id e)]
     (do
       (pc/set-selected-char-color true)
-      (j/assoc! player :selected-player-id ally-id))
+      (st/set-selected-player ally-id))
     (if-let [enemy-id (get-selected-enemy-id e)]
       (do
         (pc/set-selected-char-color false)
-        (j/assoc! player :selected-player-id enemy-id))
+        (st/set-selected-player enemy-id))
       (set-target-position e))))
 
 (defn- show-nova-circle [e]
@@ -461,7 +462,9 @@
     (register-collision-events player-entity)
     (on :create-players (fn [players]
                           (doseq [p players]
-                            (st/add-player (create-player p)))))))
+                            (st/add-player (create-player p)))))
+    (on :cooldown-ready? (fn [{:keys [ready? skill]}]
+                           (st/set-cooldown ready? skill)))))
 
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [_ _]
