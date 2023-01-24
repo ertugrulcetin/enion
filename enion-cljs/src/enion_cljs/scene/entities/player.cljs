@@ -312,30 +312,24 @@
   (j/call-in (st/get-player-entity) [:rigidbody :teleport] x y z))
 
 (defn- add-skill-effects [template-entity]
-  (pc/add-child template-entity (pc/clone (pc/find-by-name "effects")))
-  ;; add skill effect initial counters and related entities
-  (->> ["asas_eyes"
-        "shield"
-        "portal"
-        "attack_slow_down"
-        "attack_r"
-        "attack_flame"
-        "attack_dagger"
-        "attack_one_hand"
-        "particle_got_defense_break"
-        "particle_fire_hands"
-        "particle_flame_dots"
-        "particle_heal_hands"
-        "particle_cure_hands"
-        "particle_defense_break_hands"]
-       (keep
-         (fn [e]
-           (when-let [entity (pc/find-by-name template-entity e)]
-             [e {:counter 0
-                 :entity entity
-                 :state #js {:value 0}}])))
-       (into {})
-       clj->js))
+  (let [effects (pc/clone (pc/find-by-name "effects"))]
+    (pc/add-child template-entity effects)
+    ;; add skill effect initial counters and related entities
+    (->> (map (j/get :name) (j/get effects :children))
+         (concat
+           ["particle_fire_hands"
+            "particle_flame_dots"
+            "particle_heal_hands"
+            "particle_cure_hands"
+            "particle_defense_break_hands"])
+         (keep
+           (fn [e]
+             (when-let [entity (pc/find-by-name template-entity e)]
+               [e {:counter 0
+                   :entity entity
+                   :state #js {:value 0}}])))
+         (into {})
+         clj->js)))
 
 (defn- create-throw-nova-fn [character-template-entity]
   (some-> (pc/find-by-name character-template-entity "nova") skills.mage/create-throw-nova-fn))
@@ -550,6 +544,15 @@
                                   (when-not dev?
                                     (j/assoc! (st/get-player-entity) :name (str (random-uuid)))))}))
 
+(when dev?
+  (on :re-init (fn []
+                 (re-init-player {:id 0
+                                  :username "0000000"
+                                  :race "orc"
+                                  :class "warrior"
+                                  :mana 100
+                                  :health 100}))))
+
 (comment
   (pc/enable (j/get-in player [:effects :attack_r :entity]))
   (let [[player player2 p3] [(create-player {:id 1
@@ -595,11 +598,4 @@
   (j/call-in player [:skills :hide])
   (j/call-in player [:skills :appear])
   (j/get-in player [:skills :hide])
-
-  (re-init-player {:id 0
-                   :username "0000000"
-                   :race "orc"
-                   :class "warrior"
-                   :mana 100
-                   :health 100})
   )

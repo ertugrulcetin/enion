@@ -96,6 +96,7 @@
 
   (dispatch [::events/cooldown "attackOneHand"])
   (dispatch [::events/cancel-skill "attackOneHand"])
+  (dispatch [::events/cancel-skill "shieldWall"])
   )
 
 (defn- hp-bar []
@@ -383,7 +384,8 @@
                                          (= (j/get e :code) "KeyP")
                                          (dispatch [::events/toggle-party-list]))))
        (on :init-skills #(dispatch [::events/init-skills %]))
-       (on :ui-selected-player #(dispatch [::events/set-selected-player %])))
+       (on :ui-selected-player #(dispatch [::events/set-selected-player %]))
+       (on :ui-cooldown #(dispatch [::events/cooldown %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

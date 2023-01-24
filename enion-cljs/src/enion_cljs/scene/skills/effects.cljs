@@ -76,12 +76,17 @@
           entity (j/get skill :entity)
           _ (j/assoc! entity :enabled true)
           par (j/get-in entity [:children 0 :particlesystem])
+          _ (j/assoc! par :loop true)
           _ (j/call par :reset)
           _ (j/call par :play)
           _ (j/assoc-in! skill [:state :value] 1)
-          opacity (j/get skill :state)
-          tween-particle (-> (j/call entity :tween opacity)
+          state (j/get skill :state)
+          tween-particle (-> (j/call entity :tween state)
                              (j/call :to last-state duration js/pc.Linear))
+          _ (j/call tween-particle :on "update"
+                    (fn []
+                      (when (<= (j/get-in skill [:state :value]) 0.2)
+                        (j/assoc! par :loop false))))
           _ (j/call tween-particle :on "complete"
                     (fn []
                       (when (= new-counter (j/get skill :counter))
@@ -108,7 +113,7 @@
   (effect-scale-down (j/get-in state [:effects :portal]) 0.5 2))
 
 (defn apply-effect-got-defense-break [state]
-  (effect-particle-fade-out (j/get-in state [:effects :particle_got_defense_break]) 2))
+  (effect-particle-fade-out (j/get-in state [:effects :particle_got_defense_break]) 1.1))
 
 (defn apply-effect-fire-hands [state]
   (effect-particle-fade-out (j/get-in state [:effects :particle_fire_hands]) 2))
@@ -124,6 +129,24 @@
 
 (defn apply-effect-defense-break-particles [state]
   (effect-particle-fade-out (j/get-in state [:effects :particle_defense_break_hands]) 2.2))
+
+(defn apply-effect-shield-wall [state]
+  (effect-opacity-fade-out (j/get-in state [:effects :shield]) 4))
+
+(defn apply-effect-phantom-vision [state]
+  (effect-opacity-fade-out (j/get-in state [:effects :asas_eyes]) 2.5))
+
+(defn apply-effect-hp-potion [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_hp_potion]) 1.5))
+
+(defn apply-effect-mp-potion [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_mp_potion]) 1.5))
+
+(defn apply-effect-got-cure [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_cure]) 1.5))
+
+(defn apply-effect-fleet-foot [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_fleet_foot]) 1))
 
 (let [elapsed-time (volatile! 0)]
   (defn- update-fn [dt]

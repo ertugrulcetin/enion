@@ -50,7 +50,7 @@
            :description (str "Stealthy movement ability that allows the assassin to move invisibly "
                              "while running. However, Ghost Step does have a limited duration, and the assassin "
                              "will become visible again after 50 seconds or when taking damage.")}
-   "attackOneHand" {:cooldown 5750
+   "attackOneHand" {:cooldown 750
                     :name "Savage Chop"
                     :description (str "Allows your character to unleash a powerful, precise strike "
                                       "with their weapon, dealing heavy damage to their enemies.")}

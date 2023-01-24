@@ -29,6 +29,8 @@
 
 (def last-one-hand-combo (atom (js/Date.now)))
 
+(def close-attack-distance-threshold 0.75)
+
 (defn- attack-one-hand [player-id]
   (let [enemy (st/get-other-player player-id)
         enemy-model-entity (st/get-model-entity player-id)
@@ -61,6 +63,7 @@
 
 (on :attack-one-hand
     (fn []
+      (fire :ui-cooldown "attackOneHand")
       (let [player-id (st/get-selected-player-id)
             enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-one-hand enemy)
@@ -73,6 +76,7 @@
 
 (on :attack-slow-down
     (fn []
+      (fire :ui-cooldown "attackSlowDown")
       (let [player-id (st/get-selected-player-id)
             enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-slow-down enemy)
@@ -118,13 +122,14 @@
         (and (skills/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get player :on-ground?))
         (pc/set-anim-boolean model-entity "jump" true)
 
+        ;; TODO check enough mana?
         (and
           (skills/idle-run-states active-state)
           (skills/skill-pressed? e "attackOneHand")
           (st/cooldown-ready? "attackOneHand")
           (st/enemy-selected? selected-player-id)
           (st/alive? selected-player-id)
-          (<= (st/distance-to selected-player-id) 0.75))
+          (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
         (attack-one-hand selected-player-id)
 
         (and
@@ -133,8 +138,40 @@
           (st/cooldown-ready? "attackSlowDown")
           (st/enemy-selected? selected-player-id)
           (st/alive? selected-player-id)
-          (<= (st/distance-to selected-player-id) 0.75))
+          (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
         (attack-slow-down selected-player-id)
 
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackR"))
-        (pc/set-anim-boolean model-entity "attackR" true)))))
+        (and
+          (skills/idle-run-states active-state)
+          (skills/skill-pressed? e "attackR")
+          (st/enemy-selected? selected-player-id)
+          (st/alive? selected-player-id)
+          (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
+        (pc/set-anim-boolean model-entity "attackR" true)
+
+        (and
+          (skills/skill-pressed? e "shieldWall")
+          (st/cooldown-ready? "shieldWall"))
+        (do
+          (println "Shieldwall")
+          (fire :ui-cooldown "shieldWall")
+          (skills.effects/apply-effect-shield-wall player))
+
+        (and
+          (skills/skill-pressed? e "fleetFoot")
+          (st/cooldown-ready? "fleetFoot"))
+        (do
+          (println "fleetFoot")
+          (fire :ui-cooldown "fleetFoot")
+          (skills.effects/apply-effect-shield-wall player))))))
+
+(comment
+  player
+  (fire :re-init)
+  (skills.effects/apply-effect-got-defense-break player)
+  (skills.effects/apply-effect-hp-potion player)
+  (skills.effects/apply-effect-mp-potion player)
+  (skills.effects/apply-effect-got-cure player)
+  (skills.effects/apply-effect-fleet-foot player)
+  (j/get-in player [:effects :particle_defense_break_hands])
+  )
