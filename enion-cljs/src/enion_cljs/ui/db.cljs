@@ -6,7 +6,11 @@
   {:name "Enion Online"
    :info-box {:messages (rb/ring-buffer 50)
               :open? true}
-   :chat-box {:messages {:all (conj (rb/ring-buffer 50) {:from "System" :text "Welcome to Enion Online!"})
+   :chat-box {:messages {:all (conj (rb/ring-buffer 50)
+                                    {:from "System" :text "Welcome to Enion Online!"}
+                                    {:from "System" :text "Press Z to select nearest enemy"}
+                                    {:from "System" :text "Press X to run towards the selected enemy"}
+                                    {:from "System" :text "Press R to cancel enemy attack skill when close"})
                          :party (rb/ring-buffer 50)}
               :open? true
               :active-input? false
@@ -14,4 +18,8 @@
    :minimap-open? true
    :party-list-open? true
    :player {:skills []
-            :skill-move nil}})
+            :skill-move nil
+            :health 100
+            :total-health 100
+            :mana 100
+            :total-mana 100}})

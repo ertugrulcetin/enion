@@ -42,8 +42,36 @@
               :z-index 15
               :pointer-events :none}}
      [:img
-      {:class (styles/skill-img)
+      {:class (styles/skill-img false false)
        :src (skill->img (:skill skill-move))}]]))
+
+(defn skill-description []
+  (let [offset-width (r/atom 0)
+        offset-height (r/atom 0)]
+    (fn []
+      (when-let [skill-description (and (nil? @(subscribe [::subs/skill-move]))
+                                        @(subscribe [::subs/skill-description]))]
+        [:div
+         {:style {:position :absolute
+                  :top (- @mouse-y @offset-height 5)
+                  :left (- @mouse-x (/ @offset-width 2))
+                  :z-index 15
+                  :pointer-events :none}}
+         [:div
+          {:ref #(do
+                   (when-let [ow (j/get % :offsetWidth)]
+                     (reset! offset-width ow))
+                   (when-let [oh (j/get % :offsetHeight)]
+                     (reset! offset-height oh)))
+           :style {:background "black"
+                   :color "#c2c2c2"
+                   :max-width "350px"
+                   :border "2px solid #10131dcc"
+                   :border-radius "5px"
+                   :padding "10px"}}
+          [:span
+           {:style {:font-size "14px"}}
+           skill-description]]]))))
 
 (defn- cooldown [skill]
   (let [cooldown-secs (-> skill common/skills :cooldown)]
@@ -62,16 +90,20 @@
 
 (defn- skill [index skill]
   [:div {:class (styles/skill)
-         :on-click #(dispatch [::events/update-skills-order index skill])}
+         :on-click #(dispatch [::events/update-skills-order index skill])
+         :on-mouse-over #(dispatch [::events/show-skill-description skill])
+         :on-mouse-out #(dispatch [::events/show-skill-description nil])}
    [:span (styles/skill-number) (inc index)]
    (when-not (= :none skill)
      [:div (styles/childs-overlayed)
-      [:img {:class (styles/skill-img)
+      [:img {:class (styles/skill-img @(subscribe [::subs/potion-blocked? skill])
+                                      @(subscribe [::subs/not-enough-mana skill]))
              :src (skill->img skill)}]
       (when @(subscribe [::subs/cooldown-in-progress? skill])
         [cooldown skill])])])
 
 (comment
+  @(subscribe [::subs/skill-description])
   (js/setInterval
     (fn []
       (dispatch [::events/cooldown "heal"])
@@ -100,16 +132,18 @@
   )
 
 (defn- hp-bar []
-  [:div (styles/hp-bar)
-   [:div (styles/hp-hit 100)]
-   [:div (styles/hp 100)]
-   [:span (styles/hp-mp-text) "100/100"]])
+  (let [health @(subscribe [::subs/health])]
+    [:div (styles/hp-bar)
+     [:div (styles/hp-hit health)]
+     [:div (styles/hp health)]
+     [:span (styles/hp-mp-text) (str health "/" @(subscribe [::subs/total-health]))]]))
 
 (defn- mp-bar []
-  [:div (styles/mp-bar)
-   [:div (styles/mp-used 100)]
-   [:div (styles/mp 100)]
-   [:span (styles/hp-mp-text) "100/100"]])
+  (let [mana @(subscribe [::subs/mana])]
+    [:div (styles/mp-bar)
+     [:div (styles/mp-used mana)]
+     [:div (styles/mp mana)]
+     [:span (styles/hp-mp-text) (str mana "/" @(subscribe [::subs/total-mana]))]]))
 
 (defn- hp-mp-bars []
   [:div (styles/hp-mp-container)
@@ -146,6 +180,7 @@
    [hp-mp-bars]
    [skill-bar]])
 
+;; TODO chat acikken karakter hareket edememeli
 (defn- chat-message [msg]
   (let [party? (= :party @(subscribe [::subs/chat-type]))]
     [:div (when party? (styles/chat-part-message-box))
@@ -372,20 +407,25 @@
                                      (fn [e]
                                        (reset! mouse-x (j/get e :x))
                                        (reset! mouse-y (j/get e :y))))
-       (js/document.addEventListener "keydown"
-                                     (fn [e]
-                                       (cond
-                                         (= (j/get e :code) "Enter")
-                                         (dispatch [::events/send-message])
+       (js/document.addEventListener "keydown" (fn [e]
+                                                 (let [code (j/get e :code)]
+                                                   (cond
+                                                     (= code "Enter")
+                                                     (dispatch [::events/send-message])
 
-                                         (= (j/get e :code) "KeyM")
-                                         (dispatch [::events/toggle-minimap])
+                                                     (= code "KeyM")
+                                                     (dispatch [::events/toggle-minimap])
 
-                                         (= (j/get e :code) "KeyP")
-                                         (dispatch [::events/toggle-party-list]))))
+                                                     (= code "KeyP")
+                                                     (dispatch [::events/toggle-party-list])
+
+                                                     (= code "Escape")
+                                                     (dispatch [::events/cancel-skill-move])))))
        (on :init-skills #(dispatch [::events/init-skills %]))
        (on :ui-selected-player #(dispatch [::events/set-selected-player %]))
-       (on :ui-cooldown #(dispatch [::events/cooldown %])))
+       (on :ui-cooldown #(dispatch [::events/cooldown %]))
+       (on :ui-player-health #(dispatch [::events/set-health %]))
+       (on :ui-player-mana #(dispatch [::events/set-mana %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -396,4 +436,5 @@
         [chat]
         [info-box]
         [actions-section]
-        [temp-skill-img]])}))
+        [temp-skill-img]
+        [skill-description]])}))

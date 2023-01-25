@@ -73,7 +73,7 @@
    :border-radius "1.5px"
    :height "100%"
    :background "linear-gradient(0deg, #c0403f 0%, #af1a1b 49%, #c0403f 50%)"
-   :transition "width .3s linear"})
+   :transition "width .1s linear"})
 
 (defattrs mp [mana]
   {:composes [(hp mana)]
@@ -84,7 +84,7 @@
    :background "#c0403f9b"
    :width (str health "%")
    :height "100%"
-   :transition "width .5s linear"})
+   :transition "width .3s linear"})
 
 (defattrs mp-used [mana]
   {:composes [(hp-hit mana)]
@@ -173,11 +173,13 @@
    :border "3px solid #293c40"
    :cursor :pointer})
 
-(defclass skill-img []
-  {:position :absolute
-   :width "40px"
-   :height "40px"
-   :pointer-events :none})
+(defclass skill-img [blocked? not-enough-mana]
+  (cond-> {:position :absolute
+           :width "40px"
+           :height "40px"
+           :pointer-events :none}
+    blocked? (assoc :filter "opacity(0.5)")
+    not-enough-mana (assoc :filter "grayscale(1)")))
 
 (defattrs skill-number []
   {:color "#5b858e"

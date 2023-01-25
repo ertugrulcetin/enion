@@ -17,7 +17,8 @@
                           :skill-locked? false
                           :can-r-attack-interrupt? false
                           :ray (pc/ray)
-                          :hit-position (pc/vec3)}))
+                          :hit-position (pc/vec3)
+                          :fleet-foot? false}))
 
 (defonce other-players #js {})
 (defonce settings #js {})
@@ -79,8 +80,11 @@
     (when player-id
       (not (j/get-in other-players [player-id :enemy?])))))
 
-(defn alive? [player-id]
-  (> (j/get-in other-players [player-id :health]) 0))
+(defn alive?
+  ([]
+   (> (j/get player :health) 0))
+  ([player-id]
+   (> (j/get-in other-players [player-id :health]) 0)))
 
 (defn distance-to [player-id]
   (pc/distance (pc/get-pos (get-player-entity)) (pc/get-pos (get-other-player-entity player-id))))
@@ -100,7 +104,8 @@
 ;; TODO use kezban lib for nested when-lets
 (defn set-health
   ([health]
-   (j/assoc! player :health health))
+   (j/assoc! player :health health)
+   (fire :ui-player-health health))
   ([player-id health]
    (j/assoc-in! other-players [player-id :health] health)
    (when-let [id (get-selected-player-id)]
@@ -115,8 +120,15 @@
                      :enemy? enemy?)
            (fire :ui-selected-player temp-selected-player)))))))
 
+(defn set-mana [mana]
+  (j/assoc! player :mana mana)
+  (fire :ui-player-mana mana))
+
 (defn set-cooldown [ready? skill]
   (j/assoc-in! player [:cooldown skill] ready?))
 
 (defn cooldown-ready? [skill]
   (not (false? (j/get-in player [:cooldown skill]))))
+
+(defn asas? []
+  (= "asas" (j/get player :class)))

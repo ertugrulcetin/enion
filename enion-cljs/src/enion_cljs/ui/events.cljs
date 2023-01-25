@@ -118,6 +118,11 @@
       (when-not (= skill :none)
         {:db (assoc-in db [:player :skill-move] {:index index :skill skill})}))))
 
+(reg-event-db
+  ::show-skill-description
+  (fn [db [_ skill]]
+    (assoc db :skill-description skill)))
+
 (reg-event-fx
   ::cooldown
   (fn [{:keys [db]} [_ skill]]
@@ -159,3 +164,18 @@
       {:dispatch [::clear-cooldown skill]
        :fx [(when timeout-id
               [::clear-timeout timeout-id])]})))
+
+(reg-event-db
+  ::set-health
+  (fn [db [_ health]]
+    (assoc-in db [:player :health] health)))
+
+(reg-event-db
+  ::set-mana
+  (fn [db [_ mana]]
+    (assoc-in db [:player :mana] mana)))
+
+(reg-event-db
+  ::cancel-skill-move
+  (fn [db]
+    (assoc-in db [:player :skill-move] nil)))

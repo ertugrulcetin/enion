@@ -124,7 +124,7 @@
           acc)))
     [] (js/Object.keys other-players)))
 
-(defn- select-closest-enemy []
+(defn- select-closest-enemy* []
   (if-let [id (->> (js/Object.keys other-players)
                    (map
                      (fn [id]
@@ -146,9 +146,23 @@
     (st/cancel-selected-player)))
 
 ;; TODO chat acikken de oluyor, fix it
-(defn- process-closest-enemy [e]
-  (when (= "KeyZ" (j/get-in e [:event :code]))
-    (select-closest-enemy)))
+(defn- select-closest-enemy [e]
+  (when (and (st/alive?) (= "KeyZ" (j/get-in e [:event :code])))
+    (select-closest-enemy*)))
+
+(defn- look-at-selected-player [e]
+  (when (and (st/alive?) (= "KeyX" (j/get-in e [:event :code])))
+    (when-let [selected-player (some-> (st/get-selected-player-id) (st/get-other-player-entity))]
+      (let [selected-player-pos (pc/get-pos selected-player)
+            x (j/get selected-player-pos :x)
+            y (j/get selected-player-pos :y)
+            z (j/get selected-player-pos :z)
+            model-entity (st/get-model-entity)
+            char-pos (pc/get-pos model-entity)]
+        (pc/look-at model-entity x (j/get char-pos :y) z true)
+        (j/assoc! player
+                  :target-pos (pc/setv (j/get player :target-pos) x y z)
+                  :target-pos-available? true)))))
 
 (defn- register-keyboard-events []
   (let [class (j/get player :class)
@@ -162,7 +176,8 @@
                     (fn [e]
                       (process-esc e)
                       (process-skills e)
-                      (process-closest-enemy e)))
+                      (select-closest-enemy e)
+                      (look-at-selected-player e)))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
                       (process-running)))
@@ -369,7 +384,7 @@
   (skills.effects/apply-effect-fire-hands player)
   (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
 
-  (j/assoc! player :runs-fast? true)
+  (j/assoc! player :fleet-foot? true)
   (j/assoc! player :speed 550)
   (set-speed 550)
   (set-speed 1750)
@@ -432,6 +447,10 @@
       (pc/set-pos entity x y z))
     state))
 
+(defn- update-fleet-foot-cooldown-if-asas [class]
+  (when (= "asas" class)
+    (common/update-skill-cooldown "fleetFoot" 13000)))
+
 (defn- init-fn [this player-data]
   (let [player-entity (j/get this :entity)
         _ (init-player player-data player-entity)
@@ -454,6 +473,7 @@
     (register-keyboard-events)
     (register-mouse-events)
     (register-collision-events player-entity)
+    (update-fleet-foot-cooldown-if-asas (j/get player :class))
     (on :create-players (fn [players]
                           (doseq [p players]
                             (st/add-player (create-player p)))))
@@ -549,7 +569,7 @@
                  (re-init-player {:id 0
                                   :username "0000000"
                                   :race "orc"
-                                  :class "warrior"
+                                  :class "asas"
                                   :mana 100
                                   :health 100}))))
 

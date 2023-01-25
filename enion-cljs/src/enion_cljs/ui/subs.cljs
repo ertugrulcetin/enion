@@ -1,5 +1,6 @@
 (ns enion-cljs.ui.subs
   (:require
+    [enion-cljs.common :as common]
     [re-frame.core :refer [reg-sub]]))
 
 (reg-sub
@@ -60,6 +61,46 @@
     (-> db :player :cooldown (get skill) :in-progress?)))
 
 (reg-sub
+  ::potion-blocked?
+  (fn [db [_ skill]]
+    (let [hp-in-progress? (-> db :player :cooldown (get "hpPotion") :in-progress?)
+          mp-in-progress? (-> db :player :cooldown (get "mpPotion") :in-progress?)]
+      (cond
+        (= "hpPotion" skill) mp-in-progress?
+        (= "mpPotion" skill) hp-in-progress?
+        :else false))))
+
+(reg-sub
+  ::not-enough-mana
+  (fn [db [_ skill]]
+    false))
+
+(reg-sub
   ::selected-player
   (fn [db]
     (:selected-player db)))
+
+(reg-sub
+  ::health
+  (fn [db]
+    (-> db :player :health)))
+
+(reg-sub
+  ::total-health
+  (fn [db]
+    (-> db :player :total-health)))
+
+(reg-sub
+  ::mana
+  (fn [db]
+    (-> db :player :mana)))
+
+(reg-sub
+  ::total-mana
+  (fn [db]
+    (-> db :player :total-mana)))
+
+(reg-sub
+  ::skill-description
+  (fn [db]
+    (some->> (:skill-description db) (get common/skills) :description)))

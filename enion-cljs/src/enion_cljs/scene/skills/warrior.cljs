@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.skills.warrior
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [fire on]]
+    [enion-cljs.common :as common :refer [fire on]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.simulation :as sm]
@@ -13,6 +13,7 @@
     [enion-cljs.scene.macros :as m]))
 
 ;; TODO current state leftover in idle mode but was able to run at the same time
+;; TODO  move attackR to common-states
 (def events
   (concat
     skills/common-states
@@ -21,7 +22,7 @@
      {:anim-state "attackOneHand" :event "onAttackOneHandLockRelease" :r-release? true}
      {:anim-state "attackOneHand" :event "onAttackOneHandLock" :r-lock? true}
      {:anim-state "attackR" :event "onAttackREnd" :skill? true :end? true}
-     {:anim-state "attackR" :event "onAttackRCall" :call? true}
+     {:anim-state "attackR" :event "onAttackRCall" :call? true :call-name :attack-r}
      {:anim-state "attackR" :event "onAttackRLockRelease" :r-release? true}
      {:anim-state "attackR" :event "onAttackRLock" :r-lock? true}
      {:anim-state "attackSlowDown" :event "onAttackSlowDownCall" :call? true :call-name :attack-slow-down}
@@ -30,36 +31,6 @@
 (def last-one-hand-combo (atom (js/Date.now)))
 
 (def close-attack-distance-threshold 0.75)
-
-(defn- attack-one-hand [player-id]
-  (let [enemy (st/get-other-player player-id)
-        enemy-model-entity (st/get-model-entity player-id)
-        ping 100
-        latency (* 2 ping)]
-    (pc/set-anim-boolean (st/get-model-entity) "attackOneHand" true)
-    #_(js/setTimeout
-        (fn []
-          (skills.effects/apply-effect-attack-one-hand enemy)
-          (when (> (rand-int 10) 8)
-            (pc/set-anim-int enemy-model-entity "health" 0)
-            (st/disable-player-collision player-id)
-            (st/set-health player-id 0)))
-        latency)))
-
-(defn- attack-slow-down [player-id]
-  (let [enemy (st/get-other-player player-id)
-        enemy-model-entity (st/get-model-entity player-id)
-        ping 100
-        latency (* 2 ping)]
-    (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true)
-    #_(js/setTimeout
-        (fn []
-          (skills.effects/apply-effect-attack-slow-down enemy)
-          (when (> (rand-int 10) 8)
-            (pc/set-anim-int enemy-model-entity "health" 0)
-            (st/disable-player-collision player-id)
-            (st/set-health player-id 0)))
-        latency)))
 
 (on :attack-one-hand
     (fn []
@@ -85,9 +56,23 @@
           (st/disable-player-collision player-id)
           (st/set-health player-id 0)))))
 
+(on :attack-r
+    (fn []
+      (fire :ui-cooldown "attackR")
+      (let [player-id (st/get-selected-player-id)
+            enemy (st/get-other-player player-id)]
+        (skills.effects/apply-effect-attack-r enemy)
+        (if (> (rand-int 10) 8)
+          (do
+            (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
+            (st/disable-player-collision player-id)
+            (st/set-health player-id 0))
+          (st/set-health player-id (rand-int 100))))))
+
 (comment
   (sm/spawn 1)
   (sm/spawn-all)
+  st/other-players
   )
 
 (defn process-skills [e]
@@ -130,7 +115,7 @@
           (st/enemy-selected? selected-player-id)
           (st/alive? selected-player-id)
           (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
-        (attack-one-hand selected-player-id)
+        (pc/set-anim-boolean (st/get-model-entity) "attackOneHand" true)
 
         (and
           (skills/idle-run-states active-state)
@@ -139,7 +124,7 @@
           (st/enemy-selected? selected-player-id)
           (st/alive? selected-player-id)
           (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
-        (attack-slow-down selected-player-id)
+        (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true)
 
         (and
           (skills/idle-run-states active-state)
@@ -153,21 +138,52 @@
           (skills/skill-pressed? e "shieldWall")
           (st/cooldown-ready? "shieldWall"))
         (do
-          (println "Shieldwall")
           (fire :ui-cooldown "shieldWall")
           (skills.effects/apply-effect-shield-wall player))
 
         (and
           (skills/skill-pressed? e "fleetFoot")
-          (st/cooldown-ready? "fleetFoot"))
+          (st/cooldown-ready? "fleetFoot")
+          (not (j/get player :fleet-foot?)))
         (do
-          (println "fleetFoot")
           (fire :ui-cooldown "fleetFoot")
-          (skills.effects/apply-effect-shield-wall player))))))
+          (skills.effects/apply-effect-fleet-foot player)
+          (j/assoc! player
+                    :fleet-foot? true
+                    :speed (if (st/asas?) 850 700))
+          (js/setTimeout
+            #(do
+               (j/assoc! player :fleet-foot? false)
+               (j/assoc! player :speed 550)
+               (pc/update-anim-speed (st/get-model-entity) "run" 1))
+            (-> common/skills (get "fleetFoot") :cooldown (- 1500))))
+
+        (and
+          (skills/skill-pressed? e "hpPotion")
+          (st/cooldown-ready? "hpPotion")
+          (st/cooldown-ready? "mpPotion"))
+        (do
+          (fire :ui-cooldown "hpPotion")
+          (skills.effects/apply-effect-hp-potion player))
+
+        (and
+          (skills/skill-pressed? e "mpPotion")
+          (st/cooldown-ready? "hpPotion")
+          (st/cooldown-ready? "mpPotion"))
+        (do
+          (fire :ui-cooldown "mpPotion")
+          (skills.effects/apply-effect-mp-potion player))))))
 
 (comment
+  (st/set-health 100)
+  (st/set-mana 90)
+  (j/assoc! player :speed 850)
+  (j/assoc! player :speed 700)
+  (j/assoc! player :speed 550)
   player
+  (pc/update-anim-speed (st/get-model-entity) "run" 2)
   (fire :re-init)
+
   (skills.effects/apply-effect-got-defense-break player)
   (skills.effects/apply-effect-hp-potion player)
   (skills.effects/apply-effect-mp-potion player)
