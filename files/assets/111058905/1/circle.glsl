@@ -17,9 +17,9 @@ uniform vec2 spell_position;
 uniform sampler2D spell_texture;
 uniform bool spell_available;
 uniform float spell_opacity;
-const int spell_texture_scale = 25;
-const float spell_range = 2.;
-vec2 spell_uv_offset_vec = vec2(0.48);
+const int spell_texture_scale = 20;
+const float spell_range = 2.5;
+vec2 spell_uv_offset_vec = vec2(0.475);
 
 
 uniform vec2 heal_position;

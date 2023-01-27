@@ -19,6 +19,7 @@
 (def max-number-of-same-race-players (/ max-number-of-players 2))
 
 (defonce id-generator (atom 0))
+(defonce players (atom {}))
 (defonce world (atom {}))
 
 (defn home-page
@@ -51,8 +52,7 @@
 (reg-pro
   :init
   (fn [{:keys [data]}]
-    (let [id (swap! id-generator inc)
-          attrs {:id id
+    #_(let [attrs {:id id
                  :username (:username data)
                  :race :orc
                  :class :warrior
@@ -73,14 +73,31 @@
      :mana 100
      :pos (random-pos-for-orc)}))
 
+
+(defonce ses (atom nil))
+
+
+(comment
+  @ses
+  (alter-meta! @ses assoc :id 10)
+    (meta @ses)
+  (meta @ses assoc :id 20)
+
+  (meta (get @players 1))
+  )
+
 (defn- ws-handler
   [req]
   (-> (http/websocket-connection req)
       (d/chain
         (fn [socket]
+          (let [player-id (swap! id-generator inc)]
+            (alter-meta! socket assoc :id player-id)
+            (swap! players assoc player-id socket))
           ;; TODO register socket in here
           (s/consume
             (fn [payload]
+              (println "Player Id: " (-> socket meta :id))
               (let [now (Instant/now)
                     payload (msg/unpack payload)
                     ping (- (.toEpochMilli now) (:timestamp payload))]

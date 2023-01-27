@@ -18,7 +18,8 @@
                           :can-r-attack-interrupt? false
                           :ray (pc/ray)
                           :hit-position (pc/vec3)
-                          :fleet-foot? false}))
+                          :fleet-foot? false
+                          :sound-run-elapsed-time 0}))
 
 (defonce other-players #js {})
 (defonce settings #js {})
@@ -89,9 +90,6 @@
 (defn distance-to [player-id]
   (pc/distance (pc/get-pos (get-player-entity)) (pc/get-pos (get-other-player-entity player-id))))
 
-(defn mage? []
-  (= "mage" (j/get player :class)))
-
 (defn add-player [player]
   (j/assoc! other-players (j/get player :id) player))
 
@@ -132,3 +130,6 @@
 
 (defn asas? []
   (= "asas" (j/get player :class)))
+
+(defn mage? []
+  (= "mage" (j/get player :class)))

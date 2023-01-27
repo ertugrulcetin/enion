@@ -281,3 +281,11 @@
 
 (defn disable [entity]
   (j/assoc! entity :enabled false))
+
+(defn raycast-rigid-body [e camera-entity]
+  (let [x (j/get e :x)
+        y (j/get e :y)
+        camera (j/get camera-entity :camera)
+        from (get-pos camera-entity)
+        to (screen-to-world camera x y)]
+    (raycast-first from to)))

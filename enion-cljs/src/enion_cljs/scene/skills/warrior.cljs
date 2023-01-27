@@ -38,12 +38,12 @@
       (let [player-id (st/get-selected-player-id)
             enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-one-hand enemy)
-        (if (> (rand-int 10) 8)
-          (do
-            (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
-            (st/disable-player-collision player-id)
-            (st/set-health player-id 0))
-          (st/set-health player-id (rand-int 100))))))
+        (if false #_(> (rand-int 10) 8)
+            (do
+              (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
+              (st/disable-player-collision player-id)
+              (st/set-health player-id 0))
+            (st/set-health player-id (rand-int 100))))))
 
 (on :attack-slow-down
     (fn []
@@ -51,10 +51,10 @@
       (let [player-id (st/get-selected-player-id)
             enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-slow-down enemy)
-        (when (> (rand-int 10) 8)
-          (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
-          (st/disable-player-collision player-id)
-          (st/set-health player-id 0)))))
+        (when false #_(> (rand-int 10) 8)
+              (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
+              (st/disable-player-collision player-id)
+              (st/set-health player-id 0)))))
 
 (on :attack-r
     (fn []
@@ -62,12 +62,12 @@
       (let [player-id (st/get-selected-player-id)
             enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-r enemy)
-        (if (> (rand-int 10) 8)
-          (do
-            (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
-            (st/disable-player-collision player-id)
-            (st/set-health player-id 0))
-          (st/set-health player-id (rand-int 100))))))
+        (if false #_(> (rand-int 10) 8)
+            (do
+              (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
+              (st/disable-player-collision player-id)
+              (st/set-health player-id 0))
+            (st/set-health player-id (rand-int 100))))))
 
 (comment
   (sm/spawn 1)
@@ -81,11 +81,18 @@
     (let [model-entity (st/get-model-entity)
           active-state (pc/get-anim-state model-entity)
           selected-player-id (st/get-selected-player-id)]
-      (m/process-cancellable-skills ["attackOneHand" "attackSlowDown" "attackR"] (j/get-in e [:event :code]) active-state player)
+      (m/process-cancellable-skills
+        ["attackOneHand" "attackSlowDown" "attackR"]
+        (j/get-in e [:event :code])
+        active-state
+        player)
       (cond
         (and (= active-state "attackOneHand")
              (skills/skill-pressed? e "attackR")
-             (j/get player :can-r-attack-interrupt?))
+             (j/get player :can-r-attack-interrupt?)
+             (st/enemy-selected? selected-player-id)
+             (st/alive? selected-player-id)
+             (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
         (do
           (println "R combo!")
           (pc/set-anim-boolean model-entity "attackOneHand" false)
@@ -94,7 +101,11 @@
         (and (= active-state "attackR")
              (skills/skill-pressed? e "attackOneHand")
              (j/get player :can-r-attack-interrupt?)
-             (> (- (js/Date.now) @last-one-hand-combo) (utils/rand-between 750 1200)))
+             (> (- (js/Date.now) @last-one-hand-combo) (utils/rand-between 750 1200))
+             (st/cooldown-ready? "attackOneHand")
+             (st/enemy-selected? selected-player-id)
+             (st/alive? selected-player-id)
+             (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
         (do
           (println "one hand combo...!")
           (pc/set-anim-boolean model-entity "attackR" false)

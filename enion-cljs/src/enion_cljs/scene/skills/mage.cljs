@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.skills.mage
   (:require
     [applied-science.js-interop :as j]
+    [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.core :as skills]
@@ -22,11 +23,25 @@
      {:anim-state "teleport" :event "onTeleportCall" :call? true}
      {:anim-state "teleport" :event "onTeleportEnd" :skill? true :end? true}]))
 
+(defn throw-nova [e]
+  (when (j/get player :positioning-nova?)
+    (let [result (pc/raycast-rigid-body e entity.camera/entity)
+          hit-entity-name (j/get-in result [:entity :name])]
+      (when (= "terrain" hit-entity-name)
+        (j/assoc! player :positioning-nova? false)
+        (pc/set-nova-circle-pos)
+        ((j/get-in player [:skills :throw-nova]) (j/get result :point))
+        (entity.camera/shake-camera)))))
+
 (defn process-skills [e]
   (when-not (-> e .-event .-repeat)
     (let [model-entity (get-model-entity)
           active-state (pc/get-anim-state model-entity)]
-      (m/process-cancellable-skills ["attackRange" "attackSingle" "attackR" "teleport"] (j/get e :code) active-state player)
+      (m/process-cancellable-skills
+        ["attackRange" "attackSingle" "attackR" "teleport"]
+        (j/get-in e [:event :code])
+        active-state
+        player)
       (cond
         (and (= "idle" active-state) (k/pressing-wasd?))
         (pc/set-anim-boolean model-entity "run" true)

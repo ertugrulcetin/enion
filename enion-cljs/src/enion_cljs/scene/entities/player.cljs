@@ -104,14 +104,6 @@
 (defn get-state []
   (pc/get-anim-state (st/get-model-entity)))
 
-(defn- raycast-rigid-body [e]
-  (let [x (j/get e :x)
-        y (j/get e :y)
-        camera (j/get entity.camera/entity :camera)
-        from (pc/get-pos entity.camera/entity)
-        to (pc/screen-to-world camera x y)]
-    (pc/raycast-first from to)))
-
 (defn- has-phantom-vision? []
   (j/get player :phantom-vision?))
 
@@ -195,7 +187,7 @@
     (j/call-in a [:skills :hide])))
 
 (defn- get-selected-enemy-id [e]
-  (let [result (raycast-rigid-body e)
+  (let [result (pc/raycast-rigid-body e entity.camera/entity)
         hit-entity-name (j/get-in result [:entity :name])]
     (when (= "enemy_player" hit-entity-name)
       (let [enemy-id (j/get-in result [:entity :id])
@@ -206,7 +198,7 @@
           enemy-id)))))
 
 (defn- set-target-position [e]
-  (let [result (raycast-rigid-body e)
+  (let [result (pc/raycast-rigid-body e entity.camera/entity)
         hit-entity-name (j/get-in result [:entity :name])]
     (when (= "terrain" hit-entity-name)
       (let [x (j/get-in result [:point :x])
@@ -216,9 +208,6 @@
             char-pos (pc/get-pos model-entity)]
         (when-not (skills/char-cant-run?)
           (pc/look-at model-entity x (j/get char-pos :y) z true))
-        (when (= "mage" (j/get player :class))
-          ((j/get-in player [:skills :throw-nova]) (j/get result :point)))
-        ;; (println "inside circle: " (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 1.8))
         (j/assoc! player :target-pos (pc/setv (j/get player :target-pos) x y z)
                   :target-pos-available? true)
         (pc/set-locater-target x z)
@@ -236,13 +225,14 @@
       (set-target-position e))))
 
 (defn- show-nova-circle [e]
-  (when (and (st/mage?) (j/get player :positioning-nova?))
-    (let [result (raycast-rigid-body e)
+  (when (j/get player :positioning-nova?)
+    (let [result (pc/raycast-rigid-body e entity.camera/entity)
           hit-entity-name (j/get-in result [:entity :name])]
       (when (= "terrain" hit-entity-name)
         (let [x (j/get-in result [:point :x])
               y (j/get-in result [:point :y])
               z (j/get-in result [:point :z])]
+          ;; (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 2.25)
           (pc/set-nova-circle-pos player x y z))))))
 
 (defn- register-mouse-events []
@@ -251,23 +241,30 @@
                  (when (and (pc/button? e :MOUSEBUTTON_LEFT)
                             (or (= "CANVAS" (j/get-in e [:element :nodeName]))
                                 (not= "all" (-> (j/call js/window :getComputedStyle (j/get e :element))
-                                                (j/get :pointerEvents)))))
-                   (if (j/get player :positioning-nova?)
-                     (do
-                       (j/assoc! player :positioning-nova? false)
-                       (pc/set-nova-circle-pos))
-                     (do
-                       (j/assoc! player :mouse-left-locked? true)
-                       (select-player-or-set-target e))))))
+                                                (j/get :pointerEvents))))
+                            (not (j/get player :positioning-nova?)))
+                   (j/assoc! player :mouse-left-locked? true)
+                   (select-player-or-set-target e))))
+
+  (when (st/mage?)
+    (pc/on-mouse :EVENT_MOUSEDOWN
+                 (fn [e]
+                   (when (pc/button? e :MOUSEBUTTON_LEFT)
+                     (skills.mage/throw-nova e))))
+    (pc/on-mouse :EVENT_MOUSEMOVE
+                 (fn [e]
+                   (when-not (j/get player :mouse-left-locked?)
+                     (show-nova-circle e)))))
+
   (pc/on-mouse :EVENT_MOUSEUP
                (fn [e]
                  (when (pc/button? e :MOUSEBUTTON_LEFT)
                    (j/assoc! player :mouse-left-locked? false))))
+
   (pc/on-mouse :EVENT_MOUSEMOVE
                (fn [e]
-                 (if (j/get player :mouse-left-locked?)
-                   (set-target-position e)
-                   (show-nova-circle e)))))
+                 (when (j/get player :mouse-left-locked?)
+                   (set-target-position e)))))
 
 (defn- collision-start [result]
   (when (= "terrain" (j/get-in result [:other :name]))
@@ -481,7 +478,7 @@
                            (st/set-cooldown ready? skill)))))
 
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
-(defn- process-movement [_ _]
+(defn- process-movement [dt _]
   (let [speed (j/get player :speed)
         camera (j/get player :camera)
         right (j/get camera :right)
@@ -531,7 +528,18 @@
             (pc/pressed? :KEY_S) (j/update! player :target-y + 180))
           (when (pressing-wasd-or-has-target?)
             (pc/set-loc-euler model-entity 0 (j/get player :target-y) 0)
-            (pc/set-anim-boolean model-entity "run" true)))))))
+            (pc/set-anim-boolean model-entity "run" true))))
+      (when (and (= "run" (pc/get-anim-state model-entity)) (j/get player :on-ground?))
+        (when (> (j/get player :sound-run-elapsed-time) (if (j/get player :fleet-foot?) 0.3 0.4))
+          (if (j/get player :sound-run-1?)
+            (do
+              (j/call-in (st/get-player-entity) [:c :sound :slots "run_1" :play])
+              (j/assoc! player :sound-run-1? false))
+            (do
+              (j/call-in (st/get-player-entity) [:c :sound :slots "run_2" :play])
+              (j/assoc! player :sound-run-1? true)))
+          (j/assoc! player :sound-run-elapsed-time 0))
+        (j/update! player :sound-run-elapsed-time + dt)))))
 
 (defn enable-effect [name]
   (j/assoc! (pc/find-by-name (st/get-player-entity) name) :enabled true))
@@ -574,6 +582,18 @@
                                   :health 100}))))
 
 (comment
+  (js/console.log (j/get-in (st/get-player-entity) [:c :sound :slots "run_1"]))
+
+
+  (do
+
+    )
+  (j/call-in (st/get-player-entity) [:c :sound :slots "Slot 1" :play])
+  (j/call-in (st/get-player-entity) [:c :sound :slots "Slot 2" :play])
+  (j/call-in (st/get-player-entity) [:c :sound :slots "Slot 3" :play])
+  (j/call-in (st/get-player-entity) [:c :sound :slots "Slot 4" :play])
+
+
   (pc/enable (j/get-in player [:effects :attack_r :entity]))
   (let [[player player2 p3] [(create-player {:id 1
                                              :username "0000000"
