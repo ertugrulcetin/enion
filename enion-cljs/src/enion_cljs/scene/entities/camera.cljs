@@ -1,5 +1,6 @@
 (ns enion-cljs.scene.entities.camera
   (:require
+    ["playcanvas" :as ps]
     [applied-science.js-interop :as j]
     [enion-cljs.scene.pc :as pc :refer [app]])
   (:require-macros
@@ -87,8 +88,8 @@
 (let [duration 1
       shake-interval 0.05
       max-shake-distance 1
-      clamp js/pc.math.clamp
-      random js/pc.math.random]
+      clamp ps/math.clamp
+      random ps/math.random]
   (defn update-fn [dt]
     (when (j/get state :shaking?)
       (j/update! state :time + dt)

@@ -1,6 +1,6 @@
 (ns enion-cljs.scene.pc
   (:require
-    ["/enion_cljs/vendor/tween"]
+    ["playcanvas" :as ps]
     [applied-science.js-interop :as j]
     [camel-snake-kebab.core :as csk]
     [clojure.string :as str]))
@@ -11,7 +11,7 @@
 (def map-half-size (/ map-size 2))
 
 (def key->code
-  (->> (js->clj js/pc :keywordize-keys true)
+  (->> (js->clj ps :keywordize-keys true)
        (filter #(or (str/starts-with? (name (first %)) "KEY_")
                     (str/starts-with? (name (first %)) "EVENT_")
                     (str/starts-with? (name (first %)) "MOUSEBUTTON_")))
@@ -33,7 +33,7 @@
   ([]
    (vec3 0 0 0))
   ([x y z]
-   (js/pc.Vec3. x y z)))
+   (ps/Vec3. x y z)))
 
 (defn addv [v1 v2]
   (j/call v1 :add v2))
@@ -81,7 +81,8 @@
   (j/call e :setLocalEulerAngles x y z))
 
 (defn get-pos [e]
-  (j/call e :getPosition))
+  (when e
+    (j/call e :getPosition)))
 
 (defn set-pos
   ([e v]
@@ -124,7 +125,7 @@
   (j/call entity :getGuid))
 
 (defn create-script [script-name {:keys [attrs init update post-init post-update]}]
-  (let [script (j/call js/pc :createScript (csk/->camelCaseString script-name))]
+  (let [script (j/call ps :createScript (csk/->camelCaseString script-name))]
     (doseq [[k v] attrs]
       (j/call-in script [:attributes :add] (name k) (clj->js v)))
     (some->> init (j/assoc-in! script [:prototype :initialize]))
@@ -198,7 +199,7 @@
             (+ (j/get pos :z) map-half-size)))))
 
 (defn color [r g b]
-  (js/pc.Color. r g b))
+  (ps/Color. r g b))
 
 (defn find-asset-by-name [name]
   (j/call-in app [:assets :_assets :find] #(= name (j/get % :name))))
@@ -268,7 +269,7 @@
           (j/assoc! :speed speed)))
 
 (defn ray []
-  (js/pc.Ray.))
+  (ps/Ray.))
 
 (defn set-mesh-opacity [entity opacity]
   (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" opacity))

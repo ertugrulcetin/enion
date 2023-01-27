@@ -1,5 +1,6 @@
 (ns enion-cljs.scene.skills.effects
   (:require
+    ["playcanvas" :as ps]
     [applied-science.js-interop :as j]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.states :refer [player other-players]])
@@ -43,7 +44,7 @@
           _ (pc/set-loc-scale entity init-scale)
           first-scale (pc/get-loc-scale entity)
           tween-scale (-> (j/call entity :tween first-scale)
-                          (j/call :to temp-final-scale duration js/pc.Linear))
+                          (j/call :to temp-final-scale duration ps/Linear))
           _ (j/call tween-scale :on "complete"
                     (fn []
                       (when (= new-counter (j/get skill :counter))
@@ -59,7 +60,7 @@
           _ (j/assoc-in! skill [:state :value] 1)
           opacity (j/get skill :state)
           tween-opacity (-> (j/call entity :tween opacity)
-                            (j/call :to last-opacity duration js/pc.ExponentialIn))
+                            (j/call :to last-opacity duration ps/ExponentialIn))
           _ (j/call tween-opacity :on "update"
                     (fn []
                       (j/assoc-in! entity [:sprite :opacity] (j/get opacity :value))))
@@ -82,7 +83,7 @@
           _ (j/assoc-in! skill [:state :value] 1)
           state (j/get skill :state)
           tween-particle (-> (j/call entity :tween state)
-                             (j/call :to last-state duration js/pc.Linear))
+                             (j/call :to last-state duration ps/Linear))
           _ (j/call tween-particle :on "update"
                     (fn []
                       (when (<= (j/get-in skill [:state :value]) 0.2)

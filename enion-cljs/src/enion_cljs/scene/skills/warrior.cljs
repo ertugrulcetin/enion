@@ -38,12 +38,12 @@
       (let [player-id (st/get-selected-player-id)
             enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-one-hand enemy)
-        (if false #_(> (rand-int 10) 8)
-            (do
-              (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
-              (st/disable-player-collision player-id)
-              (st/set-health player-id 0))
-            (st/set-health player-id (rand-int 100))))))
+        (if  (> (rand-int 10) 2)
+          (do
+            (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
+            (st/disable-player-collision player-id)
+            (st/set-health player-id 0))
+          (st/set-health player-id (rand-int 100))))))
 
 (on :attack-slow-down
     (fn []

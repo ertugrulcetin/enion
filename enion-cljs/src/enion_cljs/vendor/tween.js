@@ -1,3 +1,17 @@
+pc;
+
+export function init(p){
+pc = p;
+my_app = pc.app;
+
+pce = pc.events;
+pcq = pc.Quat;
+pcl = pc.Linear;
+pcv2 = pc.Vec2;
+pcv3 = pc.Vec3;
+pcv4 = pc.Vec4;
+pcc = pc.Color;
+
 pc.extend(pc, function () {
 
     /**
@@ -47,7 +61,7 @@ pc.extend(pc, function () {
      * @param {pc.Entity} entity - The pc.Entity whose property we are tweening
      */
     var Tween = function (target, manager, entity) {
-        pc.events.attach(this);
+        pce.attach(this);
 
         this.manager = manager;
 
@@ -80,11 +94,11 @@ pc.extend(pc, function () {
 
         // for rotation tween
         this._slerp = false; // indicates a rotation tween
-        this._fromQuat = new pc.Quat();
-        this._toQuat = new pc.Quat();
-        this._quat = new pc.Quat();
+        this._fromQuat = new pcq();
+        this._toQuat = new pcq();
+        this._quat = new pcq();
 
-        this.easing = pc.Linear;
+        this.easing = pcl;
 
         this._sv = {}; // start values
         this._ev = {}; // end values
@@ -92,32 +106,32 @@ pc.extend(pc, function () {
 
     var _parseProperties = function (properties) {
         var _properties;
-        if (properties instanceof pc.Vec2) {
+        if (properties instanceof pcv2) {
             _properties = {
                 x: properties.x,
                 y: properties.y
             };
-        } else if (properties instanceof pc.Vec3) {
+        } else if (properties instanceof pcv3) {
             _properties = {
                 x: properties.x,
                 y: properties.y,
                 z: properties.z
             };
-        } else if (properties instanceof pc.Vec4) {
+        } else if (properties instanceof pcv4) {
             _properties = {
                 x: properties.x,
                 y: properties.y,
                 z: properties.z,
                 w: properties.w
             };
-        } else if (properties instanceof pc.Quat) {
+        } else if (properties instanceof pcq) {
             _properties = {
                 x: properties.x,
                 y: properties.y,
                 z: properties.z,
                 w: properties.w
             };
-        } else if (properties instanceof pc.Color) {
+        } else if (properties instanceof pcc) {
             _properties = {
                 r: properties.r,
                 g: properties.g,
@@ -671,22 +685,35 @@ pc.extend(pc, function () {
 // Expose prototype methods and create a default tween manager on the application
 (function () {
     // Add pc.Application#addTweenManager method
-    pc.Application.prototype.addTweenManager = function () {
-        this._tweenManager = new pc.TweenManager(this);
+//    pc.Application.prototype.addTweenManager = function () {
+//        this._tweenManager = new pc.TweenManager(this);
+//
+//        this.on("update", function (dt) {
+//            this._tweenManager.update(dt);
+//        });
+//    };
 
-        this.on("update", function (dt) {
-            this._tweenManager.update(dt);
-        });
-    };
+//    // Add pc.Application#tween method
+//    pc.Application.prototype.tween = function (target) {
+//        return new pc.Tween(target, this._tweenManager);
+//    };
 
-    // Add pc.Application#tween method
-    pc.Application.prototype.tween = function (target) {
-        return new pc.Tween(target, this._tweenManager);
-    };
+   my_app._tweenManager = new pc.TweenManager(my_app);
+
+   my_app.on("update", function (dt) {
+     my_app._tweenManager.update(dt);
+   });
+
+   pct = pc.Tween;
+
+   function createTween(target, tm){
+    return new pct(target, tm);
+   }
+
 
     // Add pc.Entity#tween method
     pc.Entity.prototype.tween = function (target, options) {
-        var tween = this._app.tween(target);
+        var tween = createTween(target, my_app._tweenManager);
         tween.entity = this;
 
         this.once('destroy', tween.stop, tween);
@@ -699,8 +726,10 @@ pc.extend(pc, function () {
     };
 
     // Create a default tween manager on the application
-    var application = pc.Application.getApplication();
-    if (application) {
-        application.addTweenManager();
-    }
+//    var application = pc.Application.getApplication();
+//    if (application) {
+//        application.addTweenManager();
+//    }
 })();
+
+}
