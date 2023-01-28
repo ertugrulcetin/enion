@@ -14,4 +14,5 @@
    :namespaces
      {:indent-size 2,
       :break-libs? true,
-      :import-break-width 129}}}
+      :import-break-width 129}}
+ :files {:ignore #{"app.cljs"}}}

@@ -43,7 +43,7 @@
           _ (pc/set-loc-scale entity init-scale)
           first-scale (pc/get-loc-scale entity)
           tween-scale (-> (j/call entity :tween first-scale)
-                          (j/call :to temp-final-scale duration js/pc.Linear))
+                          (j/call :to temp-final-scale duration pc/linear))
           _ (j/call tween-scale :on "complete"
                     (fn []
                       (when (= new-counter (j/get skill :counter))
@@ -59,7 +59,7 @@
           _ (j/assoc-in! skill [:state :value] 1)
           opacity (j/get skill :state)
           tween-opacity (-> (j/call entity :tween opacity)
-                            (j/call :to last-opacity duration js/pc.ExponentialIn))
+                            (j/call :to last-opacity duration pc/expo-in))
           _ (j/call tween-opacity :on "update"
                     (fn []
                       (j/assoc-in! entity [:sprite :opacity] (j/get opacity :value))))
@@ -82,7 +82,7 @@
           _ (j/assoc-in! skill [:state :value] 1)
           state (j/get skill :state)
           tween-particle (-> (j/call entity :tween state)
-                             (j/call :to last-state duration js/pc.Linear))
+                             (j/call :to last-state duration pc/linear))
           _ (j/call tween-particle :on "update"
                     (fn []
                       (when (<= (j/get-in skill [:state :value]) 0.2)
@@ -177,7 +177,7 @@
         last-color #js {:color 0}
         e (pc/find-by-name "human_mage_mesh")
         tween-color (-> (j/call e :tween color)
-                      (j/call :to last-color 1.5 js/pc.Linear)
+                      (j/call :to last-color 1.5 pc/linear)
                       ;(j/call :yoyo true)
                       ;(j/call :loop true)
                       ;(j/call :repeat )

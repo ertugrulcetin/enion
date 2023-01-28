@@ -1,6 +1,5 @@
 (ns enion-cljs.scene.pc
   (:require
-    ["/enion_cljs/vendor/tween"]
     [applied-science.js-interop :as j]
     [camel-snake-kebab.core :as csk]
     [clojure.string :as str]))
@@ -9,6 +8,9 @@
 
 (def map-size 100)
 (def map-half-size (/ map-size 2))
+
+(def linear)
+(def expo-in)
 
 (def key->code
   (->> (js->clj js/pc :keywordize-keys true)
@@ -29,11 +31,12 @@
 (defn find-by-tag [tag]
   (j/call-in app [:root :findByTag] tag))
 
-(defn vec3
-  ([]
-   (vec3 0 0 0))
-  ([x y z]
-   (js/pc.Vec3. x y z)))
+(let [v3 js/pc.Vec3]
+  (defn vec3
+    ([]
+     (vec3 0 0 0))
+    ([x y z]
+     (v3. x y z))))
 
 (defn addv [v1 v2]
   (j/call v1 :add v2))
@@ -197,8 +200,9 @@
             (j/get pos :y)
             (+ (j/get pos :z) map-half-size)))))
 
-(defn color [r g b]
-  (js/pc.Color. r g b))
+(let [clr js/pc.Color]
+  (defn color [r g b]
+    (clr. r g b)))
 
 (defn find-asset-by-name [name]
   (j/call-in app [:assets :_assets :find] #(= name (j/get % :name))))
@@ -267,8 +271,9 @@
           (j/call-in [:anim :layers 0 :_controller :_animEvaluator :findClip] clip-name)
           (j/assoc! :speed speed)))
 
-(defn ray []
-  (js/pc.Ray.))
+(let [r js/pc.Ray]
+  (defn ray []
+    (r.)))
 
 (defn set-mesh-opacity [entity opacity]
   (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" opacity))

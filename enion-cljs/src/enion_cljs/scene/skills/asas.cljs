@@ -37,7 +37,7 @@
       (j/assoc! player :hide? true)
       (j/assoc! initial-opacity :opacity (or (pc/get-mesh-opacity entity) 1))
       (let [tween-opacity (-> (j/call entity :tween initial-opacity)
-                              (j/call :to last-opacity 2 js/pc.Linear))
+                              (j/call :to last-opacity 2 pc/linear))
             _ (j/call tween-opacity :on "update"
                       (fn []
                         (if (j/get player :hide?)
@@ -55,7 +55,7 @@
       (j/assoc! player :hide? false)
       (j/assoc! initial-opacity :opacity (or (pc/get-mesh-opacity entity) 1))
       (let [tween-opacity (-> (j/call entity :tween initial-opacity)
-                              (j/call :to last-opacity 0.3 js/pc.Linear))
+                              (j/call :to last-opacity 0.3 pc/linear))
             _ (j/call tween-opacity :on "update"
                       (fn []
                         (pc/set-mesh-opacity entity (j/get initial-opacity :opacity))))]
@@ -80,7 +80,7 @@
         (pc/disable dagger-left)
         (pc/disable char-name-entity))
       (let [tween-opacity (-> (j/call mesh-lod-0 :tween initial-opacity)
-                              (j/call :to last-opacity 2 js/pc.Linear))]
+                              (j/call :to last-opacity 2 pc/linear))]
         (j/call tween-opacity :on "update"
                 (fn []
                   (if (j/get other-player :hide?)
@@ -116,7 +116,7 @@
         (pc/enable dagger-left)
         (pc/enable char-name-entity))
       (let [tween-opacity (-> (j/call mesh-lod-0 :tween initial-opacity)
-                              (j/call :to last-opacity 0.3 js/pc.Linear))]
+                              (j/call :to last-opacity 0.3 pc/linear))]
         (j/call tween-opacity :on "update"
                 (fn []
                   (doseq [e [mesh-lod-0 mesh-lod-1 mesh-lod-2]]
