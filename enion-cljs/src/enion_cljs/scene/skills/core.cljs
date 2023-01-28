@@ -76,10 +76,13 @@
                                              (j/get player :target-pos))]
                         (pc/look-at model-entity (j/get target :x) (j/get (pc/get-pos model-entity) :y) (j/get target :z) true)))
                     (cond
-                      call? (do
+                      call? (let [selected-player-id (j/get-in player [:skill->selected-player-id anim-state])]
                               (j/assoc! player :skill-locked? true)
+                              (j/assoc-in! player [:skill->selected-player-id anim-state] nil)
                               (when call-name
-                                (js/setTimeout #(fire call-name true) latency)))
+                                (js/setTimeout
+                                  #(fire call-name selected-player-id)
+                                  latency)))
                       r-release? (j/assoc! player :can-r-attack-interrupt? true)
                       r-lock? (j/assoc! player :can-r-attack-interrupt? false)))))))
 

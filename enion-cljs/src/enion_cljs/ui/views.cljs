@@ -13,7 +13,7 @@
 (def mouse-y (r/atom nil))
 
 (defn- img->img-url [img]
-  (str "http://localhost:8280/img/" img))
+  (str "img/" img))
 
 (defn skill->img [skill]
   (case skill
@@ -349,7 +349,7 @@
             :top (str (- @y) "px")}}
    [:img
     {:class (styles/minimap-img)
-     :src "http://localhost:8280/img/minimap.png"}]])
+     :src "img/minimap.png"}]])
 
 (defn- minimap []
   (let [interval-id (atom nil)]
@@ -387,14 +387,14 @@
 (defn- on-mouse-down [e]
   (when (= (j/get e :button) 0)
     (if (> js/window.innerWidth 1440)
-      (j/assoc-in! js/document [:body :style :cursor] "url(http://localhost:8280/img/cursor_64_active.png) 23 23, auto")
-      (j/assoc-in! js/document [:body :style :cursor] "url(http://localhost:8280/img/cursor_48_active.png) 17 17, auto"))))
+      (j/assoc-in! js/document [:body :style :cursor] "url(img/cursor_64_active.png) 23 23, auto")
+      (j/assoc-in! js/document [:body :style :cursor] "url(img/cursor_48_active.png) 17 17, auto"))))
 
 (defn- on-mouse-up [e]
   (when (= (j/get e :button) 0)
     (if (> js/window.innerWidth 1440)
-      (j/assoc-in! js/document [:body :style :cursor] "url(http://localhost:8280/img/cursor_64.png) 23 23, auto")
-      (j/assoc-in! js/document [:body :style :cursor] "url(http://localhost:8280/img/cursor_48.png) 17 17, auto"))))
+      (j/assoc-in! js/document [:body :style :cursor] "url(img/cursor_64.png) 23 23, auto")
+      (j/assoc-in! js/document [:body :style :cursor] "url(img/cursor_48.png) 17 17, auto"))))
 
 ;; TODO when game is ready then show HUD
 (defn main-panel []

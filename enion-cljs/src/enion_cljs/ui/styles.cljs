@@ -387,7 +387,7 @@
    :left "50%"
    :top "50%"
    :transform "translate(-50%, -50%)"
-   :background "url(\"http://localhost:8280/img/pointer.png\") center 0px no-repeat"})
+   :background "url(\"img/pointer.png\") center 0px no-repeat"})
 
 (defkeyframes cooldown-frames []
   ["0%" {:--cooldown "0%"}]

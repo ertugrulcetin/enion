@@ -33,10 +33,9 @@
 (def close-attack-distance-threshold 0.75)
 
 (on :attack-one-hand
-    (fn []
+    (fn [player-id]
       (fire :ui-cooldown "attackOneHand")
-      (let [player-id (st/get-selected-player-id)
-            enemy (st/get-other-player player-id)]
+      (let [enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-one-hand enemy)
         (if false #_(> (rand-int 10) 8)
             (do
@@ -46,10 +45,9 @@
             (st/set-health player-id (rand-int 100))))))
 
 (on :attack-slow-down
-    (fn []
+    (fn [player-id]
       (fire :ui-cooldown "attackSlowDown")
-      (let [player-id (st/get-selected-player-id)
-            enemy (st/get-other-player player-id)]
+      (let [enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-slow-down enemy)
         (when false #_(> (rand-int 10) 8)
               (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
@@ -57,10 +55,9 @@
               (st/set-health player-id 0)))))
 
 (on :attack-r
-    (fn []
+    (fn [player-id]
       (fire :ui-cooldown "attackR")
-      (let [player-id (st/get-selected-player-id)
-            enemy (st/get-other-player player-id)]
+      (let [enemy (st/get-other-player player-id)]
         (skills.effects/apply-effect-attack-r enemy)
         (if false #_(> (rand-int 10) 8)
             (do
@@ -95,6 +92,7 @@
              (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
         (do
           (println "R combo!")
+          (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackOneHand" false)
           (pc/set-anim-boolean model-entity "attackR" true))
 
@@ -108,6 +106,7 @@
              (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
         (do
           (println "one hand combo...!")
+          (j/assoc-in! player [:skill->selected-player-id "attackOneHand"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackR" false)
           (pc/set-anim-boolean model-entity "attackOneHand" true)
           (reset! last-one-hand-combo (js/Date.now)))
@@ -126,7 +125,9 @@
           (st/enemy-selected? selected-player-id)
           (st/alive? selected-player-id)
           (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
-        (pc/set-anim-boolean (st/get-model-entity) "attackOneHand" true)
+        (do
+          (j/assoc-in! player [:skill->selected-player-id "attackOneHand"] selected-player-id)
+          (pc/set-anim-boolean (st/get-model-entity) "attackOneHand" true))
 
         (and
           (skills/idle-run-states active-state)
@@ -135,7 +136,9 @@
           (st/enemy-selected? selected-player-id)
           (st/alive? selected-player-id)
           (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
-        (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true)
+        (do
+          (j/assoc-in! player [:skill->selected-player-id "attackSlowDown"] selected-player-id)
+          (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true))
 
         (and
           (skills/idle-run-states active-state)
@@ -143,7 +146,9 @@
           (st/enemy-selected? selected-player-id)
           (st/alive? selected-player-id)
           (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
-        (pc/set-anim-boolean model-entity "attackR" true)
+        (do
+          (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
+          (pc/set-anim-boolean model-entity "attackR" true))
 
         (and
           (skills/skill-pressed? e "shieldWall")
