@@ -1,7 +1,6 @@
 (ns enion-cljs.scene.entities.app
   (:require
-    ["playcanvas" :as ps]
-    [enion-cljs.scene.entities.wps]
+    [enion-cljs.scene.entities.init]
     ["/enion_cljs/vendor/all"]
     ["/enion_cljs/vendor/tween" :as tw]
     [applied-science.js-interop :as j]
@@ -33,11 +32,12 @@
 (defn init [init-ui]
   (pc/create-script :app
                     {:init (fnt
-                             (tw/init ps)
+                             (tw/init js/pc)
                              (init-fn this)
                              (init-ui))
                      :post-init (fn []
+                                  (tw/init (j/get js/window :pc))
                                   (lod-manager/init)
                                   (when dev?
                                     (simulation/init))
-                                  (set! (.-pc js/window) nil))}))
+                                  #_(set! (.-pc js/window) nil))}))

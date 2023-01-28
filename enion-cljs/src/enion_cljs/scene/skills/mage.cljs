@@ -1,6 +1,5 @@
 (ns enion-cljs.scene.skills.mage
   (:require
-    ["playcanvas" :as ps]
     [applied-science.js-interop :as j]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
@@ -79,18 +78,18 @@
       (j/assoc! temp-first-pos :x (j/get pos :x) :y (+ (j/get pos :y) 5) :z (j/get pos :z))
       (j/assoc! temp-final-pos :x (j/get pos :x) :y (j/get pos :y) :z (j/get pos :z))
       (let [tween-pos (-> (j/call entity :tween temp-first-pos)
-                          (j/call :to temp-final-pos 0.5 ps/ExponentialIn))
+                          (j/call :to temp-final-pos 0.5 js/pc.ExponentialIn))
             _ (j/call tween-pos :on "update"
                       (fn []
                         (pc/set-pos entity (j/get temp-first-pos :x) (j/get temp-first-pos :y) (j/get temp-first-pos :z))))
             _ (pc/set-loc-scale entity 0.2)
             first-scale (pc/get-loc-scale entity)
             tween-scale (-> (j/call entity :tween first-scale)
-                            (j/call :to temp-final-scale 1 ps/Linear))
+                            (j/call :to temp-final-scale 1 js/pc.Linear))
             _ (pc/set-mesh-opacity entity 1)
             _ (j/assoc! opacity :opacity 1)
             tween-opacity (-> (j/call entity :tween opacity)
-                              (j/call :to last-opacity 2.5 ps/Linear))
+                              (j/call :to last-opacity 2.5 js/pc.Linear))
             _ (j/call tween-opacity :on "update"
                       (fn []
                         (pc/set-mesh-opacity entity (j/get opacity :opacity))

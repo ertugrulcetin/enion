@@ -1,5 +1,6 @@
 (ns enion-cljs.core
   (:require
+    [enion-cljs.common :refer [dev?]]
     [enion-cljs.scene.core :as scene.core]
     [enion-cljs.ui.core :as ui.core]))
 
@@ -13,6 +14,8 @@
   (scene.core/init #(ui.core/init) player-data))
 
 (defn init []
+  #_(when-not dev?
+    (set! (.-pc js/window) nil))
   (init-game {:id 1
               :username "NeaTBuSTeR"
               ;; :race "orc"
