@@ -1,22 +1,28 @@
 (ns enion-backend.routes.home
   (:require
-    [aleph.http :as http]
-    [clojure.java.io :as io]
-    [enion-backend.layout :as layout]
-    [enion-backend.middleware :as middleware]
-    [manifold.deferred :as d]
-    [manifold.stream :as s]
-    [msgpack.clojure-extensions]
-    [msgpack.core :as msg]
-    [procedure.async :refer [dispatch reg-pro]]
-    [ring.util.http-response :as response]
-    [ring.util.response])
+   [aleph.http :as http]
+   [clojure.java.io :as io]
+   [enion-backend.layout :as layout]
+   [enion-backend.middleware :as middleware]
+   [manifold.deferred :as d]
+   [manifold.stream :as s]
+   [msgpack.clojure-extensions]
+   [msgpack.core :as msg]
+   [procedure.async :refer [dispatch reg-pro]]
+   [ring.util.http-response :as response]
+   [ring.util.response]
+   [clojure.tools.logging :as log]
+   [mount.core :as mount :refer [defstate]])
   (:import
-    (java.time
-      Instant)))
+   (java.time
+     Instant)
+   (java.util.concurrent Executors TimeUnit ExecutorService)))
 
 (def max-number-of-players 50)
 (def max-number-of-same-race-players (/ max-number-of-players 2))
+
+(def send-snapshot-count 20)
+(def world-tick-rate (/ 1000 send-snapshot-count))
 
 (defonce id-generator (atom 0))
 (defonce players (atom {}))
@@ -26,15 +32,46 @@
   [request]
   (layout/render request "home.html" {:docs (-> "docs/docs.md" io/resource slurp)}))
 
-(comment
-  (s/put! @my-soc (msg/pack {0 2}))
+(defn- send!
+  [player-id id result]
+  ;;TODO check if socket closed or not!
+  (when result
+    (when-let [socket (get-in @players [player-id :socket])]
+      (s/put! socket (msg/pack (hash-map id result))))))
 
-  (reset! run? false)
-  (reset! run? true)
+(defn rand-between [min max]
+  (+ (Math/floor (* (Math/random) (+ (- max min) 1))) min))
 
-  (while @run?
-    (s/put! @my-soc (msg/pack {:code (rand-int 10000)}))
-    (Thread/sleep (/ 1000 20))))
+(defn- send-world-snapshots* []
+  ;(println (rand-between 50 100))
+  (Thread/sleep (rand-between 50 100))
+  (let [w @world]
+    (doseq [player-id (keys w)]
+      (send! player-id :world-snapshot w))))
+
+(defn- send-world-snapshots []
+  (let [ec (Executors/newSingleThreadScheduledExecutor)]
+    (doto ec
+      (.scheduleAtFixedRate
+        (fn []
+          (send-world-snapshots*))
+        0
+        world-tick-rate
+        TimeUnit/MILLISECONDS))))
+
+(defn- shutdown [^ExecutorService ec]
+  (.shutdown ec)
+  (try
+    (when-not (.awaitTermination ec 2 TimeUnit/SECONDS)
+      (.shutdownNow ec))
+    (catch InterruptedException _
+      ;; TODO may no need interrupt fn
+      (.. Thread currentThread interrupt)
+      (.shutdownNow ec))))
+
+(defstate ^{:on-reload :noop} snapshot-sender
+  :start (send-world-snapshots)
+  :stop (shutdown snapshot-sender))
 
 (defn random-pos-for-orc
   []
@@ -50,65 +87,107 @@
     (random-pos-for-human)))
 
 (reg-pro
+  :set-state
+  (fn [{:keys [id data]}]
+    ;;TODO gets the data right away, need to select keys...to prevent hacks
+    (swap! world update id merge data)
+    nil))
+
+(defn- notify-players-for-new-join [id attrs]
+  (doseq [other-player-id (filter #(not= id %) (keys @world))]
+    (println "Sending new join...")
+    (send! other-player-id :player-join attrs)))
+
+(defn- notify-players-for-exit [id]
+  (doseq [other-player-id (filter #(not= id %) (keys @world))]
+    (println "Sending exit notification...")
+    (send! other-player-id :player-exit id)))
+
+(reg-pro
   :init
-  (fn [{:keys [data]}]
-    #_(let [attrs {:id id
-                 :username (:username data)
-                 :race :orc
-                 :class :warrior
-                 :health 100
-                 :mana 100
-                 :pos (random-pos-for-orc)}]
-      (swap! world assoc id attrs)
+  (fn [{id :id {:keys [username race class]} :data}]
+    (println "Player joining...")
+    (let [pos (if (= "orc" race)
+                (random-pos-for-orc)
+                (random-pos-for-human))
+          health 100
+          mana 100
+          attrs {:id id
+                 :username username
+                 :race race
+                 :class class
+                 :health health
+                 :mana mana
+                 :pos pos}]
+      (swap! players update id merge attrs)
+      (notify-players-for-new-join id attrs)
       attrs)))
 
 (reg-pro
-  :player-joined
-  (fn [{:keys [data]}]
-    {:id (rand-int 100000)
-     :username "New Player"
-     :race :orc
-     :class :warrior
-     :health 100
-     :mana 100
-     :pos (random-pos-for-orc)}))
+  :connect-to-world-state
+  (fn [{:keys [id]}]
+    (let [{:keys [pos health mana]} (get @players id)
+          [x y z] pos]
+     (swap! world (fn [world]
+                    (-> world
+                      (assoc-in [id :px] x)
+                      (assoc-in [id :py] y)
+                      (assoc-in [id :pz] z)
+                      (assoc-in [id :health] health)
+                      (assoc-in [id :mana] mana)))))
+    (println "Connected to world state")
+    true))
 
-
-(defonce ses (atom nil))
-
+(defn- reset-states []
+  (reset! world {})
+  (reset! players {})
+  (reset! id-generator 0))
 
 (comment
-  @ses
-  (alter-meta! @ses assoc :id 10)
-    (meta @ses)
-  (meta @ses assoc :id 20)
+  (reset-states)
+  @world
+  @players
 
-  (meta (get @players 1))
+  (mount/start)
+  (mount/stop)
   )
 
 (defn- ws-handler
   [req]
   (-> (http/websocket-connection req)
-      (d/chain
-        (fn [socket]
-          (let [player-id (swap! id-generator inc)]
-            (alter-meta! socket assoc :id player-id)
-            (swap! players assoc player-id socket))
-          ;; TODO register socket in here
-          (s/consume
-            (fn [payload]
-              (println "Player Id: " (-> socket meta :id))
-              (let [now (Instant/now)
+    (d/chain
+      (fn [socket]
+        (let [player-id (swap! id-generator inc)]
+          (alter-meta! socket assoc :id player-id)
+          (swap! players assoc-in [player-id :socket] socket)
+          (s/on-closed socket
+            (fn []
+              (swap! players dissoc player-id)
+              (future
+                ;;TODO optimize in here, in between other players could attack etc. and update non existed player's state
+                ;;like check again after 5 secs or so...
+                (Thread/sleep 1000)
+                (swap! world dissoc player-id)
+                (notify-players-for-exit player-id)))))
+        ;; TODO register socket in here
+        (s/consume
+          (fn [payload]
+            (try
+              (let [id (-> socket meta :id)
+                    now (Instant/now)
                     payload (msg/unpack payload)
                     ping (- (.toEpochMilli now) (:timestamp payload))]
-                (dispatch (:pro payload) {:data (:data payload)
+                (dispatch (:pro payload) {:id id
+                                          :data (:data payload)
                                           :ping ping
                                           :req req
                                           :socket socket
                                           :send-fn (fn [socket {:keys [id result]}]
                                                      (when result
-                                                       (s/put! socket (msg/pack (hash-map id result)))))})))
-            socket)))))
+                                                       (s/put! socket (msg/pack (hash-map id result)))))}))
+              (catch Exception e
+                (log/error e))))
+          socket)))))
 
 (defn home-routes
   []

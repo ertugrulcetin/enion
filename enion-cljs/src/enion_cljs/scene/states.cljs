@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.states
   (:require
     [applied-science.js-interop :as j]
+    [clojure.data :as data]
     [enion-cljs.common :refer [fire]]
     [enion-cljs.scene.pc :as pc]))
 
@@ -24,6 +25,9 @@
 (defonce other-players #js {})
 (defonce settings #js {})
 
+(defn get-player-id []
+  (j/get player :id))
+
 (defn get-player-entity []
   (j/get player :entity))
 
@@ -33,19 +37,20 @@
   ([player-id]
    (j/get-in other-players [player-id :model-entity])))
 
-(defn destroy-player [player-id]
-  (j/call-in other-players [player-id :entity :destroy])
-  (js-delete other-players player-id))
-
-(defn destroy-players []
-  (doseq [id (js/Object.keys other-players)]
-    (destroy-player id)))
-
 (defn get-other-player [player-id]
   (j/get other-players player-id))
 
 (defn get-other-player-entity [id]
   (j/get-in other-players [id :entity]))
+
+(defn destroy-player [player-id]
+  (when-let [entity (get-other-player-entity player-id)]
+    (j/call entity :destroy)
+    (js-delete other-players player-id)))
+
+(defn destroy-players []
+  (doseq [id (js/Object.keys other-players)]
+    (destroy-player id)))
 
 ;; TODO when other player's health changes (network tick), in there we will trigger :ui-selected-player
 (def temp-selected-player #js {})
@@ -133,3 +138,35 @@
 
 (defn mage? []
   (= "mage" (j/get player :class)))
+
+(let [prev-state (volatile! {})]
+  (defn get-state []
+    (let [model-entity (get-model-entity)
+          pos (pc/get-pos model-entity)
+          eul (pc/get-loc-euler model-entity)
+          state {:px (j/get pos :x)
+                 :py (j/get pos :y)
+                 :pz (j/get pos :z)
+                 :ex (j/get eul :x)
+                 :ey (j/get eul :y)
+                 :ez (j/get eul :z)
+                 :st (pc/get-anim-state model-entity)}
+          result (second (data/diff @prev-state state))]
+      (vreset! prev-state state)
+      result)))
+
+(defn move-player [player-id x y z]
+  (when-let [entity (get-other-player-entity player-id)]
+    (if (:enemy? entity)
+      (j/call-in entity [:rigidbody :teleport] x y z)
+      (pc/set-pos entity x y z))))
+
+(defn rotate-player [player-id x y z]
+  (some-> player-id get-model-entity (pc/set-loc-euler x y z)))
+
+(defn set-anim-state [player-id state]
+  (when-let [entity (get-model-entity player-id)]
+    (let [current-anim-state (pc/get-anim-state entity)]
+      (when-not (= state current-anim-state)
+        (pc/set-anim-boolean entity current-anim-state false)
+        (pc/set-anim-boolean entity state true)))))

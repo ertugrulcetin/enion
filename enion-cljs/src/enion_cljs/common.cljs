@@ -1,6 +1,7 @@
 (ns enion-cljs.common
   (:require
-    [applied-science.js-interop :as j]))
+    [applied-science.js-interop :as j]
+    [clojure.string :as str]))
 
 (defonce app nil)
 (defonce state (clj->js {}))
@@ -125,3 +126,9 @@
   (doseq [f @global-on-listeners]
     (f))
   (reset! global-on-listeners []))
+
+(defn dlog [& args]
+  (when dev?
+    (if (= 1 (count args))
+      (js/console.log (first args))
+      (js/console.log (str/join " " args)))))

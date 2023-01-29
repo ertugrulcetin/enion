@@ -30,7 +30,9 @@
                  [ring/ring-defaults "0.3.4"]
                  [selmer "1.12.55"]
                  [clojure-msgpack "1.2.1"]
-                 [org.clojars.ertucetin/procedure.async "0.1.0"]]
+                 [org.clojars.ertucetin/procedure.async "0.1.0"]
+                 [amalloy/ring-gzip-middleware "0.1.4"]
+                 [ring-cors/ring-cors "0.1.13"]]
 
   :min-lein-version "2.0.0"
 

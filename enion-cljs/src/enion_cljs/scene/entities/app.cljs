@@ -3,9 +3,10 @@
    [enion-cljs.scene.entities.init]
    ["/enion_cljs/vendor/all"]
    ["/enion_cljs/vendor/tween" :as tw]
+   [enion-cljs.scene.lod-manager]
+   [enion-cljs.scene.network]
    [applied-science.js-interop :as j]
-   [enion-cljs.common :as common :refer [dev?]]
-   [enion-cljs.scene.lod-manager :as lod-manager]
+   [enion-cljs.common :as common :refer [dev? fire]]
    [enion-cljs.scene.pc :as pc]
    [enion-cljs.scene.simulation :as simulation])
   (:require-macros
@@ -33,8 +34,8 @@
              (init-fn this)
              (init-ui))
      :post-init (fn []
-                  (lod-manager/init)
                   (when dev?
                     (simulation/init))
                   (when-not dev?
-                    (j/assoc! js/window :pc nil)))}))
+                    (j/assoc! js/window :pc nil))
+                  (fire :start-ws))}))

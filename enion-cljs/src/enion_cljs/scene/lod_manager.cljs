@@ -2,8 +2,9 @@
   (:require
     [applied-science.js-interop :as j]
     [clojure.set :as set]
+    [enion-cljs.common :refer [on]]
     [enion-cljs.scene.pc :as pc :refer [app]]
-    [enion-cljs.scene.states :refer [get-player-entity]]
+    [enion-cljs.scene.states :refer [player get-player-entity]]
     [goog.functions :as functions]))
 
 ;; TODO ranges for other player
@@ -121,8 +122,11 @@
                                         500))))
 
 (defn init []
+  (println "LOD manager starting...")
   (create-template-indexes)
   (process-on-post-cull))
+
+(on :start-lod-manager #(init))
 
 (comment
   (count (pc/find-by-tag "tree-big-template"))

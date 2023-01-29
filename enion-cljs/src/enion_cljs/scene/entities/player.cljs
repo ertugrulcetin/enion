@@ -87,7 +87,6 @@
     (if-let [other-player (j/get other-players selected-player-id)]
       (let [e (j/get other-player :entity)
             pos (pc/get-pos e)
-            player-entity (st/get-player-entity)
             distance (pc/distance pos (get-position))]
         (cond
           (< distance char-selection-distance-threshold)
@@ -278,7 +277,7 @@
   (j/call-in entity [:collision :on] "collisionstart" collision-start)
   (j/call-in entity [:collision :on] "collisionend" collision-end))
 
-(defn- create-model-and-template-entity [{:keys [id entity race class other-player?]}]
+(defn- create-model-and-template-entity [{:keys [id entity race class other-player? enemy?]}]
   (let [template-entity-name (str race "_" class)
         model-entity-name (str race "_" class "_model")
         character-template-entity (pc/clone (pc/find-by-name template-entity-name))
@@ -289,11 +288,13 @@
       (j/assoc! (pc/find-by-name character-model-entity (str race "_" class "_mesh")) :enabled false)
       (j/assoc! (pc/find-by-name character-model-entity (str race "_" class "_mesh_lod_0")) :enabled true))
     (pc/set-loc-pos character-template-entity 0 0 0)
+    (when (and other-player? (not enemy?))
+      (pc/set-loc-pos character-model-entity 0 0 0))
     (pc/add-child entity character-template-entity)
     [character-template-entity character-model-entity]))
 
 ;; TODO username text elementleri faceCamera.js kullaniyor, o scripti kaldir, toplu bir sekilde yap kodda
-(defn- create-username-text [{:keys [template-entity username race class enemy?]}]
+(defn- create-username-text [{:keys [template-entity username race class other-player? enemy?]}]
   (let [username-text-entity (pc/clone (pc/find-by-name "char_name"))]
     (j/assoc-in! username-text-entity [:element :text] username)
     (j/assoc-in! username-text-entity [:element :color] username-color)
@@ -304,7 +305,8 @@
     (when (and (= race "orc")
                (or (= class "priest")
                    (= class "warrior")))
-      (pc/set-loc-pos username-text-entity 0 0.05 0))
+      (when other-player?
+        (pc/set-loc-pos username-text-entity 0 0.05 0)))
     (j/assoc-in! username-text-entity [:script :enabled] true)))
 
 (defn- init-player [{:keys [id username class race mana health pos]} player-entity]
@@ -317,6 +319,7 @@
               :mana mana
               :health health
               :heal-counter 0)
+    (js/console.log player)
     (when pos
       (j/call-in player-entity [:rigidbody :teleport] x y z))))
 
@@ -367,6 +370,7 @@
   (j/call-in (st/get-player-entity) [:rigidbody :teleport] x y z))
 
 (comment
+  (js/clearInterval 1319)
   player
   (disable-phantom-vision)
   (enable-phantom-vision)
@@ -435,7 +439,10 @@
                          :enemy? enemy?
                          :health health
                          :mana mana
-                         :heal-counter 0)
+                         :heal-counter 0
+                         :tween {:interpolation nil
+                                 :initial-pos #js {}
+                                 :last-pos #js {}})
                   clj->js)]
     (create-username-text (assoc params :template-entity template-entity))
     (create-skill-fns state true)
@@ -449,6 +456,7 @@
     (common/update-skill-cooldown "fleetFoot" 13000)))
 
 (defn- init-fn [this player-data]
+  (println "player-data: " player-data)
   (let [player-entity (j/get this :entity)
         _ (init-player player-data player-entity)
         opts {:id (:id player-data)
@@ -570,7 +578,12 @@
                      :update (fnt (update-fn dt this))
                      :post-init (fnt
                                   (when-not dev?
-                                    (j/assoc! (st/get-player-entity) :name (str (random-uuid)))))}))
+                                    (j/assoc! (st/get-player-entity) :name (str (random-uuid))))
+                                  (fire :start-lod-manager))}))
+
+(on :init (fn [player-data]
+            (init player-data)
+            (fire :connect-to-world-state)))
 
 (when dev?
   (on :re-init (fn []
@@ -582,6 +595,13 @@
                                   :health 100}))))
 
 (comment
+  (js/console.log player)
+  (init {:id 0
+         :username "0000000"
+         :race "orc"
+         :class "asas"
+         :mana 100
+         :health 100})
   (js/console.log (j/get-in (st/get-player-entity) [:c :sound :slots "run_1"]))
 
 

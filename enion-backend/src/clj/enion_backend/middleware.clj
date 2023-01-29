@@ -8,7 +8,9 @@
     [muuntaja.middleware :refer [wrap-format wrap-params]]
     [ring-ttl-session.core :refer [ttl-memory-store]]
     [ring.middleware.anti-forgery :refer [wrap-anti-forgery]]
-    [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
+    [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+    [ring.middleware.cors :refer [wrap-cors]]
+    [ring.middleware.gzip :refer [wrap-gzip]]))
 
 (defn wrap-internal-error
   [handler]
@@ -49,6 +51,10 @@
 (defn wrap-base
   [handler]
   (-> ((:middleware defaults) handler)
+     wrap-gzip
+    (wrap-cors
+        :access-control-allow-origin [#".*"]
+        :access-control-allow-methods [:get :put :post :delete :patch])
       (wrap-defaults
         (-> site-defaults
             (assoc-in [:security :anti-forgery] false)

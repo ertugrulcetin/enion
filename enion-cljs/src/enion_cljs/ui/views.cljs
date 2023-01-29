@@ -357,7 +357,8 @@
       {:component-did-mount (fn []
                               (reset! interval-id (js/setInterval
                                                     (fn []
-                                                      (when-not (= "idle" (player/get-state))
+                                                      ;; TODO enable here
+                                                      #_(when-not (= "idle" (player/get-state))
                                                         (let [pos (player/get-position)]
                                                           (reset! x (+ (* (j/get pos :x) 5) 175))
                                                           (reset! y (+ (* (j/get pos :z) 5) 175)))))
