@@ -52,14 +52,7 @@
 (defn- process-world-snapshot [world]
   (doseq [s (dissoc world current-player-id)
           :let [id (first s)
-                s (second s)
-                px (:px s)
-                py (:py s)
-                pz (:pz s)
-                ex (:ex s)
-                ey (:ey s)
-                ez (:ez s)
-                st (:st s)
+                state (second s)
                 entity (st/get-other-player-entity id)]
           :when entity]
     (when-let [tw (j/get-in st/other-players [id :tween :interpolation])]
@@ -71,7 +64,7 @@
           initial-pos (j/get-in st/other-players [id :tween :initial-pos])
           _ (j/assoc! initial-pos :x x :y y :z z)
           last-pos (j/get-in st/other-players [id :tween :last-pos])
-          _ (j/assoc! last-pos :x px :y py :z pz)
+          _ (j/assoc! last-pos :x (:px state) :y (:py state) :z (:pz state))
           tween-interpolation (-> (j/call entity :tween initial-pos)
                                   (j/call :to last-pos 0.05 pc/linear))
           _ (j/call tween-interpolation :on "update"
@@ -79,11 +72,11 @@
                       (let [x (j/get initial-pos :x)
                             y (j/get initial-pos :y)
                             z (j/get initial-pos :z)]
-                        (st/move-player id x y z))))]
+                        (st/move-player entity x y z))))]
       (j/call tween-interpolation :start)
       (j/assoc-in! st/other-players [id :tween :interpolation] tween-interpolation)
-      (st/rotate-player id ex ey ez)
-      (st/set-anim-state id st)
+      (st/rotate-player id (:ex state) (:ey state) (:ez state))
+      (st/set-anim-state id (:st state))
       nil)))
 
 (defmethod dispatch-pro-response :world-snapshot [params]

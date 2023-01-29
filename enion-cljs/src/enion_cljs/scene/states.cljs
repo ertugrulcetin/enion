@@ -155,11 +155,10 @@
       (vreset! prev-state state)
       result)))
 
-(defn move-player [player-id x y z]
-  (when-let [entity (get-other-player-entity player-id)]
-    (if (:enemy? entity)
-      (j/call-in entity [:rigidbody :teleport] x y z)
-      (pc/set-pos entity x y z))))
+(defn move-player [entity x y z]
+  (if (:enemy? entity)
+    (j/call-in entity [:rigidbody :teleport] x y z)
+    (pc/set-pos entity x y z)))
 
 (defn rotate-player [player-id x y z]
   (some-> player-id get-model-entity (pc/set-loc-euler x y z)))
