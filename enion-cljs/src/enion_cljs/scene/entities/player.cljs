@@ -590,7 +590,7 @@
                  (re-init-player {:id 0
                                   :username "0000000"
                                   :race "orc"
-                                  :class "asas"
+                                  :class "warrior"
                                   :mana 100
                                   :health 100}))))
 
@@ -599,7 +599,7 @@
   (init {:id 0
          :username "0000000"
          :race "orc"
-         :class "asas"
+         :class "mage"
          :mana 100
          :health 100})
   (js/console.log (j/get-in (st/get-player-entity) [:c :sound :slots "run_1"]))

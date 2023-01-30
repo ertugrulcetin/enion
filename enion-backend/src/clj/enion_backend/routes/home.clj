@@ -11,6 +11,7 @@
    [procedure.async :refer [dispatch reg-pro]]
    [ring.util.http-response :as response]
    [ring.util.response]
+   [common.enion.skills :as common.skills]
    [clojure.tools.logging :as log]
    [mount.core :as mount :refer [defstate]])
   (:import
@@ -43,7 +44,7 @@
   (+ (Math/floor (* (Math/random) (+ (- max min) 1))) min))
 
 (defn- send-world-snapshots* []
-  ;(println (rand-between 50 100))
+  ;; Simulating latency...
   (Thread/sleep (rand-between 50 100))
   (let [w @world]
     (doseq [player-id (keys w)]
@@ -110,8 +111,8 @@
     (let [pos (if (= "orc" race)
                 (random-pos-for-orc)
                 (random-pos-for-human))
-          health 100
-          mana 100
+          health (get-in common.skills/classes [class :health])
+          mana (get-in common.skills/classes [class :mana])
           attrs {:id id
                  :username username
                  :race race
@@ -137,6 +138,11 @@
                       (assoc-in [id :mana] mana)))))
     (println "Connected to world state")
     true))
+
+(reg-pro
+  :request-all-players
+  (fn [_]
+    (map #(select-keys % [:id :username :race :class :health :mana :pos]) (vals @players))))
 
 (defn- reset-states []
   (reset! world {})

@@ -1,7 +1,8 @@
 (ns enion-cljs.ui.views
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :as common :refer [fire on]]
+    [common.enion.skills :as common.skills]
+    [enion-cljs.common :refer [fire on]]
     [enion-cljs.scene.entities.player :as player]
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.styles :as styles]
@@ -74,7 +75,7 @@
            skill-description]]]))))
 
 (defn- cooldown [skill]
-  (let [cooldown-secs (-> skill common/skills :cooldown)]
+  (let [cooldown-secs (-> skill common.skills/skills :cooldown)]
     (r/create-class
       {:component-did-mount
        (fn []
@@ -256,6 +257,8 @@
   {:hp true}
   {:mp true})
 
+(on :ui-send-msg #(dispatch [::events/add-message-to-info-box %]))
+
 (defn- info-message->class [message]
   (cond
     (:damage message) "damage"
@@ -266,7 +269,8 @@
     (:hp message) "hp-recover"
     (:mp message) "mp-recover"
     (:skill-failed message) "skill-failed"
-    (:too-far message) "skill-failed"))
+    (:too-far message) "skill-failed"
+    (:not-enough-mana message) "skill-failed"))
 
 (defn- info-message->text [message]
   (cond
@@ -279,7 +283,8 @@
     (= (:potion message) :hp) "Using HP potion"
     (= (:potion message) :mp) "Using MP potion"
     (:hp message) "240 HP recovered"
-    (:mp message) "120 MP recovered"))
+    (:mp message) "120 MP recovered"
+    (:not-enough-mana message) "Not enough mana!"))
 
 (defn- info-message [message]
   [:<>
@@ -359,9 +364,9 @@
                                                     (fn []
                                                       ;; TODO enable here
                                                       #_(when-not (= "idle" (player/get-state))
-                                                        (let [pos (player/get-position)]
-                                                          (reset! x (+ (* (j/get pos :x) 5) 175))
-                                                          (reset! y (+ (* (j/get pos :z) 5) 175)))))
+                                                          (let [pos (player/get-position)]
+                                                            (reset! x (+ (* (j/get pos :x) 5) 175))
+                                                            (reset! y (+ (* (j/get pos :z) 5) 175)))))
                                                     250)))
        :component-will-unmount (fn []
                                  (when-let [id @interval-id]

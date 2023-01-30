@@ -28,15 +28,15 @@
   (fn [[event x]]
     (fire event x)))
 
-(reg-event-fx
-  ::add-message-to-info-box-throttled
-  (fn [_ [_ msg]]
-    {::dispatch-throttle [::add-message-to-info-box [::add-message-to-info-box msg] 100]}))
-
 (reg-event-db
-  ::add-message-to-info-box
+  ::add-message-to-info-box*
   (fn [db [_ msg]]
     (update-in db [:info-box :messages] conj msg)))
+
+(reg-event-fx
+  ::add-message-to-info-box
+  (fn [_ [_ msg]]
+    {::dispatch-throttle [::add-message-to-info-box* [::add-message-to-info-box* msg] 100]}))
 
 (reg-event-db
   ::add-message-to-chat-all

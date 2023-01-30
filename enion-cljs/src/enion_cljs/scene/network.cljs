@@ -14,6 +14,8 @@
 
 (defonce send-state-interval-id (atom nil))
 
+(def sending-states-to-server-tick-rate (/ 1000 30))
+
 (defn connect [{:keys [url on-open on-message on-close on-error]}]
   (reset! socket (js/WebSocket. url))
   (j/assoc! @socket :binaryType "arraybuffer")
@@ -55,8 +57,9 @@
                 state (second s)
                 entity (st/get-other-player-entity id)]
           :when entity]
+    ;; TODO remove 'constantly' for prod
     (when-let [tw (j/get-in st/other-players [id :tween :interpolation])]
-      (j/call tw :stop))
+      (j/call (tw) :stop))
     (let [pos (pc/get-pos entity)
           x (j/get pos :x)
           y (j/get pos :y)
@@ -74,7 +77,7 @@
                             z (j/get initial-pos :z)]
                         (st/move-player entity x y z))))]
       (j/call tween-interpolation :start)
-      (j/assoc-in! st/other-players [id :tween :interpolation] tween-interpolation)
+      (j/assoc-in! st/other-players [id :tween :interpolation] (constantly tween-interpolation))
       (st/rotate-player id (:ex state) (:ey state) (:ez state))
       (st/set-anim-state id (:st state))
       nil)))
@@ -83,8 +86,6 @@
   (let [ws (:world-snapshot params)]
     (set! world ws)
     (process-world-snapshot ws)))
-
-(def sending-states-to-server-tick-rate (/ 1000 30))
 
 (defn send-states-to-server []
   (if-let [id @send-state-interval-id]
@@ -99,7 +100,14 @@
 
 (defmethod dispatch-pro-response :connect-to-world-state [params]
   (when (:connect-to-world-state params)
-    (send-states-to-server)))
+    (send-states-to-server)
+    (dispatch-pro :request-all-players)))
+
+(defmethod dispatch-pro-response :request-all-players [params]
+  (let [players (:request-all-players params)
+        current-players-ids (set (cons current-player-id (seq (js/Object.keys st/other-players))))
+        players (remove #(current-players-ids (:id %)) players)]
+    (fire :create-players players)))
 
 (on :start-ws
     (fn []

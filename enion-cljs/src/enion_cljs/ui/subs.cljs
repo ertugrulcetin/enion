@@ -1,6 +1,6 @@
 (ns enion-cljs.ui.subs
   (:require
-    [enion-cljs.common :as common]
+    [common.enion.skills :as common.skills]
     [re-frame.core :refer [reg-sub]]))
 
 (reg-sub
@@ -103,4 +103,4 @@
 (reg-sub
   ::skill-description
   (fn [db]
-    (some->> (:skill-description db) (get common/skills) :description)))
+    (some->> (:skill-description db) (get common.skills/skills) :description)))

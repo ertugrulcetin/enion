@@ -1,7 +1,8 @@
 (ns enion-cljs.scene.skills.warrior
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :as common :refer [fire on]]
+    [common.enion.skills :as common.skills]
+    [enion-cljs.common :refer [fire on dlog]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.simulation :as sm]
@@ -28,9 +29,17 @@
      {:anim-state "attackSlowDown" :event "onAttackSlowDownCall" :call? true :call-name :attack-slow-down}
      {:anim-state "attackSlowDown" :event "onAttackSlowDownEnd" :skill? true :end? true}]))
 
-(def last-one-hand-combo (atom (js/Date.now)))
+(def last-one-hand-combo (volatile! (js/Date.now)))
 
 (def close-attack-distance-threshold 0.75)
+
+(def attack-one-hand-cooldown (-> common.skills/skills (get "attackOneHand") :cooldown))
+
+(def attack-one-hand-required-mana (-> common.skills/skills (get "attackOneHand") :required-mana))
+(def attack-slow-down-required-mana (-> common.skills/skills (get "attackSlowDown") :required-mana))
+(def attack-r-required-mana (-> common.skills/skills (get "attackR") :required-mana))
+(def shield-required-mana (-> common.skills/skills (get "shieldWall") :required-mana))
+(def fleet-food-required-mana (-> common.skills/skills (get "fleetFoot") :required-mana))
 
 (on :attack-one-hand
     (fn [player-id]
@@ -72,9 +81,98 @@
   st/other-players
   )
 
+(let [too-far-msg {:too-far true}]
+  (defn- close-for-attack? [selected-player-id]
+    (let [result (<= (st/distance-to selected-player-id) close-attack-distance-threshold)]
+      (when-not result
+        (fire :ui-send-msg too-far-msg))
+      result)))
+
+(defn- r-combo? [e active-state selected-player-id]
+  (and (= active-state "attackOneHand")
+       (skills/skill-pressed? e "attackR")
+       (j/get player :can-r-attack-interrupt?)
+       (st/enemy-selected? selected-player-id)
+       (st/alive? selected-player-id)
+       (close-for-attack? selected-player-id)))
+
+(defn- one-hand-combo? [e active-state selected-player-id]
+  (and (= active-state "attackR")
+       (skills/skill-pressed? e "attackOneHand")
+       (j/get player :can-r-attack-interrupt?)
+       (> (- (js/Date.now) @last-one-hand-combo) (utils/rand-between
+                                                   attack-one-hand-cooldown
+                                                   (+ attack-one-hand-cooldown 400)))
+       (st/cooldown-ready? "attackOneHand")
+       (st/enemy-selected? selected-player-id)
+       (st/alive? selected-player-id)
+       (st/enough-mana? attack-one-hand-required-mana)
+       (close-for-attack? selected-player-id)))
+
+(defn- idle? [active-state]
+  (and (= "idle" active-state) (k/pressing-wasd?)))
+
+(defn- jump? [e active-state]
+  (and (skills/idle-run-states active-state)
+       (pc/key? e :KEY_SPACE) (j/get player :on-ground?)))
+
+(defn- attack-one-hand? [e active-state selected-player-id]
+  (and
+    (skills/idle-run-states active-state)
+    (skills/skill-pressed? e "attackOneHand")
+    (st/cooldown-ready? "attackOneHand")
+    (st/enemy-selected? selected-player-id)
+    (st/alive? selected-player-id)
+    (st/enough-mana? attack-one-hand-required-mana)
+    (close-for-attack? selected-player-id)))
+
+(defn- attack-slow-down? [e active-state selected-player-id]
+  (and
+    (skills/idle-run-states active-state)
+    (skills/skill-pressed? e "attackSlowDown")
+    (st/cooldown-ready? "attackSlowDown")
+    (st/enemy-selected? selected-player-id)
+    (st/alive? selected-player-id)
+    (st/enough-mana? attack-slow-down-required-mana)
+    (close-for-attack? selected-player-id)))
+
+(defn- attack-r? [e active-state selected-player-id]
+  (and
+    (skills/idle-run-states active-state)
+    (skills/skill-pressed? e "attackR")
+    (st/enemy-selected? selected-player-id)
+    (st/alive? selected-player-id)
+    (st/enough-mana? attack-r-required-mana)
+    (close-for-attack? selected-player-id)))
+
+(defn- shield-wall? [e]
+  (and
+    (skills/skill-pressed? e "shieldWall")
+    (st/cooldown-ready? "shieldWall")
+    (st/enough-mana? shield-required-mana)))
+
+(defn- fleet-foot? [e]
+  (and
+    (skills/skill-pressed? e "fleetFoot")
+    (st/cooldown-ready? "fleetFoot")
+    (st/enough-mana? fleet-food-required-mana)
+    (not (j/get player :fleet-foot?))))
+
+(defn- hp-potion? [e]
+  (and
+    (skills/skill-pressed? e "hpPotion")
+    (st/cooldown-ready? "hpPotion")
+    (st/cooldown-ready? "mpPotion")))
+
+(defn- mp-potion? [e]
+  (and
+    (skills/skill-pressed? e "mpPotion")
+    (st/cooldown-ready? "hpPotion")
+    (st/cooldown-ready? "mpPotion")))
+
 (defn process-skills [e]
-  ;; TODO add check if our char is alive
-  (when-not (-> e .-event .-repeat)
+  ;; TODO add check if our char is alive -- APPLY FOR ALL CLASSES - then DELETE THIS TODO
+  (when (and (not (-> e .-event .-repeat)) (st/alive?))
     (let [model-entity (st/get-model-entity)
           active-state (pc/get-anim-state model-entity)
           selected-player-id (st/get-selected-player-id)]
@@ -84,83 +182,48 @@
         active-state
         player)
       (cond
-        (and (= active-state "attackOneHand")
-             (skills/skill-pressed? e "attackR")
-             (j/get player :can-r-attack-interrupt?)
-             (st/enemy-selected? selected-player-id)
-             (st/alive? selected-player-id)
-             (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
+        (r-combo? e active-state selected-player-id)
         (do
-          (println "R combo!")
+          (dlog "R combo!")
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackOneHand" false)
           (pc/set-anim-boolean model-entity "attackR" true))
 
-        (and (= active-state "attackR")
-             (skills/skill-pressed? e "attackOneHand")
-             (j/get player :can-r-attack-interrupt?)
-             (> (- (js/Date.now) @last-one-hand-combo) (utils/rand-between 750 1200))
-             (st/cooldown-ready? "attackOneHand")
-             (st/enemy-selected? selected-player-id)
-             (st/alive? selected-player-id)
-             (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
+        (one-hand-combo? e active-state selected-player-id)
         (do
-          (println "one hand combo...!")
+          (dlog "one hand combo...!")
           (j/assoc-in! player [:skill->selected-player-id "attackOneHand"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackR" false)
           (pc/set-anim-boolean model-entity "attackOneHand" true)
-          (reset! last-one-hand-combo (js/Date.now)))
+          (vreset! last-one-hand-combo (js/Date.now)))
 
-        (and (= "idle" active-state) (k/pressing-wasd?))
+        (idle? active-state)
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (skills/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get player :on-ground?))
+        (jump? e active-state)
         (pc/set-anim-boolean model-entity "jump" true)
 
-        ;; TODO check enough mana?
-        (and
-          (skills/idle-run-states active-state)
-          (skills/skill-pressed? e "attackOneHand")
-          (st/cooldown-ready? "attackOneHand")
-          (st/enemy-selected? selected-player-id)
-          (st/alive? selected-player-id)
-          (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
+        (attack-one-hand? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackOneHand"] selected-player-id)
           (pc/set-anim-boolean (st/get-model-entity) "attackOneHand" true))
 
-        (and
-          (skills/idle-run-states active-state)
-          (skills/skill-pressed? e "attackSlowDown")
-          (st/cooldown-ready? "attackSlowDown")
-          (st/enemy-selected? selected-player-id)
-          (st/alive? selected-player-id)
-          (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
+        (attack-slow-down? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackSlowDown"] selected-player-id)
           (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true))
 
-        (and
-          (skills/idle-run-states active-state)
-          (skills/skill-pressed? e "attackR")
-          (st/enemy-selected? selected-player-id)
-          (st/alive? selected-player-id)
-          (<= (st/distance-to selected-player-id) close-attack-distance-threshold))
+        (attack-r? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackR" true))
 
-        (and
-          (skills/skill-pressed? e "shieldWall")
-          (st/cooldown-ready? "shieldWall"))
+        (shield-wall? e)
         (do
           (fire :ui-cooldown "shieldWall")
           (skills.effects/apply-effect-shield-wall player))
 
-        (and
-          (skills/skill-pressed? e "fleetFoot")
-          (st/cooldown-ready? "fleetFoot")
-          (not (j/get player :fleet-foot?)))
+        (fleet-foot? e)
         (do
           (fire :ui-cooldown "fleetFoot")
           (skills.effects/apply-effect-fleet-foot player)
@@ -172,20 +235,14 @@
                (j/assoc! player :fleet-foot? false)
                (j/assoc! player :speed 550)
                (pc/update-anim-speed (st/get-model-entity) "run" 1))
-            (-> common/skills (get "fleetFoot") :cooldown (- 1500))))
+            (-> common.skills/skills (get "fleetFoot") :cooldown (- 1500))))
 
-        (and
-          (skills/skill-pressed? e "hpPotion")
-          (st/cooldown-ready? "hpPotion")
-          (st/cooldown-ready? "mpPotion"))
+        (hp-potion? e)
         (do
           (fire :ui-cooldown "hpPotion")
           (skills.effects/apply-effect-hp-potion player))
 
-        (and
-          (skills/skill-pressed? e "mpPotion")
-          (st/cooldown-ready? "hpPotion")
-          (st/cooldown-ready? "mpPotion"))
+        (mp-potion? e)
         (do
           (fire :ui-cooldown "mpPotion")
           (skills.effects/apply-effect-mp-potion player))))))

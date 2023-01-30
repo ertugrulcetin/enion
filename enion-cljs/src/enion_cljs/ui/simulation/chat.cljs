@@ -43,7 +43,7 @@
 
   (js/setInterval
     (fn []
-      (dispatch [::events/add-message-to-info-box-throttled (info-box-data (rand-int (inc 100)))]))
+      (dispatch [::events/add-message-to-info-box (info-box-data (rand-int (inc 100)))]))
     10)
 
   (js/setInterval
@@ -75,11 +75,11 @@
   @(subscribe [::subs/info-box-messages])
 
   (doseq [m info-box-data]
-    (dispatch [::events/add-message-to-info-box m]))
+    (dispatch [::events/add-message-to-info-box* m]))
 
-  (dispatch [::events/add-message-to-info-box {:mp true}])
-  (dispatch [::events/add-message-to-info-box {:hp true}])
+  (dispatch [::events/add-message-to-info-box* {:mp true}])
+  (dispatch [::events/add-message-to-info-box* {:hp true}])
 
   (dotimes [_ 200]
-    (dispatch [::events/add-message-to-info-box {:hp true}]))
+    (dispatch [::events/add-message-to-info-box* {:hp true}]))
   )

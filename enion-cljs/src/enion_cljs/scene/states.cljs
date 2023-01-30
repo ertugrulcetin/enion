@@ -169,3 +169,10 @@
       (when-not (= state current-anim-state)
         (pc/set-anim-boolean entity current-anim-state false)
         (pc/set-anim-boolean entity state true)))))
+
+(let [not-enough-mana-msg {:not-enough-mana true}]
+  (defn enough-mana? [required-mana]
+    (let [result (>= (j/get player :mana) required-mana)]
+      (when-not result
+        (fire :ui-send-msg not-enough-mana-msg))
+      result)))

@@ -12,6 +12,9 @@
   (:require-macros
    [enion-cljs.scene.macros :refer [fnt]]))
 
+(comment
+  (println enion.skills)
+  )
 (defn- clear-depth-buffer-layer []
   (let [layer (j/call-in pc/app [:scene :layers :getLayerByName] "Clear Depth")]
     (j/assoc! layer :clearDepthBuffer true)))
@@ -34,6 +37,8 @@
              (init-fn this)
              (init-ui))
      :post-init (fn []
+                  ;;TODO window.Terrain/Water/Wave acik onlari da null'a setle
+                  (j/assoc-in! pc/app [:graphicsDevice :maxPixelRatio] 0.75)
                   (when dev?
                     (simulation/init))
                   (when-not dev?
