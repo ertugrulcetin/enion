@@ -414,42 +414,44 @@
        nil))))
 
 (defn create-player [{:keys [id username class race pos health mana] :as opts}]
-  (let [enemy? (not= race (j/get player :race))
-        entity-name (if enemy? "enemy_player" "ally_player")
-        ;; TODO belki ana kullanilan entityleri bir kere fetch edip cachleyip oradan kullaniriz yoksa karisiklik olabilir
-        ;; ayni isimden dolayi, bir kere template entitye oldu 2 kere username sprite'i olusmustu
-        entity (pc/clone (pc/find-by-name entity-name))
-        _ (j/assoc! entity :id id)
-        [x y z] pos
-        params {:entity entity
-                :username username
-                :class class
-                :race race
-                :enemy? enemy?
-                :other-player? true}
-        _ (pc/add-child (pc/root) entity)
-        [template-entity model-entity] (create-model-and-template-entity params)
-        effects (add-skill-effects template-entity)
-        state (-> opts
-                  (dissoc :pos)
-                  (assoc :entity entity
-                         :model-entity model-entity
-                         :template-entity template-entity
-                         :effects effects
-                         :enemy? enemy?
-                         :health health
-                         :mana mana
-                         :heal-counter 0
-                         :tween {:interpolation nil
-                                 :initial-pos #js {}
-                                 :last-pos #js {}})
-                  clj->js)]
-    (create-username-text (assoc params :template-entity template-entity))
-    (create-skill-fns state true)
-    (if enemy?
-      (j/call-in entity [:rigidbody :teleport] x y z)
-      (pc/set-pos entity x y z))
-    state))
+  (if (j/get st/other-players id)
+    (js/console.warn "Player with this ID already exists!")
+    (let [enemy? (not= race (j/get player :race))
+          entity-name (if enemy? "enemy_player" "ally_player")
+          ;; TODO belki ana kullanilan entityleri bir kere fetch edip cachleyip oradan kullaniriz yoksa karisiklik olabilir
+          ;; ayni isimden dolayi, bir kere template entitye oldu 2 kere username sprite'i olusmustu
+          entity (pc/clone (pc/find-by-name entity-name))
+          _ (j/assoc! entity :id id)
+          [x y z] pos
+          params {:entity entity
+                  :username username
+                  :class class
+                  :race race
+                  :enemy? enemy?
+                  :other-player? true}
+          _ (pc/add-child (pc/root) entity)
+          [template-entity model-entity] (create-model-and-template-entity params)
+          effects (add-skill-effects template-entity)
+          state (-> opts
+                    (dissoc :pos)
+                    (assoc :entity entity
+                           :model-entity model-entity
+                           :template-entity template-entity
+                           :effects effects
+                           :enemy? enemy?
+                           :health health
+                           :mana mana
+                           :heal-counter 0
+                           :tween {:interpolation nil
+                                   :initial-pos #js {}
+                                   :last-pos #js {}})
+                    clj->js)]
+      (create-username-text (assoc params :template-entity template-entity))
+      (create-skill-fns state true)
+      (if enemy?
+        (j/call-in entity [:rigidbody :teleport] x y z)
+        (pc/set-pos entity x y z))
+      state)))
 
 (defn- update-fleet-foot-cooldown-if-asas [class]
   (when (= "asas" class)
