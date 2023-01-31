@@ -32,7 +32,8 @@
                  [clojure-msgpack "1.2.1"]
                  [org.clojars.ertucetin/procedure.async "0.1.0"]
                  [amalloy/ring-gzip-middleware "0.1.4"]
-                 [ring-cors/ring-cors "0.1.13"]]
+                 [ring-cors/ring-cors "0.1.13"]
+                 [org.clojure/core.async "1.6.673"]]
 
   :min-lein-version "2.0.0"
 

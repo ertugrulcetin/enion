@@ -3,6 +3,7 @@
     [applied-science.js-interop :as j]
     [enion-cljs.common :as common :refer [fire]]
     [enion-cljs.scene.keyboard :as k]
+    [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.states :refer [player get-model-entity get-player-entity]]))
 
@@ -31,6 +32,11 @@
    {:anim-state "jump" :event "onJumpEnd" :end? true}
    {:anim-state "jump" :event "onJumpStart" :call? true :f (fn [player-entity _]
                                                              (pc/apply-impulse player-entity 0 200 0))}])
+
+(defmulti skill-response ffirst)
+
+(defmethod net/dispatch-pro-response :skill [params]
+  (js/console.log params))
 
 (defn can-skill-be-cancelled? [anim-state active-state state]
   (and (= active-state anim-state)
@@ -79,10 +85,13 @@
                       call? (let [selected-player-id (j/get-in player [:skill->selected-player-id anim-state])]
                               (j/assoc! player :skill-locked? true)
                               (j/assoc-in! player [:skill->selected-player-id anim-state] nil)
-                              (when call-name
-                                (js/setTimeout
-                                  #(fire call-name selected-player-id)
-                                  latency)))
+
+                              (dispatch-pro :skill (cond-> {:skill anim-state}
+                                                     selected-player-id (assoc :selected-player-id selected-player-id)))
+                              #_(when call-name
+                        (js/setTimeout
+                          #(fire call-name selected-player-id)
+                          latency)))
                       r-release? (j/assoc! player :can-r-attack-interrupt? true)
                       r-lock? (j/assoc! player :can-r-attack-interrupt? false)))))))
 

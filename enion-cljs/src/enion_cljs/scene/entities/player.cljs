@@ -119,7 +119,9 @@
   (if-let [id (->> (js/Object.keys other-players)
                    (map
                      (fn [id]
+                       (println "id: " id)
                        (let [player (st/get-other-player id)
+                             _ (println "(j/get player :entity): " (j/get player :entity))
                              player-pos (pc/get-pos (j/get player :entity))
                              distance (pc/distance (get-position) player-pos)
                              ally? (not (j/get player :enemy?))
@@ -165,6 +167,7 @@
     (skills/register-key->skills (common/skill-slot-order-by-class (keyword class)))
     (pc/on-keyboard :EVENT_KEYDOWN
                     (fn [e]
+                      ;; TODO chat acikken burayi disable edelim
                       (process-esc e)
                       (process-skills e)
                       (select-closest-enemy e)
@@ -288,7 +291,7 @@
       (j/assoc! (pc/find-by-name character-model-entity (str race "_" class "_mesh")) :enabled false)
       (j/assoc! (pc/find-by-name character-model-entity (str race "_" class "_mesh_lod_0")) :enabled true))
     (pc/set-loc-pos character-template-entity 0 0 0)
-    (when (and other-player? (not enemy?))
+    (when other-player?
       (pc/set-loc-pos character-model-entity 0 0 0))
     (pc/add-child entity character-template-entity)
     [character-template-entity character-model-entity]))
@@ -414,6 +417,8 @@
        nil))))
 
 (defn create-player [{:keys [id username class race pos health mana] :as opts}]
+  (when-not id
+    (throw (ex-info "Id does not exist for player!" {})))
   (if (j/get st/other-players id)
     (js/console.warn "Player with this ID already exists!")
     (let [enemy? (not= race (j/get player :race))
@@ -458,7 +463,6 @@
     (common/update-skill-cooldown "fleetFoot" 13000)))
 
 (defn- init-fn [this player-data]
-  (println "player-data: " player-data)
   (let [player-entity (j/get this :entity)
         _ (init-player player-data player-entity)
         opts {:id (:id player-data)
@@ -489,67 +493,68 @@
 
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [dt _]
-  (let [speed (j/get player :speed)
-        camera (j/get player :camera)
-        right (j/get camera :right)
-        forward (j/get camera :forward)
-        world-dir (j/get player :world-dir)
-        temp-dir (j/get player :temp-dir)
-        player-entity (st/get-player-entity)
-        model-entity (st/get-model-entity)]
-    (when-not (skills/char-cant-run?)
-      (if (j/get player :target-pos-available?)
-        (let [target (j/get player :target-pos)
-              temp-dir (pc/copyv temp-dir target)
-              pos (get-position)
-              dir (-> temp-dir (pc/sub pos) pc/normalize (pc/scale speed))]
-          (if (>= (pc/distance target pos) 0.2)
-            (pc/apply-force player-entity (j/get dir :x) 0 (j/get dir :z))
-            (do
-              (j/assoc! player :target-pos-available? false)
-              (pc/set-locater-target)
-              (process-running))))
-        (do
-          (pc/setv world-dir 0 0 0)
-          (j/assoc! player :x 0 :z 0 :target-y (j/get-in entity.camera/state [:eulers :x]))
-          (when (pc/pressed? :KEY_W)
-            (j/update! player :z inc))
-          (when (pc/pressed? :KEY_A)
-            (j/update! player :x dec))
-          (when (pc/pressed? :KEY_S)
-            (j/update! player :z dec))
-          (when (pc/pressed? :KEY_D)
-            (j/update! player :x inc))
+  (when (st/alive?)
+    (let [speed (j/get player :speed)
+          camera (j/get player :camera)
+          right (j/get camera :right)
+          forward (j/get camera :forward)
+          world-dir (j/get player :world-dir)
+          temp-dir (j/get player :temp-dir)
+          player-entity (st/get-player-entity)
+          model-entity (st/get-model-entity)]
+      (when-not (skills/char-cant-run?)
+        (if (j/get player :target-pos-available?)
+          (let [target (j/get player :target-pos)
+                temp-dir (pc/copyv temp-dir target)
+                pos (get-position)
+                dir (-> temp-dir (pc/sub pos) pc/normalize (pc/scale speed))]
+            (if (>= (pc/distance target pos) 0.2)
+              (pc/apply-force player-entity (j/get dir :x) 0 (j/get dir :z))
+              (do
+                (j/assoc! player :target-pos-available? false)
+                (pc/set-locater-target)
+                (process-running))))
+          (do
+            (pc/setv world-dir 0 0 0)
+            (j/assoc! player :x 0 :z 0 :target-y (j/get-in entity.camera/state [:eulers :x]))
+            (when (pc/pressed? :KEY_W)
+              (j/update! player :z inc))
+            (when (pc/pressed? :KEY_A)
+              (j/update! player :x dec))
+            (when (pc/pressed? :KEY_S)
+              (j/update! player :z dec))
+            (when (pc/pressed? :KEY_D)
+              (j/update! player :x inc))
 
-          (when (or (not= (j/get player :x) 0)
-                    (not= (j/get player :z) 0))
-            (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir forward) (j/get player :z)))
-            (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir right) (j/get player :x)))
-            (-> world-dir pc/normalize (pc/scale speed))
-            (pc/apply-force player-entity (j/get world-dir :x) 0 (j/get world-dir :z)))
+            (when (or (not= (j/get player :x) 0)
+                      (not= (j/get player :z) 0))
+              (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir forward) (j/get player :z)))
+              (pc/addv world-dir (pc/mul-scalar (pc/copyv temp-dir right) (j/get player :x)))
+              (-> world-dir pc/normalize (pc/scale speed))
+              (pc/apply-force player-entity (j/get world-dir :x) 0 (j/get world-dir :z)))
 
-          (cond
-            (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_W)) (j/update! player :target-y + 45)
-            (and (pc/pressed? :KEY_D) (pc/pressed? :KEY_W)) (j/update! player :target-y - 45)
-            (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_S)) (j/update! player :target-y + 135)
-            (and (pc/pressed? :KEY_D) (pc/pressed? :KEY_S)) (j/update! player :target-y - 135)
-            (pc/pressed? :KEY_A) (j/update! player :target-y + 90)
-            (pc/pressed? :KEY_D) (j/update! player :target-y - 90)
-            (pc/pressed? :KEY_S) (j/update! player :target-y + 180))
-          (when (pressing-wasd-or-has-target?)
-            (pc/set-loc-euler model-entity 0 (j/get player :target-y) 0)
-            (pc/set-anim-boolean model-entity "run" true))))
-      (when (and (= "run" (pc/get-anim-state model-entity)) (j/get player :on-ground?))
-        (when (> (j/get player :sound-run-elapsed-time) (if (j/get player :fleet-foot?) 0.3 0.4))
-          (if (j/get player :sound-run-1?)
-            (do
-              (j/call-in (st/get-player-entity) [:c :sound :slots "run_1" :play])
-              (j/assoc! player :sound-run-1? false))
-            (do
-              (j/call-in (st/get-player-entity) [:c :sound :slots "run_2" :play])
-              (j/assoc! player :sound-run-1? true)))
-          (j/assoc! player :sound-run-elapsed-time 0))
-        (j/update! player :sound-run-elapsed-time + dt)))))
+            (cond
+              (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_W)) (j/update! player :target-y + 45)
+              (and (pc/pressed? :KEY_D) (pc/pressed? :KEY_W)) (j/update! player :target-y - 45)
+              (and (pc/pressed? :KEY_A) (pc/pressed? :KEY_S)) (j/update! player :target-y + 135)
+              (and (pc/pressed? :KEY_D) (pc/pressed? :KEY_S)) (j/update! player :target-y - 135)
+              (pc/pressed? :KEY_A) (j/update! player :target-y + 90)
+              (pc/pressed? :KEY_D) (j/update! player :target-y - 90)
+              (pc/pressed? :KEY_S) (j/update! player :target-y + 180))
+            (when (pressing-wasd-or-has-target?)
+              (pc/set-loc-euler model-entity 0 (j/get player :target-y) 0)
+              (pc/set-anim-boolean model-entity "run" true))))
+        (when (and (= "run" (pc/get-anim-state model-entity)) (j/get player :on-ground?))
+          (when (> (j/get player :sound-run-elapsed-time) (if (j/get player :fleet-foot?) 0.3 0.4))
+            (if (j/get player :sound-run-1?)
+              (do
+                (j/call-in (st/get-player-entity) [:c :sound :slots "run_1" :play])
+                (j/assoc! player :sound-run-1? false))
+              (do
+                (j/call-in (st/get-player-entity) [:c :sound :slots "run_2" :play])
+                (j/assoc! player :sound-run-1? true)))
+            (j/assoc! player :sound-run-elapsed-time 0))
+          (j/update! player :sound-run-elapsed-time + dt))))))
 
 (defn enable-effect [name]
   (j/assoc! (pc/find-by-name (st/get-player-entity) name) :enabled true))

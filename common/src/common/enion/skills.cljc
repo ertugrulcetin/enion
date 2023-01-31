@@ -87,6 +87,8 @@
    ;;Common
    "attackR" {:required-mana 25
               :damage-fn #(rand-between 20 50)}
+
+   ;;TODO cooldown is different for asas, handle in the backend!
    "fleetFoot" {:cooldown 26000
                 :name "Fleet Foot"
                 :description (str "Increases your character's running speed by 30% for 25 seconds. "

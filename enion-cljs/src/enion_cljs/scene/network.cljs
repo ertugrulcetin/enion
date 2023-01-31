@@ -1,8 +1,7 @@
 (ns enion-cljs.scene.network
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [fire on]]
-    [enion-cljs.scene.entities.player :as entity.player]
+    [enion-cljs.common :refer [fire on dlog]]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.states :as st]
     [msgpack-cljs.core :as msg]))
@@ -41,46 +40,47 @@
   (set! current-player-id (-> params :init :id)))
 
 (defmethod dispatch-pro-response :player-join [params]
-  (println "new join!")
-  (-> (:player-join params) entity.player/create-player st/add-player))
+  (dlog "new join" (:player-join params))
+  (fire :create-players [(:player-join params)]))
 
 (defmethod dispatch-pro-response :player-exit [params]
-  (println "player left")
+  (dlog "player left")
   (-> (:player-exit params) st/destroy-player))
-
-(defmethod dispatch-pro-response :spawn [params]
-  (entity.player/spawn (:spawn params)))
 
 (defn- process-world-snapshot [world]
   (doseq [s (dissoc world current-player-id)
           :let [id (first s)
-                state (second s)
-                entity (st/get-other-player-entity id)]
+                new-state (second s)
+                other-player (st/get-other-player id)
+                entity (j/get other-player :entity)]
           :when entity]
     ;; TODO remove 'constantly' for prod
     (when-let [tw (j/get-in st/other-players [id :tween :interpolation])]
       (j/call (tw) :stop))
-    (let [pos (pc/get-pos entity)
-          x (j/get pos :x)
-          y (j/get pos :y)
-          z (j/get pos :z)
-          initial-pos (j/get-in st/other-players [id :tween :initial-pos])
-          _ (j/assoc! initial-pos :x x :y y :z z)
-          last-pos (j/get-in st/other-players [id :tween :last-pos])
-          _ (j/assoc! last-pos :x (:px state) :y (:py state) :z (:pz state))
-          tween-interpolation (-> (j/call entity :tween initial-pos)
-                                  (j/call :to last-pos 0.05 pc/linear))
-          _ (j/call tween-interpolation :on "update"
-                    (fn []
-                      (let [x (j/get initial-pos :x)
-                            y (j/get initial-pos :y)
-                            z (j/get initial-pos :z)]
-                        (st/move-player entity x y z))))]
-      (j/call tween-interpolation :start)
-      (j/assoc-in! st/other-players [id :tween :interpolation] (constantly tween-interpolation))
-      (st/rotate-player id (:ex state) (:ey state) (:ez state))
-      (st/set-anim-state id (:st state))
-      nil)))
+    ;; TODO bu checkten dolayi karakter havada basliyor
+    ;; TODO also do not run (st/move-player) for players far away - LOD optimization
+    (when (or (not= "idle" (:st new-state))
+              (not (some-> id st/get-model-entity pc/get-anim-state (= "idle"))))
+      (let [pos (pc/get-pos entity)
+            x (j/get pos :x)
+            y (j/get pos :y)
+            z (j/get pos :z)
+            initial-pos (j/get-in st/other-players [id :tween :initial-pos])
+            _ (j/assoc! initial-pos :x x :y y :z z)
+            last-pos (j/get-in st/other-players [id :tween :last-pos])
+            _ (j/assoc! last-pos :x (:px new-state) :y (:py new-state) :z (:pz new-state))
+            tween-interpolation (-> (j/call entity :tween initial-pos)
+                                    (j/call :to last-pos 0.05 pc/linear))
+            _ (j/call tween-interpolation :on "update"
+                      (fn []
+                        (let [x (j/get initial-pos :x)
+                              y (j/get initial-pos :y)
+                              z (j/get initial-pos :z)]
+                          (st/move-player other-player entity x y z))))]
+        (j/call tween-interpolation :start)
+        (j/assoc-in! st/other-players [id :tween :interpolation] (constantly tween-interpolation))))
+    (st/rotate-player id (:ex new-state) (:ey new-state) (:ez new-state))
+    (st/set-anim-state id (:st new-state))))
 
 (defmethod dispatch-pro-response :world-snapshot [params]
   (let [ws (:world-snapshot params)]
@@ -106,8 +106,9 @@
 (defmethod dispatch-pro-response :request-all-players [params]
   (let [players (:request-all-players params)
         current-players-ids (set (cons current-player-id (seq (js/Object.keys st/other-players))))
-        players (remove #(current-players-ids (:id %)) players)]
-    (fire :create-players players)))
+        players (remove #(or (current-players-ids (:id %)) (nil? (:id %))) players)]
+    (when (seq players)
+      (fire :create-players players))))
 
 (on :start-ws
     (fn []

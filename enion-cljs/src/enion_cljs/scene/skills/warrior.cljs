@@ -4,6 +4,7 @@
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on dlog]]
     [enion-cljs.scene.keyboard :as k]
+    [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.simulation :as sm]
     [enion-cljs.scene.skills.core :as skills]
@@ -225,6 +226,7 @@
 
         (fleet-foot? e)
         (do
+          (dispatch-pro :skill {:skill "fleetFoot"})
           (fire :ui-cooldown "fleetFoot")
           (skills.effects/apply-effect-fleet-foot player)
           (j/assoc! player

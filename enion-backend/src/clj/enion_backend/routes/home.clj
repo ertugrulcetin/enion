@@ -115,7 +115,8 @@
           mana (get-in common.skills/classes [class :mana])
           attrs {:id id
                  :username username
-                 :race race
+                 ;:race race
+                 :race (if (odd? id) "human" "orc")
                  :class class
                  :health health
                  :mana mana
@@ -143,6 +144,12 @@
   :request-all-players
   (fn [_]
     (map #(select-keys % [:id :username :race :class :health :mana :pos]) (vals @players))))
+
+(reg-pro
+  :skill
+  (fn [{:keys [id data]}]
+    (println data)
+    ))
 
 (defn- reset-states []
   (reset! world {})
