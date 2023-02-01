@@ -37,11 +37,11 @@
   (layout/render request "home.html" {:docs (-> "docs/docs.md" io/resource slurp)}))
 
 (defn- send!
-  [player-id id result]
+  [player-id pro-id result]
   ;; TODO check if socket closed or not!
   (when result
     (when-let [socket (get-in @players [player-id :socket])]
-      (s/put! socket (msg/pack (hash-map id result))))))
+      (s/put! socket (msg/pack (hash-map pro-id result))))))
 
 (defn rand-between [min max]
   (+ (Math/floor (* (Math/random) (+ (- max min) 1))) min))
@@ -170,9 +170,64 @@
 (defn- get-required-mana [skill]
   (-> common.skills/skills (get skill) :required-mana))
 
+(defn use-potion [health-or-mana value max]
+  (Math/min ^long (+ health-or-mana value) ^long max))
+
+(defn- distance
+  ([x x1 z z1]
+   (let [dx (- x x1)
+         dz (- z z1)]
+     (Math/sqrt (+ (* dx dx) (* dz dz)))))
+  ([x x1 y y1 z z1]
+   (let [dx (- x x1)
+         dy (- y y1)
+         dz (- z z1)]
+     (Math/sqrt (+ (* dx dx) (* dy dy) (* dz dz))))))
+
 (defmulti apply-skill (fn [{:keys [data]}]
                         (:skill data)))
 
+(defn- close-to-attack? [player-world-state other-player-world-state]
+  (let [x (:px player-world-state)
+        y (:py player-world-state)
+        z (:pz player-world-state)
+        x1 (:px other-player-world-state)
+        y1 (:py other-player-world-state)
+        z1 (:pz other-player-world-state)]
+    (<= (distance x x1 y y1 z z1) (+ common.skills/close-attack-distance-threshold 0.25))))
+
+(defmethod apply-skill "attackOneHand" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
+  (when-let [player (get @players id)]
+    (when (get @players selected-player-id)
+      (let [w @world
+            player-world-state (get w id)
+            other-player-world-state (get w selected-player-id)]
+        (cond
+          (> ping 5000) skill-failed
+          (not (alive? player-world-state)) skill-failed
+          (not (alive? other-player-world-state)) skill-failed
+          (not (enough-mana? skill player-world-state)) not-enough-mana
+          (not (cooldown-finished? skill player)) skill-failed
+          (not (close-to-attack? player-world-state other-player-world-state)) too-far
+          :else (let [required-mana (get-required-mana skill)
+                      ;; TODO update damage, player might have defense or poison etc.
+                      damage ((-> common.skills/skills (get skill) :damage-fn))
+                      health-after-damage (- (:health other-player-world-state) damage)
+                      health-after-damage (Math/max ^long health-after-damage 0)]
+                  (swap! world (fn [world]
+                                 (-> world
+                                     (update-in [id :mana] - required-mana)
+                                     (assoc-in [selected-player-id :health] health-after-damage))))
+                  (swap! players assoc-in [id :last-time :skill skill] (now))
+                  (when (= 0 health-after-damage)
+                    (swap! players assoc-in [id :last-time :died] (now)))
+                  (send! selected-player-id :gotAttackOneHandDamage {:damage damage
+                                                                     :player-id id})
+                  {:skill skill
+                   :damage damage
+                   :selected-player-id selected-player-id}))))))
+
+;; TODO scheduler'da ilerideki bir taski iptal etmenin yolunu bul, ornegin adam posion yedi ama posion gecene kadar cure aldi gibi...
 ;; TODO adjust cooldown for asas class
 (defmethod apply-skill "fleetFoot" [{:keys [id ping] {:keys [skill]} :data}]
   (when-let [player (get @players id)]
@@ -187,27 +242,60 @@
                 (swap! players assoc-in [id :last-time :skill skill] (now))
                 true)))))
 
-@world
-(clojure.pprint/pprint @players)
+(defmethod apply-skill "hpPotion" [{:keys [id ping] {:keys [skill]} :data}]
+  (when-let [player (get @players id)]
+    (let [world-state (get @world id)]
+      (cond
+        (> ping 5000) skill-failed
+        (not (alive? world-state)) skill-failed
+        (not (cooldown-finished? skill player)) skill-failed
+        :else (let [total-health (get player :health)]
+                (swap! world update-in [id :health] use-potion (-> common.skills/skills (get skill) :hp) total-health)
+                (swap! players assoc-in [id :last-time :skill skill] (now))
+                true)))))
+
+(defmethod apply-skill "mpPotion" [{:keys [id ping] {:keys [skill]} :data}]
+  (when-let [player (get @players id)]
+    (let [world-state (get @world id)]
+      (cond
+        (> ping 5000) skill-failed
+        (not (alive? world-state)) skill-failed
+        (not (cooldown-finished? skill player)) skill-failed
+        :else (let [total-mana (get player :mana)]
+                (swap! world update-in [id :mana] use-potion (-> common.skills/skills (get skill) :mp) total-mana)
+                (swap! players assoc-in [id :last-time :skill skill] (now))
+                true)))))
+
+(comment
+  @world
+  (swap! world assoc-in [76 :health] 900)
+  (swap! world assoc-in [76 :mana] 0)
+  (clojure.pprint/pprint @players)
+
+  (reset-states)
+  @world
+  @players
+  (swap! world assoc-in [29 :mana] 1000)
+  (mount/start)
+  (mount/stop)
+  )
 
 (reg-pro
   :skill
   (fn [opts]
-    (apply-skill opts)))
+    (try
+      (apply-skill opts)
+      (catch Throwable e
+        (log/error e
+                   "Something went wrong when applying skill."
+                   (pr-str (select-keys opts [:id :data :ping]))
+                   (get @players (:id opts)))
+        skill-failed))))
 
 (defn- reset-states []
   (reset! world {})
   (reset! players {})
   (reset! id-generator 0))
-
-(comment
-  (reset-states)
-  @world
-  @players
-
-  (mount/start)
-  (mount/stop)
-  )
 
 (defn- ws-handler
   [req]

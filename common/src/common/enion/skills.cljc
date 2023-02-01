@@ -1,6 +1,8 @@
 (ns common.enion.skills
   (:require [clojure.string :as str]))
 
+(def close-attack-distance-threshold 0.75)
+
 (defn rand-between [min max]
   (+ (Math/floor (* (Math/random) (+ (- max min) 1))) min))
 
@@ -96,8 +98,10 @@
                 :required-mana 50}
    "hpPotion" {:cooldown 1500
                :name "HP Potion"
-               :description "Restores 240 HP"}
+               :description "Restores 240 HP"
+               :hp 240}
    "mpPotion" {:cooldown 1500
                :name "MP Potion"
-               :description "Restores 360 MP"}})
+               :description "Restores 360 MP"
+               :mp 360}})
 

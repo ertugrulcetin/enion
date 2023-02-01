@@ -15,6 +15,7 @@
 (comment
   (println enion.skills)
   )
+
 (defn- clear-depth-buffer-layer []
   (let [layer (j/call-in pc/app [:scene :layers :getLayerByName] "Clear Depth")]
     (j/assoc! layer :clearDepthBuffer true)))

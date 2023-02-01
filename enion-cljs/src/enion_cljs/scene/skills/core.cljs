@@ -1,11 +1,11 @@
 (ns enion-cljs.scene.skills.core
   (:require
-   [applied-science.js-interop :as j]
-   [enion-cljs.common :as common :refer [fire]]
-   [enion-cljs.scene.keyboard :as k]
-   [enion-cljs.scene.network :as net :refer [dispatch-pro]]
-   [enion-cljs.scene.pc :as pc]
-   [enion-cljs.scene.states :refer [player get-model-entity get-player-entity]]))
+    [applied-science.js-interop :as j]
+    [enion-cljs.common :as common :refer [fire]]
+    [enion-cljs.scene.keyboard :as k]
+    [enion-cljs.scene.network :as net :refer [dispatch-pro]]
+    [enion-cljs.scene.pc :as pc]
+    [enion-cljs.scene.states :refer [player get-model-entity get-player-entity]]))
 
 (def key->skill)
 
@@ -33,14 +33,16 @@
    {:anim-state "jump" :event "onJumpStart" :f (fn [player-entity _]
                                                  (pc/apply-impulse player-entity 0 200 0))}])
 
-(defmulti skill-response ffirst)
+(defmulti skill-response #(-> % :skill :skill))
 
 (defmethod net/dispatch-pro-response :skill [params]
-  (js/console.log params))
+  (if-let [error (-> params :skill :error)]
+    (fire :ui-send-msg (hash-map error true))
+    (skill-response params)))
 
 (defn can-skill-be-cancelled? [anim-state active-state state]
   (and (= active-state anim-state)
-    (not (j/get state :skill-locked?))))
+       (not (j/get state :skill-locked?))))
 
 (defn cancel-skill [anim-state]
   (let [model-entity (get-model-entity)]
@@ -66,40 +68,40 @@
                     f
                     call-name]} events]
       (pc/on-anim model-entity event
-        (fn []
-          (when f
-            (f player-entity))
-          (when end?
-            (pc/set-anim-boolean model-entity anim-state false)
-            (when (k/pressing-wasd?)
-              (pc/set-anim-boolean model-entity "run" true))
-            (when skill?
-              (j/assoc! player
-                :skill-locked? false
-                :can-r-attack-interrupt? false))
-            (when-let [target (and (skills-char-cant-run anim-state)
-                                (j/get player :target-pos-available?)
-                                (j/get player :target-pos))]
-              (pc/look-at model-entity (j/get target :x) (j/get (pc/get-pos model-entity) :y) (j/get target :z) true)))
-          (cond
-            call? (let [selected-player-id (j/get-in player [:skill->selected-player-id anim-state])]
-                    (j/assoc! player :skill-locked? true)
-                    (j/assoc-in! player [:skill->selected-player-id anim-state] nil)
+                  (fn []
+                    (when f
+                      (f player-entity))
+                    (when end?
+                      (pc/set-anim-boolean model-entity anim-state false)
+                      (when (k/pressing-wasd?)
+                        (pc/set-anim-boolean model-entity "run" true))
+                      (when skill?
+                        (j/assoc! player
+                                  :skill-locked? false
+                                  :can-r-attack-interrupt? false))
+                      (when-let [target (and (skills-char-cant-run anim-state)
+                                             (j/get player :target-pos-available?)
+                                             (j/get player :target-pos))]
+                        (pc/look-at model-entity (j/get target :x) (j/get (pc/get-pos model-entity) :y) (j/get target :z) true)))
+                    (cond
+                      call? (let [selected-player-id (j/get-in player [:skill->selected-player-id anim-state])]
+                              (j/assoc! player :skill-locked? true)
+                              (j/assoc-in! player [:skill->selected-player-id anim-state] nil)
 
-                    (dispatch-pro :skill (cond-> {:skill anim-state}
-                                           selected-player-id (assoc :selected-player-id selected-player-id)))
-                    #_(when call-name
+                              (dispatch-pro :skill (cond-> {:skill anim-state}
+                                                     selected-player-id (assoc :selected-player-id (js/parseInt selected-player-id))))
+                              #_(when call-name
                         (js/setTimeout
                           #(fire call-name selected-player-id)
                           latency)))
-            r-release? (j/assoc! player :can-r-attack-interrupt? true)
-            r-lock? (j/assoc! player :can-r-attack-interrupt? false)))))))
+                      r-release? (j/assoc! player :can-r-attack-interrupt? true)
+                      r-lock? (j/assoc! player :can-r-attack-interrupt? false)))))))
 
 (defn register-key->skills [skill-mapping]
   (let [m (reduce-kv (fn [acc k v]
                        (assoc acc (pc/get-code (keyword (str "KEY_" k))) v))
-            {(pc/get-code :KEY_R) "attackR"}
-            skill-mapping)]
+                     {(pc/get-code :KEY_R) "attackR"}
+                     skill-mapping)]
     (set! key->skill m)))
 
 (defn char-cant-run? []

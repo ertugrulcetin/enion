@@ -47,45 +47,61 @@
   (dlog "player left")
   (-> (:player-exit params) st/destroy-player))
 
-(defn- process-world-snapshot [world]
+(defn- process-world-snapshot-for-player []
+  (let [state (get world current-player-id)
+        health (:health state)
+        mana (:mana state)]
+    (st/set-health health)
+    (st/set-mana mana)
+    (when (= 0 health)
+      (pc/set-anim-int (st/get-model-entity) "health" 0))))
+
+(defn- process-world-snapshot []
   (doseq [s (dissoc world current-player-id)
-          :let [id (first s)
+          :let [id (str (first s))
                 new-state (second s)
                 other-player (st/get-other-player id)
-                entity (j/get other-player :entity)]
-          :when entity]
-    ;; TODO remove 'constantly' for prod
-    (when-let [tw (j/get-in st/other-players [id :tween :interpolation])]
-      (j/call (tw) :stop))
-    ;; TODO bu checkten dolayi karakter havada basliyor
-    ;; TODO also do not run (st/move-player) for players far away - LOD optimization
-    (when (or (not= "idle" (:st new-state))
-              (not (some-> id st/get-model-entity pc/get-anim-state (= "idle"))))
-      (let [pos (pc/get-pos entity)
-            x (j/get pos :x)
-            y (j/get pos :y)
-            z (j/get pos :z)
-            initial-pos (j/get-in st/other-players [id :tween :initial-pos])
-            _ (j/assoc! initial-pos :x x :y y :z z)
-            last-pos (j/get-in st/other-players [id :tween :last-pos])
-            _ (j/assoc! last-pos :x (:px new-state) :y (:py new-state) :z (:pz new-state))
-            tween-interpolation (-> (j/call entity :tween initial-pos)
-                                    (j/call :to last-pos 0.05 pc/linear))
-            _ (j/call tween-interpolation :on "update"
-                      (fn []
-                        (let [x (j/get initial-pos :x)
-                              y (j/get initial-pos :y)
-                              z (j/get initial-pos :z)]
-                          (st/move-player other-player entity x y z))))]
-        (j/call tween-interpolation :start)
-        (j/assoc-in! st/other-players [id :tween :interpolation] (constantly tween-interpolation))))
-    (st/rotate-player id (:ex new-state) (:ey new-state) (:ez new-state))
-    (st/set-anim-state id (:st new-state))))
+                entity (j/get other-player :entity)
+                health (:health new-state)]
+          :when (and entity (or (st/alive? id) (> health 0)))]
+    (st/set-health id health)
+    (if (= health 0)
+      (do
+        (pc/set-anim-int (st/get-model-entity id) "health" 0)
+        (st/disable-player-collision id))
+      (do
+        ;; TODO remove 'constantly' for prod
+        (when-let [tw (j/get-in st/other-players [id :tween :interpolation])]
+          (j/call (tw) :stop))
+        ;; TODO bu checkten dolayi karakter havada basliyor
+        ;; TODO also do not run (st/move-player) for players far away - LOD optimization
+        (when (or (not= "idle" (:st new-state))
+                  (not (some-> id st/get-model-entity pc/get-anim-state (= "idle"))))
+          (let [pos (pc/get-pos entity)
+                x (j/get pos :x)
+                y (j/get pos :y)
+                z (j/get pos :z)
+                initial-pos (j/get-in st/other-players [id :tween :initial-pos])
+                _ (j/assoc! initial-pos :x x :y y :z z)
+                last-pos (j/get-in st/other-players [id :tween :last-pos])
+                _ (j/assoc! last-pos :x (:px new-state) :y (:py new-state) :z (:pz new-state))
+                tween-interpolation (-> (j/call entity :tween initial-pos)
+                                        (j/call :to last-pos 0.05 pc/linear))
+                _ (j/call tween-interpolation :on "update"
+                          (fn []
+                            (let [x (j/get initial-pos :x)
+                                  y (j/get initial-pos :y)
+                                  z (j/get initial-pos :z)]
+                              (st/move-player other-player entity x y z))))]
+            (j/call tween-interpolation :start)
+            (j/assoc-in! st/other-players [id :tween :interpolation] (constantly tween-interpolation))))
+        (st/rotate-player id (:ex new-state) (:ey new-state) (:ez new-state))
+        (st/set-anim-state id (:st new-state))))))
 
 (defmethod dispatch-pro-response :world-snapshot [params]
-  (let [ws (:world-snapshot params)]
-    (set! world ws)
-    (process-world-snapshot ws)))
+  (set! world (:world-snapshot params))
+  (process-world-snapshot-for-player)
+  (process-world-snapshot))
 
 (defn send-states-to-server []
   (if-let [id @send-state-interval-id]

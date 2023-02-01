@@ -142,14 +142,18 @@
   (fn [db [_ id skill]]
     (assoc-in db [:player :cooldown skill :timeout-id] id)))
 
+;; TODO add throttle to it
 (reg-event-db
   ::set-selected-player
   (fn [db [_ player]]
     (if player
-      (-> db
-          (assoc-in [:selected-player :username] (j/get player :username))
-          (assoc-in [:selected-player :health] (j/get player :health))
-          (assoc-in [:selected-player :enemy?] (j/get player :enemy?)))
+      (let [health (j/get player :health)
+            total-health (j/get player :total-health)
+            health (/ (* health 100) total-health)]
+        (-> db
+            (assoc-in [:selected-player :username] (j/get player :username))
+            (assoc-in [:selected-player :health] health)
+            (assoc-in [:selected-player :enemy?] (j/get player :enemy?))))
       (assoc db :selected-player nil))))
 
 (reg-fx
@@ -164,6 +168,13 @@
       {:dispatch [::clear-cooldown skill]
        :fx [(when timeout-id
               [::clear-timeout timeout-id])]})))
+
+(reg-event-db
+  ::set-total-health-and-mana
+  (fn [db [_ {:keys [health mana]}]]
+    (-> db
+        (assoc-in [:player :total-health] health)
+        (assoc-in [:player :total-mana] mana))))
 
 (reg-event-db
   ::set-health

@@ -133,18 +133,22 @@
   )
 
 (defn- hp-bar []
-  (let [health @(subscribe [::subs/health])]
+  (let [health @(subscribe [::subs/health])
+        total-health @(subscribe [::subs/total-health])
+        health-perc (/ (* 100 health) total-health)]
     [:div (styles/hp-bar)
-     [:div (styles/hp-hit health)]
-     [:div (styles/hp health)]
-     [:span (styles/hp-mp-text) (str health "/" @(subscribe [::subs/total-health]))]]))
+     [:div (styles/hp-hit health-perc)]
+     [:div (styles/hp health-perc)]
+     [:span (styles/hp-mp-text) (str health "/" total-health)]]))
 
 (defn- mp-bar []
-  (let [mana @(subscribe [::subs/mana])]
+  (let [mana @(subscribe [::subs/mana])
+        total-mana @(subscribe [::subs/total-mana])
+        mana-perc (/ (* 100 mana) total-mana)]
     [:div (styles/mp-bar)
-     [:div (styles/mp-used mana)]
-     [:div (styles/mp mana)]
-     [:span (styles/hp-mp-text) (str mana "/" @(subscribe [::subs/total-mana]))]]))
+     [:div (styles/mp-used mana-perc)]
+     [:div (styles/mp mana-perc)]
+     [:span (styles/hp-mp-text) (str mana "/" total-mana)]]))
 
 (defn- hp-mp-bars []
   [:div (styles/hp-mp-container)
@@ -256,8 +260,6 @@
   {:potion :mp}
   {:hp true}
   {:mp true})
-
-(on :ui-send-msg #(dispatch [::events/add-message-to-info-box %]))
 
 (defn- info-message->class [message]
   (cond
@@ -428,10 +430,12 @@
                                                      (= code "Escape")
                                                      (dispatch [::events/cancel-skill-move])))))
        (on :init-skills #(dispatch [::events/init-skills %]))
+       (on :ui-send-msg #(dispatch [::events/add-message-to-info-box %]))
        (on :ui-selected-player #(dispatch [::events/set-selected-player %]))
        (on :ui-cooldown #(dispatch [::events/cooldown %]))
        (on :ui-player-health #(dispatch [::events/set-health %]))
-       (on :ui-player-mana #(dispatch [::events/set-mana %])))
+       (on :ui-player-mana #(dispatch [::events/set-mana %]))
+       (on :ui-player-set-total-health-and-mana #(dispatch [::events/set-total-health-and-mana %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

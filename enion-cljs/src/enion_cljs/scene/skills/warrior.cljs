@@ -32,8 +32,6 @@
 
 (def last-one-hand-combo (volatile! (js/Date.now)))
 
-(def close-attack-distance-threshold 0.75)
-
 (def attack-one-hand-cooldown (-> common.skills/skills (get "attackOneHand") :cooldown))
 
 (def attack-one-hand-required-mana (-> common.skills/skills (get "attackOneHand") :required-mana))
@@ -41,18 +39,6 @@
 (def attack-r-required-mana (-> common.skills/skills (get "attackR") :required-mana))
 (def shield-required-mana (-> common.skills/skills (get "shieldWall") :required-mana))
 (def fleet-food-required-mana (-> common.skills/skills (get "fleetFoot") :required-mana))
-
-(on :attack-one-hand
-    (fn [player-id]
-      (fire :ui-cooldown "attackOneHand")
-      (let [enemy (st/get-other-player player-id)]
-        (skills.effects/apply-effect-attack-one-hand enemy)
-        (if false #_(> (rand-int 10) 8)
-            (do
-              (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
-              (st/disable-player-collision player-id)
-              (st/set-health player-id 0))
-            (st/set-health player-id (rand-int 100))))))
 
 (on :attack-slow-down
     (fn [player-id]
@@ -76,6 +62,23 @@
               (st/set-health player-id 0))
             (st/set-health player-id (rand-int 100))))))
 
+(defmethod skills/skill-response "attackOneHand" [params]
+  (fire :ui-cooldown "attackOneHand")
+  (let [selected-player-id (-> params :skill :selected-player-id)
+        damage (-> params :skill :damage)
+        enemy (st/get-other-player selected-player-id)]
+    (skills.effects/apply-effect-attack-one-hand enemy)
+    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+                        :hit damage})))
+
+(defmethod net/dispatch-pro-response :gotAttackOneHandDamage [params]
+  (let [params (:gotAttackOneHandDamage params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (skills.effects/apply-effect-attack-one-hand st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
 (comment
   (sm/spawn 1)
   (sm/spawn-all)
@@ -84,7 +87,7 @@
 
 (let [too-far-msg {:too-far true}]
   (defn- close-for-attack? [selected-player-id]
-    (let [result (<= (st/distance-to selected-player-id) close-attack-distance-threshold)]
+    (let [result (<= (st/distance-to selected-player-id) common.skills/close-attack-distance-threshold)]
       (when-not result
         (fire :ui-send-msg too-far-msg))
       result)))
@@ -250,6 +253,8 @@
           (skills.effects/apply-effect-mp-potion player))))))
 
 (comment
+  (dispatch-pro :skill {:skill "hpPotion"})
+  (dispatch-pro :skill {:skill "mpPotion"})
   (st/set-health 100)
   (st/set-mana 90)
   (j/assoc! player :speed 850)

@@ -18,8 +18,4 @@
    :minimap-open? true
    :party-list-open? true
    :player {:skills []
-            :skill-move nil
-            :health 100
-            :total-health 100
-            :mana 100
-            :total-mana 100}})
+            :skill-move nil}})

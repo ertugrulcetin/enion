@@ -119,9 +119,7 @@
   (if-let [id (->> (js/Object.keys other-players)
                    (map
                      (fn [id]
-                       (println "id: " id)
                        (let [player (st/get-other-player id)
-                             _ (println "(j/get player :entity): " (j/get player :entity))
                              player-pos (pc/get-pos (j/get player :entity))
                              distance (pc/distance (get-position) player-pos)
                              ally? (not (j/get player :enemy?))
@@ -197,7 +195,7 @@
             enemy-hidden? (j/get enemy :hide?)]
         (when (or (not enemy-hidden?)
                   (and enemy-hidden? (has-phantom-vision?)))
-          enemy-id)))))
+          (str enemy-id))))))
 
 (defn- set-target-position [e]
   (let [result (pc/raycast-rigid-body e entity.camera/entity)
@@ -208,7 +206,7 @@
             z (j/get-in result [:point :z])
             model-entity (st/get-model-entity)
             char-pos (pc/get-pos model-entity)]
-        (when-not (skills/char-cant-run?)
+        (when (and (not (skills/char-cant-run?)) (st/alive?))
           (pc/look-at model-entity x (j/get char-pos :y) z true))
         (j/assoc! player :target-pos (pc/setv (j/get player :target-pos) x y z)
                   :target-pos-available? true)
@@ -319,12 +317,15 @@
               :username username
               :race (name race)
               :class (name class)
-              :mana mana
               :health health
+              :total-health health
+              :mana mana
+              :total-mana mana
               :heal-counter 0)
-    (js/console.log player)
     (when pos
-      (j/call-in player-entity [:rigidbody :teleport] x y z))))
+      (j/call-in player-entity [:rigidbody :teleport] x y z))
+    (fire :ui-player-set-total-health-and-mana {:health health
+                                                :mana mana})))
 
 (defn spawn [[x y z]]
   (j/call-in (st/get-player-entity) [:rigidbody :teleport] x y z))
@@ -445,7 +446,9 @@
                            :effects effects
                            :enemy? enemy?
                            :health health
+                           :total-health health
                            :mana mana
+                           :total-mana mana
                            :heal-counter 0
                            :tween {:interpolation nil
                                    :initial-pos #js {}
@@ -480,11 +483,11 @@
               :model-entity model-entity
               :entity player-entity)
     (create-skill-fns player)
-    (fire :init-skills (keyword (j/get player :class)))
     (register-keyboard-events)
     (register-mouse-events)
     (register-collision-events player-entity)
     (update-fleet-foot-cooldown-if-asas (j/get player :class))
+    (fire :init-skills (keyword (j/get player :class)))
     (on :create-players (fn [players]
                           (doseq [p players]
                             (st/add-player (create-player p)))))

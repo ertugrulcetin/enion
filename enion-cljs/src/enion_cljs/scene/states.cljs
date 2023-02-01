@@ -116,10 +116,12 @@
        (when-let [player (get-other-player id)]
          (let [username (j/get player :username)
                health (j/get player :health)
+               total-health (j/get player :total-health)
                enemy? (j/get player :enemy?)]
            (j/assoc! temp-selected-player
                      :username username
                      :health health
+                     :total-health total-health
                      :enemy? enemy?)
            (fire :ui-selected-player temp-selected-player)))))))
 
