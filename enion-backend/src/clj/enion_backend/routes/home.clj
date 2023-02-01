@@ -1,26 +1,26 @@
 (ns enion-backend.routes.home
   (:require
-    [aleph.http :as http]
-    [clojure.java.io :as io]
-    [clojure.tools.logging :as log]
-    [common.enion.skills :as common.skills]
-    [enion-backend.layout :as layout]
-    [enion-backend.middleware :as middleware]
-    [manifold.deferred :as d]
-    [manifold.stream :as s]
-    [mount.core :as mount :refer [defstate]]
-    [msgpack.clojure-extensions]
-    [msgpack.core :as msg]
-    [procedure.async :refer [dispatch reg-pro]]
-    [ring.util.http-response :as response]
-    [ring.util.response])
+   [aleph.http :as http]
+   [clojure.java.io :as io]
+   [clojure.tools.logging :as log]
+   [common.enion.skills :as common.skills]
+   [enion-backend.layout :as layout]
+   [enion-backend.middleware :as middleware]
+   [manifold.deferred :as d]
+   [manifold.stream :as s]
+   [mount.core :as mount :refer [defstate]]
+   [msgpack.clojure-extensions]
+   [msgpack.core :as msg]
+   [procedure.async :refer [dispatch reg-pro]]
+   [ring.util.http-response :as response]
+   [ring.util.response])
   (:import
-    (java.time
-      Instant)
-    (java.util.concurrent
-      ExecutorService
-      Executors
-      TimeUnit)))
+   (java.time
+     Instant)
+   (java.util.concurrent
+     ExecutorService
+     Executors
+     TimeUnit)))
 
 (def max-number-of-players 50)
 (def max-number-of-same-race-players (/ max-number-of-players 2))
@@ -107,6 +107,9 @@
     (println "Sending exit notification...")
     (send! other-player-id :player-exit id)))
 
+(defn- prob? [prob]
+  (< (rand) prob))
+
 (reg-pro
   :init
   (fn [{id :id {:keys [username race class]} :data}]
@@ -135,11 +138,11 @@
           [x y z] pos]
       (swap! world (fn [world]
                      (-> world
-                         (assoc-in [id :px] x)
-                         (assoc-in [id :py] y)
-                         (assoc-in [id :pz] z)
-                         (assoc-in [id :health] health)
-                         (assoc-in [id :mana] mana)))))
+                       (assoc-in [id :px] x)
+                       (assoc-in [id :py] y)
+                       (assoc-in [id :pz] z)
+                       (assoc-in [id :health] health)
+                       (assoc-in [id :mana] mana)))))
     (println "Connected to world state")
     true))
 
@@ -165,7 +168,7 @@
   (let [cooldown (-> common.skills/skills (get skill) :cooldown)
         last-time-skill-used (get-in player [:last-time :skill skill])]
     (or (nil? last-time-skill-used)
-        (>= (- (now) last-time-skill-used) cooldown))))
+      (>= (- (now) last-time-skill-used) cooldown))))
 
 (defn- get-required-mana [skill]
   (-> common.skills/skills (get skill) :required-mana))
@@ -187,7 +190,7 @@
 (defmulti apply-skill (fn [{:keys [data]}]
                         (:skill data)))
 
-(defn- close-to-attack? [player-world-state other-player-world-state]
+(defn- close-for-attack? [player-world-state other-player-world-state]
   (let [x (:px player-world-state)
         y (:py player-world-state)
         z (:pz player-world-state)
@@ -208,7 +211,7 @@
           (not (alive? other-player-world-state)) skill-failed
           (not (enough-mana? skill player-world-state)) not-enough-mana
           (not (cooldown-finished? skill player)) skill-failed
-          (not (close-to-attack? player-world-state other-player-world-state)) too-far
+          (not (close-for-attack? player-world-state other-player-world-state)) too-far
           :else (let [required-mana (get-required-mana skill)
                       ;; TODO update damage, player might have defense or poison etc.
                       damage ((-> common.skills/skills (get skill) :damage-fn))
@@ -216,13 +219,78 @@
                       health-after-damage (Math/max ^long health-after-damage 0)]
                   (swap! world (fn [world]
                                  (-> world
-                                     (update-in [id :mana] - required-mana)
-                                     (assoc-in [selected-player-id :health] health-after-damage))))
+                                   (update-in [id :mana] - required-mana)
+                                   (assoc-in [selected-player-id :health] health-after-damage))))
                   (swap! players assoc-in [id :last-time :skill skill] (now))
                   (when (= 0 health-after-damage)
                     (swap! players assoc-in [id :last-time :died] (now)))
-                  (send! selected-player-id :gotAttackOneHandDamage {:damage damage
-                                                                     :player-id id})
+                  (send! selected-player-id :got-attack-one-hand-damage {:damage damage
+                                                                         :player-id id})
+                  {:skill skill
+                   :damage damage
+                   :selected-player-id selected-player-id}))))))
+
+(defmethod apply-skill "attackSlowDown" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
+  (when-let [player (get @players id)]
+    (when (get @players selected-player-id)
+      (let [w @world
+            player-world-state (get w id)
+            other-player-world-state (get w selected-player-id)]
+        (cond
+          (> ping 5000) skill-failed
+          (not (alive? player-world-state)) skill-failed
+          (not (alive? other-player-world-state)) skill-failed
+          (not (enough-mana? skill player-world-state)) not-enough-mana
+          (not (cooldown-finished? skill player)) skill-failed
+          (not (close-for-attack? player-world-state other-player-world-state)) too-far
+          :else (let [required-mana (get-required-mana skill)
+                      ;; TODO update damage, player might have defense or poison etc.
+                      damage ((-> common.skills/skills (get skill) :damage-fn))
+                      health-after-damage (- (:health other-player-world-state) damage)
+                      health-after-damage (Math/max ^long health-after-damage 0)]
+                  (swap! world (fn [world]
+                                 (-> world
+                                   (update-in [id :mana] - required-mana)
+                                   (assoc-in [selected-player-id :health] health-after-damage))))
+                  (swap! players assoc-in [id :last-time :skill skill] (now))
+                  (when (= 0 health-after-damage)
+                    (swap! players assoc-in [id :last-time :died] (now)))
+                  ;;TODO add scheduler for prob cure
+                  (send! selected-player-id :got-attack-slow-down-damage {:damage damage
+                                                                          :player-id id
+                                                                          :slow-down? (prob? 0.5)})
+                  {:skill skill
+                   :damage damage
+                   :selected-player-id selected-player-id}))))))
+
+(defmethod apply-skill "attackR" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
+  (when-let [player (get @players id)]
+    (when (get @players selected-player-id)
+      (let [w @world
+            player-world-state (get w id)
+            other-player-world-state (get w selected-player-id)]
+        (cond
+          (> ping 5000) skill-failed
+          (not (alive? player-world-state)) skill-failed
+          (not (alive? other-player-world-state)) skill-failed
+          (not (enough-mana? skill player-world-state)) not-enough-mana
+          (not (cooldown-finished? skill player)) skill-failed
+          (not (close-for-attack? player-world-state other-player-world-state)) too-far
+          :else (let [required-mana (get-required-mana skill)
+                      ;; TODO update damage, player might have defense or poison etc.
+                      damage ((-> common.skills/skills (get skill) :damage-fn))
+                      health-after-damage (- (:health other-player-world-state) damage)
+                      health-after-damage (Math/max ^long health-after-damage 0)]
+                  (swap! world (fn [world]
+                                 (-> world
+                                   (update-in [id :mana] - required-mana)
+                                   (assoc-in [selected-player-id :health] health-after-damage))))
+                  (swap! players assoc-in [id :last-time :skill skill] (now))
+                  (when (= 0 health-after-damage)
+                    (swap! players assoc-in [id :last-time :died] (now)))
+                  ;;TODO add scheduler for prob cure
+                  (send! selected-player-id :got-attack-r-damage {:damage damage
+                                                                  :player-id id})
                   {:skill skill
                    :damage damage
                    :selected-player-id selected-player-id}))))))
@@ -287,9 +355,9 @@
       (apply-skill opts)
       (catch Throwable e
         (log/error e
-                   "Something went wrong when applying skill."
-                   (pr-str (select-keys opts [:id :data :ping]))
-                   (get @players (:id opts)))
+          "Something went wrong when applying skill."
+          (pr-str (select-keys opts [:id :data :ping]))
+          (get @players (:id opts)))
         skill-failed))))
 
 (defn- reset-states []
@@ -300,39 +368,39 @@
 (defn- ws-handler
   [req]
   (-> (http/websocket-connection req)
-      (d/chain
-        (fn [socket]
-          (let [player-id (swap! id-generator inc)]
-            (alter-meta! socket assoc :id player-id)
-            (swap! players assoc-in [player-id :socket] socket)
-            (s/on-closed socket
-                         (fn []
-                           (swap! players dissoc player-id)
-                           (future
-                             ;; TODO optimize in here, in between other players could attack etc. and update non existed player's state
-                             ;; like check again after 5 secs or so...
-                             (Thread/sleep 1000)
-                             (swap! world dissoc player-id)
-                             (notify-players-for-exit player-id)))))
-          ;; TODO register socket in here
-          (s/consume
-            (fn [payload]
-              (try
-                (let [id (-> socket meta :id)
-                      now (Instant/now)
-                      payload (msg/unpack payload)
-                      ping (- (.toEpochMilli now) (:timestamp payload))]
-                  (dispatch (:pro payload) {:id id
-                                            :data (:data payload)
-                                            :ping ping
-                                            :req req
-                                            :socket socket
-                                            :send-fn (fn [socket {:keys [id result]}]
-                                                       (when result
-                                                         (s/put! socket (msg/pack (hash-map id result)))))}))
-                (catch Exception e
-                  (log/error e))))
-            socket)))))
+    (d/chain
+      (fn [socket]
+        (let [player-id (swap! id-generator inc)]
+          (alter-meta! socket assoc :id player-id)
+          (swap! players assoc-in [player-id :socket] socket)
+          (s/on-closed socket
+            (fn []
+              (swap! players dissoc player-id)
+              (future
+                ;; TODO optimize in here, in between other players could attack etc. and update non existed player's state
+                ;; like check again after 5 secs or so...
+                (Thread/sleep 1000)
+                (swap! world dissoc player-id)
+                (notify-players-for-exit player-id)))))
+        ;; TODO register socket in here
+        (s/consume
+          (fn [payload]
+            (try
+              (let [id (-> socket meta :id)
+                    now (Instant/now)
+                    payload (msg/unpack payload)
+                    ping (- (.toEpochMilli now) (:timestamp payload))]
+                (dispatch (:pro payload) {:id id
+                                          :data (:data payload)
+                                          :ping ping
+                                          :req req
+                                          :socket socket
+                                          :send-fn (fn [socket {:keys [id result]}]
+                                                     (when result
+                                                       (s/put! socket (msg/pack (hash-map id result)))))}))
+              (catch Exception e
+                (log/error e))))
+          socket)))))
 
 (defn home-routes
   []

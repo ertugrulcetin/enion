@@ -72,6 +72,7 @@
   (Thread/sleep sleep-timeout))
 
 (tasks/shell (str "mkdir -p " project-dir))
+(tasks/shell {:dir project-dir} (str "rm -r files"))
 (tasks/shell {:dir project-dir} (str "unzip -o " project-unzip-dir))
 
 (tasks/shell {:dir project-resources} (str "rm public.zip"))
@@ -85,9 +86,10 @@
   (->  index-html
        (str/replace  #"<script src=\"playcanvas-stable.min.js\"></script>" "")
        (str/replace  #"<script src=\"__settings__.js\"></script>" "")
-       (str/replace  #"<script src=\"__modules__.js\"></script>" "    <script src=\"js/compiled/app.js\"></script>")
+       (str/replace  #"<script src=\"__modules__.js\"></script>" "")
        (str/replace  #"<script src=\"__start__.js\"></script>" "")
        (str/replace  #"<script src=\"__loading__.js\"></script>" "")
+       (str/replace  #"<body>" "<body>\n   <script src=\"js/compiled/app.js\"></script>")
        (#(.write w %))))
 
 (with-open [w (io/writer (str vendor-dir "/all.js"))]

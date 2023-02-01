@@ -88,6 +88,7 @@
                :required-mana 50}
    ;;Common
    "attackR" {:required-mana 25
+              :cooldown 200
               :damage-fn #(rand-between 20 50)}
 
    ;;TODO cooldown is different for asas, handle in the backend!

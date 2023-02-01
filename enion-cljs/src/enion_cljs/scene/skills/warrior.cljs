@@ -71,11 +71,45 @@
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
                         :hit damage})))
 
-(defmethod net/dispatch-pro-response :gotAttackOneHandDamage [params]
-  (let [params (:gotAttackOneHandDamage params)
+(defmethod net/dispatch-pro-response :got-attack-one-hand-damage [params]
+  (let [params (:got-attack-one-hand-damage params)
         damage (:damage params)
         player-id (:player-id params)]
     (skills.effects/apply-effect-attack-one-hand st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
+(defmethod skills/skill-response "attackSlowDown" [params]
+  (fire :ui-cooldown "attackSlowDown")
+  (let [selected-player-id (-> params :skill :selected-player-id)
+        damage (-> params :skill :damage)
+        enemy (st/get-other-player selected-player-id)]
+    (skills.effects/apply-effect-attack-slow-down enemy)
+    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+                        :hit damage})))
+
+(defmethod net/dispatch-pro-response :got-attack-slow-down-damage [params]
+  (let [params (:got-attack-slow-down-damage params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (skills.effects/apply-effect-attack-slow-down st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
+(defmethod skills/skill-response "attackR" [params]
+  (fire :ui-cooldown "attackR")
+  (let [selected-player-id (-> params :skill :selected-player-id)
+        damage (-> params :skill :damage)
+        enemy (st/get-other-player selected-player-id)]
+    (skills.effects/apply-effect-attack-r enemy)
+    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+                        :hit damage})))
+
+(defmethod net/dispatch-pro-response :got-attack-r-damage [params]
+  (let [params (:got-attack-r-damage params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (skills.effects/apply-effect-attack-r st/player)
     (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
                         :damage damage})))
 

@@ -4,7 +4,6 @@
    ["/enion_cljs/vendor/all"]
    ["/enion_cljs/vendor/tween" :as tw]
    [enion-cljs.scene.lod-manager]
-   [enion-cljs.scene.network]
    [applied-science.js-interop :as j]
    [enion-cljs.common :as common :refer [dev? fire]]
    [enion-cljs.scene.pc :as pc]
@@ -36,7 +35,13 @@
     {:init (fnt
              (map-pc-vars)
              (init-fn this)
-             (init-ui))
+             (init-ui)
+             #_(init {:id 1
+                    :username "NeaTBuSTeR"
+                    :race "orc"
+                    :class "warrior"
+                    :health 1000
+                    :mana 1000}))
      :post-init (fn []
                   ;;TODO window.Terrain/Water/Wave acik onlari da null'a setle
                   (j/assoc-in! pc/app [:graphicsDevice :maxPixelRatio] 0.75)
