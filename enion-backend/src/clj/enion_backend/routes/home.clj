@@ -166,6 +166,21 @@
 (defn- enough-mana? [skill state]
   (>= (:mana state) (-> common.skills/skills (get skill) :required-mana)))
 
+(defn asas? [id]
+  (= "asas" (get-in @players [id :class])))
+
+(defn mage? [id]
+  (= "mage" (get-in @players [id :class])))
+
+(defn warrior? [id]
+  (= "warrior" (get-in @players [id :class])))
+
+(defn priest? [id]
+  (= "priest" (get-in @players [id :class])))
+
+(defn has-defense? [id]
+  (get-in @players [id :effects :shield-wall :result]))
+
 (defn now []
   (.toEpochMilli (Instant/now)))
 
@@ -212,6 +227,7 @@
             other-player-world-state (get w selected-player-id)]
         (cond
           (> ping 5000) skill-failed
+          (not (warrior? id)) skill-failed
           (not (alive? player-world-state)) skill-failed
           (not (alive? other-player-world-state)) skill-failed
           (not (enough-mana? skill player-world-state)) not-enough-mana
@@ -219,7 +235,7 @@
           (not (close-for-attack? player-world-state other-player-world-state)) too-far
           :else (let [required-mana (get-required-mana skill)
                       ;; TODO update damage, player might have defense or poison etc.
-                      damage ((-> common.skills/skills (get skill) :damage-fn))
+                      damage ((-> common.skills/skills (get skill) :damage-fn) (has-defense? selected-player-id))
                       health-after-damage (- (:health other-player-world-state) damage)
                       health-after-damage (Math/max ^long health-after-damage 0)]
                   (swap! world (fn [world]
@@ -243,6 +259,7 @@
             other-player-world-state (get w selected-player-id)]
         (cond
           (> ping 5000) skill-failed
+          (not (warrior? id)) skill-failed
           (not (alive? player-world-state)) skill-failed
           (not (alive? other-player-world-state)) skill-failed
           (not (enough-mana? skill player-world-state)) not-enough-mana
@@ -250,7 +267,7 @@
           (not (close-for-attack? player-world-state other-player-world-state)) too-far
           :else (let [required-mana (get-required-mana skill)
                       ;; TODO update damage, player might have defense or poison etc.
-                      damage ((-> common.skills/skills (get skill) :damage-fn))
+                      damage ((-> common.skills/skills (get skill) :damage-fn) (has-defense? selected-player-id))
                       health-after-damage (- (:health other-player-world-state) damage)
                       health-after-damage (Math/max ^long health-after-damage 0)
                       slow-down? (prob? 0.5)]
@@ -273,17 +290,45 @@
                                 (bound-fn []
                                   (when (get @players selected-player-id)
                                     (swap! players (fn [players]
-                                      (-> players
-                                        (assoc-in [selected-player-id :effects :slow-down :result] false)
-                                        (assoc-in [selected-player-id :effects :slow-down :task] nil))))
+                                                     (-> players
+                                                       (assoc-in [selected-player-id :effects :slow-down :result] false)
+                                                       (assoc-in [selected-player-id :effects :slow-down :task] nil))))
                                     (send! selected-player-id :cured-attack-slow-down-damage true))))]
-                     (swap! players (fn [players]
-                                      (-> players
-                                        (assoc-in [selected-player-id :effects :slow-down :result] true)
-                                        (assoc-in [selected-player-id :effects :slow-down :task] tea))))))
+                      (swap! players (fn [players]
+                                       (-> players
+                                         (assoc-in [selected-player-id :effects :slow-down :result] true)
+                                         (assoc-in [selected-player-id :effects :slow-down :task] tea))))))
                   {:skill skill
                    :damage damage
                    :selected-player-id selected-player-id}))))))
+
+(defmethod apply-skill "shieldWall" [{:keys [id ping] {:keys [skill]} :data}]
+  (when-let [player (get @players id)]
+    (when-let [world-state (get @world id)]
+      (cond
+        (> ping 5000) skill-failed
+        (not (warrior? id)) skill-failed
+        (not (alive? world-state)) skill-failed
+        (not (enough-mana? skill world-state)) not-enough-mana
+        (not (cooldown-finished? skill player)) skill-failed
+        :else (let [required-mana (get-required-mana skill)
+                    _ (when-let [task (get-in @players [id :effects :shield-wall :task])]
+                        (tea/cancel! task))
+                    tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
+                          (bound-fn []
+                            (when (get @players id)
+                              (swap! players (fn [players]
+                                               (-> players
+                                                 (assoc-in [id :effects :shield-wall :result] false)
+                                                 (assoc-in [id :effects :shield-wall :task] nil)))))))]
+                ;;TODO update here, after implementing party system
+                (swap! world update-in [id :mana] - required-mana)
+                (swap! players (fn [players]
+                                 (-> players
+                                   (assoc-in [id :last-time :skill skill] (now))
+                                   (assoc-in [id :effects :shield-wall :result] true)
+                                   (assoc-in [id :effects :shield-wall :task] tea))))
+                {:skill skill})))))
 
 (defmethod apply-skill "attackR" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
   (when-let [player (get @players id)]
@@ -300,7 +345,7 @@
           (not (close-for-attack? player-world-state other-player-world-state)) too-far
           :else (let [required-mana (get-required-mana skill)
                       ;; TODO update damage, player might have defense or poison etc.
-                      damage ((-> common.skills/skills (get skill) :damage-fn))
+                      damage ((-> common.skills/skills (get skill) :damage-fn) (has-defense? selected-player-id))
                       health-after-damage (- (:health other-player-world-state) damage)
                       health-after-damage (Math/max ^long health-after-damage 0)]
                   (swap! world (fn [world]
@@ -320,7 +365,7 @@
 ;; TODO ADJUST COOLDOWN FOR ASAS CLASS
 (defmethod apply-skill "fleetFoot" [{:keys [id ping] {:keys [skill]} :data}]
   (when-let [player (get @players id)]
-    (let [world-state (get @world id)]
+    (when-let [world-state (get @world id)]
       (cond
         (> ping 5000) skill-failed
         (not (alive? world-state)) skill-failed
@@ -329,15 +374,15 @@
         :else (let [required-mana (get-required-mana skill)]
                 (swap! world update-in [id :mana] - required-mana)
                 (swap! players assoc-in [id :last-time :skill skill] (now))
-                (tea/after! (-> common.skills/skills (get skill) :cooldown (- 1000) (/ 1000))
-                                (bound-fn []
-                                  (when (get @players id)
-                                    (send! id :fleet-foot-finished true))))
+                (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
+                  (bound-fn []
+                    (when (get @players id)
+                      (send! id :fleet-foot-finished true))))
                 {:skill skill})))))
 
 (defmethod apply-skill "hpPotion" [{:keys [id ping] {:keys [skill]} :data}]
   (when-let [player (get @players id)]
-    (let [world-state (get @world id)]
+    (when-let [world-state (get @world id)]
       (cond
         (> ping 5000) skill-failed
         (not (alive? world-state)) skill-failed
@@ -349,7 +394,7 @@
 
 (defmethod apply-skill "mpPotion" [{:keys [id ping] {:keys [skill]} :data}]
   (when-let [player (get @players id)]
-    (let [world-state (get @world id)]
+    (when-let [world-state (get @world id)]
       (cond
         (> ping 5000) skill-failed
         (not (alive? world-state)) skill-failed
@@ -361,9 +406,11 @@
 
 (comment
   @world
-  (swap! world assoc-in [76 :health] 900)
+  (swap! world assoc-in [88 :health] 1600)
   (swap! world assoc-in [76 :mana] 0)
+
   (clojure.pprint/pprint @players)
+
   (clojure.pprint/pprint @world)
 
   (reset-states)

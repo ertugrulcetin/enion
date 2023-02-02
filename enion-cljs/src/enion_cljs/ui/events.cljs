@@ -137,10 +137,12 @@
      ::fire [:cooldown-ready? {:ready? true
                                :skill skill}]}))
 
-(reg-event-db
+(reg-event-fx
   ::set-cooldown-timeout-id
-  (fn [db [_ id skill]]
-    (assoc-in db [:player :cooldown skill :timeout-id] id)))
+  (fn [{:keys [db]} [_ id skill]]
+    {:db (assoc-in db [:player :cooldown skill :timeout-id] id)
+     :fx [(when (nil? id)
+            [:dispatch [::clear-cooldown skill]])]}))
 
 ;; TODO add throttle to it
 (reg-event-db

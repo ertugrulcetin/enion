@@ -123,11 +123,17 @@
             :speed st/speed)
   (pc/update-anim-speed (st/get-model-entity) "run" 1))
 
-(comment
-  (sm/spawn 1)
-  (sm/spawn-all)
-  st/other-players
-  )
+(defmethod skills/skill-response "shieldWall" [_]
+  (fire :ui-cooldown "shieldWall")
+  (skills.effects/apply-effect-shield-wall player))
+
+(defmethod skills/skill-response "hpPotion" [_]
+  (fire :ui-cooldown "hpPotion")
+  (skills.effects/apply-effect-hp-potion player))
+
+(defmethod skills/skill-response "mpPotion" [_]
+  (fire :ui-cooldown "mpPotion")
+  (skills.effects/apply-effect-mp-potion player))
 
 (let [too-far-msg {:too-far true}]
   (defn- close-for-attack? [selected-player-id]
@@ -268,22 +274,16 @@
           (pc/set-anim-boolean model-entity "attackR" true))
 
         (shield-wall? e)
-        (do
-          (fire :ui-cooldown "shieldWall")
-          (skills.effects/apply-effect-shield-wall player))
+        (dispatch-pro :skill {:skill "shieldWall"})
 
         (fleet-foot? e)
         (dispatch-pro :skill {:skill "fleetFoot"})
 
         (hp-potion? e)
-        (do
-          (fire :ui-cooldown "hpPotion")
-          (skills.effects/apply-effect-hp-potion player))
+        (dispatch-pro :skill {:skill "hpPotion"})
 
         (mp-potion? e)
-        (do
-          (fire :ui-cooldown "mpPotion")
-          (skills.effects/apply-effect-mp-potion player))))))
+        (dispatch-pro :skill {:skill "mpPotion"})))))
 
 (comment
   (dispatch-pro :skill {:skill "hpPotion"})

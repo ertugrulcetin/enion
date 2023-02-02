@@ -16,6 +16,12 @@
    "mage" {:health 1200
            :mana 1500}})
 
+(defn- create-damage-fn [start end]
+  (fn [has-defense?]
+    (int
+      (* (rand-between start end)
+       (if has-defense? 0.85 1)))))
+
 (def skills
   ;;Asas
   {"attackDagger" {:cooldown 750
@@ -23,7 +29,7 @@
                    :description (str "Fast and deadly attack that allows the assassin "
                                   "to wield two daggers with deadly precision")
                    :required-mana 100
-                   :damage-fn #(rand-between 150 250)}
+                   :damage-fn  (create-damage-fn 150 250)}
    "phantomVision" {:cooldown 30000
                     :name "Phantom Vision"
                     :description (str "Allows the assassin and their party members to see invisible "
@@ -41,19 +47,20 @@
                     :description (str "Allows your character to unleash a powerful, precise strike "
                                    "with their weapon, dealing heavy damage to their enemies")
                     :required-mana 100
-                    :damage-fn #(rand-between 200 300)}
+                    :damage-fn (create-damage-fn 200 300)}
    "attackSlowDown" {:cooldown 10000
                      :name "Slowing Slice"
                      :description (str "This skill has a 50% chance to apply a "
                                     "slowing effect on the target, reducing their movement "
                                     "speed for a short duration")
                      :required-mana 200
-                     :damage-fn #(rand-between 100 200)
+                     :damage-fn (create-damage-fn 100 200)
                      :effect-duration 5000}
-   "shieldWall" {:cooldown 50000
+   "shieldWall" {:cooldown (* 125 1000)
                  :name "Shield Wall"
-                 :description "Increases the defense power of himself and all party members by 15% for a short duration"
-                 :required-mana 200}
+                 :description "Increases the defense power of himself and all party members by 15% for 2 minutes"
+                 :required-mana 200
+                 :effect-duration (* 120 1000)}
    ;;Priest
    "heal" {:cooldown 2000
            :name "Healing Touch"
@@ -75,13 +82,13 @@
                   :description (str "Powerful fire-based attack that unleashes a burst "
                                  "of intense flames in a certain radius")
                   :required-mana 300
-                  :damage-fn #(rand-between 300 400)}
+                  :damage-fn (create-damage-fn 300 400)}
    "attackSingle" {:cooldown 3000
                    :name "Flame Strike"
                    :description (str "Long range fire-based attack that unleashes a "
                                   "devastating blast of flame on a single enemy")
                    :required-mana 100
-                   :damage-fn #(rand-between 100 150)}
+                   :damage-fn (create-damage-fn 100 150)}
    "teleport" {:cooldown 500
                :name "Teleport"
                :description (str "Powerful arcane ability that allows the mage to instantly transport a "
@@ -90,14 +97,15 @@
    ;;Common
    "attackR" {:required-mana 25
               :cooldown 200
-              :damage-fn #(rand-between 20 50)}
+              :damage-fn (create-damage-fn 20 50)}
 
    ;;TODO cooldown is different for asas, handle in the backend!
    "fleetFoot" {:cooldown 26000
                 :name "Fleet Foot"
                 :description (str "Increases your character's running speed by 30% for 25 seconds. "
                                "(Assassins receive a 50% increase for 12 seconds)")
-                :required-mana 50}
+                :required-mana 50
+                :effect-duration 25000}
    "hpPotion" {:cooldown 1500
                :name "HP Potion"
                :description "Restores 240 HP"

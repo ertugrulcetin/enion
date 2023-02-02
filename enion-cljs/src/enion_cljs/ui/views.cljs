@@ -81,10 +81,9 @@
        (fn []
          (let [id (js/setTimeout
                     (fn []
-                      (dispatch [::events/clear-cooldown skill])
-                      (dispatch [::events/set-cooldown-timeout-id nil skill]))
+                      (dispatch-sync [::events/set-cooldown-timeout-id nil skill]))
                     cooldown-secs)]
-           (dispatch [::events/set-cooldown-timeout-id id skill])))
+           (dispatch-sync [::events/set-cooldown-timeout-id id skill])))
        :reagent-render
        (fn []
          [:div (styles/cooldown (/ cooldown-secs 1000))])})))
@@ -98,7 +97,7 @@
    (when-not (= :none skill)
      [:div (styles/childs-overlayed)
       [:img {:class (styles/skill-img @(subscribe [::subs/blocked-skill? skill])
-                                      @(subscribe [::subs/not-enough-mana skill]))
+                                      @(subscribe [::subs/not-enough-mana? skill]))
              :src (skill->img skill)}]
       (when @(subscribe [::subs/cooldown-in-progress? skill])
         [cooldown skill])])])
@@ -200,6 +199,8 @@
       (when (< gap 50)
         (j/assoc! elem :scrollTop (j/get elem :scrollHeight))))))
 
+;; TODO add scroll
+;; TODO when on hover disalbe character zoom in/out
 (defn- chat-message-box []
   (let [ref (atom nil)]
     (r/create-class
@@ -432,12 +433,12 @@
        (on :init-skills #(dispatch [::events/init-skills %]))
        (on :ui-send-msg #(dispatch [::events/add-message-to-info-box %]))
        (on :ui-selected-player #(dispatch [::events/set-selected-player %]))
-       (on :ui-cooldown #(dispatch [::events/cooldown %]))
        (on :ui-player-health #(dispatch [::events/set-health %]))
        (on :ui-player-mana #(dispatch [::events/set-mana %]))
        (on :ui-player-set-total-health-and-mana #(dispatch [::events/set-total-health-and-mana %]))
-       (on :ui-cancel-skill #(dispatch [::events/cancel-skill %]))
-       (on :ui-slow-down? #(dispatch [::events/block-slow-down-skill %])))
+       (on :ui-cooldown #(dispatch-sync [::events/cooldown %]))
+       (on :ui-cancel-skill #(dispatch-sync [::events/cancel-skill %]))
+       (on :ui-slow-down? #(dispatch-sync [::events/block-slow-down-skill %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

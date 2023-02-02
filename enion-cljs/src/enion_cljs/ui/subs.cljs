@@ -72,9 +72,10 @@
         :else false))))
 
 (reg-sub
-  ::not-enough-mana
+  ::not-enough-mana?
   (fn [db [_ skill]]
-    false))
+    (let [player-mana (-> db :player :mana)]
+      (-> common.skills/skills (get skill) :required-mana (> player-mana)))))
 
 (reg-sub
   ::selected-player
