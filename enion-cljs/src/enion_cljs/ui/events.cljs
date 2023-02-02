@@ -190,3 +190,9 @@
   ::cancel-skill-move
   (fn [db]
     (assoc-in db [:player :skill-move] nil)))
+
+;; TODO maybe ::block-skill (generic event) in the future
+(reg-event-db
+  ::block-slow-down-skill
+  (fn [db [_ blocked?]]
+    (assoc-in db [:player :slow-down-blocked?] blocked?)))

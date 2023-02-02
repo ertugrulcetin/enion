@@ -61,13 +61,14 @@
     (-> db :player :cooldown (get skill) :in-progress?)))
 
 (reg-sub
-  ::potion-blocked?
+  ::blocked-skill?
   (fn [db [_ skill]]
     (let [hp-in-progress? (-> db :player :cooldown (get "hpPotion") :in-progress?)
           mp-in-progress? (-> db :player :cooldown (get "mpPotion") :in-progress?)]
       (cond
         (= "hpPotion" skill) mp-in-progress?
         (= "mpPotion" skill) hp-in-progress?
+        (= "fleetFoot" skill) (-> db :player :slow-down-blocked?)
         :else false))))
 
 (reg-sub

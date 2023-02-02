@@ -278,25 +278,22 @@
   (j/call-in entity [:collision :on] "collisionstart" collision-start)
   (j/call-in entity [:collision :on] "collisionend" collision-end))
 
-(defn- create-model-and-template-entity [{:keys [id entity race class other-player? enemy?]}]
+(defn- create-model-and-template-entity [{:keys [id entity race class other-player?]}]
   (let [template-entity-name (str race "_" class)
         model-entity-name (str race "_" class "_model")
         character-template-entity (pc/clone (pc/find-by-name template-entity-name))
         _ (j/assoc! character-template-entity :name (str template-entity-name "_" id))
-        character-model-entity (pc/find-by-name character-template-entity model-entity-name)
-        model-y-offset (js/Math.abs (j/get (pc/get-loc-pos character-model-entity) :y))]
+        character-model-entity (pc/find-by-name character-template-entity model-entity-name)]
     (j/assoc! character-template-entity :enabled true)
     (when other-player?
       (j/assoc! (pc/find-by-name character-model-entity (str race "_" class "_mesh")) :enabled false)
       (j/assoc! (pc/find-by-name character-model-entity (str race "_" class "_mesh_lod_0")) :enabled true))
     (pc/set-loc-pos character-template-entity 0 0 0)
-    (when other-player?
-      (pc/set-loc-pos character-model-entity 0 0 0))
     (pc/add-child entity character-template-entity)
-    [character-template-entity character-model-entity model-y-offset]))
+    [character-template-entity character-model-entity]))
 
 ;; TODO username text elementleri faceCamera.js kullaniyor, o scripti kaldir, toplu bir sekilde yap kodda
-(defn- create-username-text [{:keys [template-entity username race class other-player? enemy? model-y-offset]}]
+(defn- create-username-text [{:keys [template-entity username race class other-player? enemy?]}]
   (let [username-text-entity (pc/clone (pc/find-by-name "char_name"))]
     (j/assoc-in! username-text-entity [:element :text] username)
     (j/assoc-in! username-text-entity [:element :color] username-color)
@@ -309,9 +306,6 @@
                    (= class "warrior")))
       (when other-player?
         (pc/set-loc-pos username-text-entity 0 0.05 0)))
-    (when model-y-offset
-      (let [{:keys [x y z]} (j/lookup (pc/get-loc-pos username-text-entity))]
-        (pc/set-loc-pos username-text-entity x (+ y model-y-offset) z)))
     (j/assoc-in! username-text-entity [:script :enabled] true)))
 
 (defn- init-player [{:keys [id username class race mana health pos]} player-entity]
@@ -334,31 +328,25 @@
 (defn spawn [[x y z]]
   (j/call-in (st/get-player-entity) [:rigidbody :teleport] x y z))
 
-(defn- add-skill-effects
-  ([template-entity]
-   (add-skill-effects template-entity nil))
-  ([template-entity model-y-offset]
-   (let [effects (pc/clone (pc/find-by-name "effects"))]
-     (pc/add-child template-entity effects)
-     (when model-y-offset
-       (let [{:keys [x y z]} (j/lookup (pc/get-loc-pos effects))]
-         (pc/set-loc-pos effects x (+ y model-y-offset) z)))
-     ;; add skill effect initial counters and related entities
-     (->> (map (j/get :name) (j/get effects :children))
-          (concat
-            ["particle_fire_hands"
-             "particle_flame_dots"
-             "particle_heal_hands"
-             "particle_cure_hands"
-             "particle_defense_break_hands"])
-          (keep
-            (fn [e]
-              (when-let [entity (pc/find-by-name template-entity e)]
-                [e {:counter 0
-                    :entity entity
-                    :state #js {:value 0}}])))
-          (into {})
-          clj->js))))
+(defn- add-skill-effects [template-entity]
+  (let [effects (pc/clone (pc/find-by-name "effects"))]
+    (pc/add-child template-entity effects)
+    ;; add skill effect initial counters and related entities
+    (->> (map (j/get :name) (j/get effects :children))
+         (concat
+           ["particle_fire_hands"
+            "particle_flame_dots"
+            "particle_heal_hands"
+            "particle_cure_hands"
+            "particle_defense_break_hands"])
+         (keep
+           (fn [e]
+             (when-let [entity (pc/find-by-name template-entity e)]
+               [e {:counter 0
+                   :entity entity
+                   :state #js {:value 0}}])))
+         (into {})
+         clj->js)))
 
 (defn- create-throw-nova-fn [character-template-entity]
   (some-> (pc/find-by-name character-template-entity "nova") skills.mage/create-throw-nova-fn))
@@ -446,8 +434,8 @@
                   :enemy? enemy?
                   :other-player? true}
           _ (pc/add-child (pc/root) entity)
-          [template-entity model-entity model-y-offset] (create-model-and-template-entity params)
-          effects (add-skill-effects template-entity model-y-offset)
+          [template-entity model-entity] (create-model-and-template-entity params)
+          effects (add-skill-effects template-entity)
           state (-> opts
                     (dissoc :pos)
                     (assoc :entity entity
@@ -464,8 +452,7 @@
                                    :initial-pos #js {}
                                    :last-pos #js {}})
                     clj->js)]
-      (create-username-text (assoc params :template-entity template-entity
-                                   :model-y-offset model-y-offset))
+      (create-username-text (assoc params :template-entity template-entity))
       (create-skill-fns state true)
       (if enemy?
         (j/call-in entity [:rigidbody :teleport] x y z)

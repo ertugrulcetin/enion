@@ -97,7 +97,7 @@
    [:span (styles/skill-number) (inc index)]
    (when-not (= :none skill)
      [:div (styles/childs-overlayed)
-      [:img {:class (styles/skill-img @(subscribe [::subs/potion-blocked? skill])
+      [:img {:class (styles/skill-img @(subscribe [::subs/blocked-skill? skill])
                                       @(subscribe [::subs/not-enough-mana skill]))
              :src (skill->img skill)}]
       (when @(subscribe [::subs/cooldown-in-progress? skill])
@@ -435,7 +435,9 @@
        (on :ui-cooldown #(dispatch [::events/cooldown %]))
        (on :ui-player-health #(dispatch [::events/set-health %]))
        (on :ui-player-mana #(dispatch [::events/set-mana %]))
-       (on :ui-player-set-total-health-and-mana #(dispatch [::events/set-total-health-and-mana %])))
+       (on :ui-player-set-total-health-and-mana #(dispatch [::events/set-total-health-and-mana %]))
+       (on :ui-cancel-skill #(dispatch [::events/cancel-skill %]))
+       (on :ui-slow-down? #(dispatch [::events/block-slow-down-skill %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

@@ -40,28 +40,6 @@
 (def shield-required-mana (-> common.skills/skills (get "shieldWall") :required-mana))
 (def fleet-food-required-mana (-> common.skills/skills (get "fleetFoot") :required-mana))
 
-(on :attack-slow-down
-    (fn [player-id]
-      (fire :ui-cooldown "attackSlowDown")
-      (let [enemy (st/get-other-player player-id)]
-        (skills.effects/apply-effect-attack-slow-down enemy)
-        (when false #_(> (rand-int 10) 8)
-              (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
-              (st/disable-player-collision player-id)
-              (st/set-health player-id 0)))))
-
-(on :attack-r
-    (fn [player-id]
-      (fire :ui-cooldown "attackR")
-      (let [enemy (st/get-other-player player-id)]
-        (skills.effects/apply-effect-attack-r enemy)
-        (if false #_(> (rand-int 10) 8)
-            (do
-              (pc/set-anim-int (st/get-model-entity player-id) "health" 0)
-              (st/disable-player-collision player-id)
-              (st/set-health player-id 0))
-            (st/set-health player-id (rand-int 100))))))
-
 (defmethod skills/skill-response "attackOneHand" [params]
   (fire :ui-cooldown "attackOneHand")
   (let [selected-player-id (-> params :skill :selected-player-id)
@@ -79,6 +57,16 @@
     (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
                         :damage damage})))
 
+(defmethod net/dispatch-pro-response :cured-attack-slow-down-damage [_]
+  (pc/update-anim-speed (st/get-model-entity) "run" 1)
+  (j/assoc! st/player
+            :slow-down? false
+            :speed st/speed)
+  (j/assoc-in! (st/get-player-entity) [:c :sound :slots :run_2 :pitch] 1)
+  (fire :ui-slow-down? false)
+  (fire :ui-cancel-skill "fleetFoot")
+  (st/set-cooldown true "fleetFoot"))
+
 (defmethod skills/skill-response "attackSlowDown" [params]
   (fire :ui-cooldown "attackSlowDown")
   (let [selected-player-id (-> params :skill :selected-player-id)
@@ -91,7 +79,15 @@
 (defmethod net/dispatch-pro-response :got-attack-slow-down-damage [params]
   (let [params (:got-attack-slow-down-damage params)
         damage (:damage params)
-        player-id (:player-id params)]
+        player-id (:player-id params)
+        slow-down? (:slow-down? params)]
+    (when slow-down?
+      (j/assoc! st/player
+                :slow-down? true
+                :fleet-foot? false)
+      (j/assoc-in! (st/get-player-entity) [:c :sound :slots :run_2 :pitch] 0)
+      (fire :ui-slow-down? true)
+      (fire :ui-cancel-skill "fleetFoot"))
     (skills.effects/apply-effect-attack-slow-down st/player)
     (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
                         :damage damage})))
@@ -112,6 +108,20 @@
     (skills.effects/apply-effect-attack-r st/player)
     (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
                         :damage damage})))
+
+(defmethod skills/skill-response "fleetFoot" [_]
+  (fire :ui-cooldown "fleetFoot")
+  (skills.effects/apply-effect-fleet-foot player)
+  (j/assoc! player
+            :fleet-foot? true
+            :speed (if (st/asas?) 850 700)))
+
+(defmethod net/dispatch-pro-response :fleet-foot-finished [_]
+  (dlog "fleetFood finished")
+  (j/assoc! st/player
+            :fleet-foot? false
+            :speed st/speed)
+  (pc/update-anim-speed (st/get-model-entity) "run" 1))
 
 (comment
   (sm/spawn 1)
@@ -194,7 +204,8 @@
     (skills/skill-pressed? e "fleetFoot")
     (st/cooldown-ready? "fleetFoot")
     (st/enough-mana? fleet-food-required-mana)
-    (not (j/get player :fleet-foot?))))
+    (not (j/get player :fleet-foot?))
+    (not (j/get player :slow-down?))))
 
 (defn- hp-potion? [e]
   (and
@@ -262,19 +273,7 @@
           (skills.effects/apply-effect-shield-wall player))
 
         (fleet-foot? e)
-        (do
-          (dispatch-pro :skill {:skill "fleetFoot"})
-          (fire :ui-cooldown "fleetFoot")
-          (skills.effects/apply-effect-fleet-foot player)
-          (j/assoc! player
-                    :fleet-foot? true
-                    :speed (if (st/asas?) 850 700))
-          (js/setTimeout
-            #(do
-               (j/assoc! player :fleet-foot? false)
-               (j/assoc! player :speed 550)
-               (pc/update-anim-speed (st/get-model-entity) "run" 1))
-            (-> common.skills/skills (get "fleetFoot") :cooldown (- 1500))))
+        (dispatch-pro :skill {:skill "fleetFoot"})
 
         (hp-potion? e)
         (do

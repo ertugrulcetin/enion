@@ -27,6 +27,9 @@
    {:anim-state "run"
     :event "onRunStart"
     :f (fn [_]
+         (when (j/get player :slow-down?)
+           (pc/update-anim-speed (get-model-entity) "run" 0.5)
+           (j/assoc! player :speed 350))
          (when (j/get player :fleet-foot?)
            (pc/update-anim-speed (get-model-entity) "run" 1.5)))}
    {:anim-state "jump" :event "onJumpEnd" :end? true}

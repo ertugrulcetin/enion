@@ -8,7 +8,7 @@ CONTEXT_OPTIONS = {
     'preferWebGl2': true,
     'powerPreference': "default"
 };
-SCRIPTS = [ 118396797, 78753240, 111773112, 108026253, 99767394, 108026252, 109387017, 109848422, 109848430, 110329954, 112098061, 114063573, 114085216, 118401522, 118403201, 120110871, 120110872 ];
+SCRIPTS = [ 118396797, 78753240, 111773112, 108026253, 99767394, 108026252, 109387017, 109848422, 109848430, 110329954, 112098061, 114063573, 114085216, 118401522, 118403201, 120163247, 120163248 ];
 CONFIG_FILENAME = "config.json";
 INPUT_SETTINGS = {
     useKeyboard: true,
@@ -18,7 +18,7 @@ INPUT_SETTINGS = {
 };
 pc.script.legacy = false;
 PRELOAD_MODULES = [
-    {'moduleName' : 'Ammo', 'glueUrl' : 'files/assets/120110871/1/ammo.wasm.js', 'wasmUrl' : 'files/assets/120110870/1/ammo.wasm.wasm', 'fallbackUrl' : 'files/assets/120110872/1/ammo.js', 'preload' : true},
+    {'moduleName' : 'Ammo', 'glueUrl' : 'files/assets/120163247/1/ammo.wasm.js', 'wasmUrl' : 'files/assets/120163246/1/ammo.wasm.wasm', 'fallbackUrl' : 'files/assets/120163248/1/ammo.js', 'preload' : true},
 ];
 
 var loadModules = function (modules, urlPrefix, doneCallback) { // eslint-disable-line no-unused-vars

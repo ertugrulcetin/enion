@@ -48,7 +48,8 @@
                                     "slowing effect on the target, reducing their movement "
                                     "speed for a short duration")
                      :required-mana 200
-                     :damage-fn #(rand-between 100 200)}
+                     :damage-fn #(rand-between 100 200)
+                     :effect-duration 5000}
    "shieldWall" {:cooldown 50000
                  :name "Shield Wall"
                  :description "Increases the defense power of himself and all party members by 15% for a short duration"

@@ -5,7 +5,9 @@
     [enion-cljs.common :refer [fire]]
     [enion-cljs.scene.pc :as pc]))
 
-(defonce player (clj->js {:speed 550
+(def speed 550)
+
+(defonce player (clj->js {:speed speed
                           :x 0
                           :z 0
                           :target-y nil
@@ -46,7 +48,8 @@
 (defn destroy-player [player-id]
   (when-let [entity (get-other-player-entity player-id)]
     (j/call entity :destroy)
-    (js-delete other-players player-id)))
+    (js-delete other-players player-id)
+    (js-delete other-players js/undefined)))
 
 (defn destroy-players []
   (doseq [id (js/Object.keys other-players)]
@@ -96,7 +99,9 @@
   (pc/distance (pc/get-pos (get-player-entity)) (pc/get-pos (get-other-player-entity player-id))))
 
 (defn add-player [player]
-  (j/assoc! other-players (j/get player :id) player))
+  (if player
+    (j/assoc! other-players (j/get player :id) player)
+    (js/console.error "Player could not get created!")))
 
 (defn disable-player-collision [player-id]
   (j/assoc-in! (get-other-player-entity player-id) [:collision :enabled] false))
@@ -143,8 +148,9 @@
 
 (let [prev-state (volatile! {})]
   (defn get-state []
-    (let [model-entity (get-model-entity)
-          pos (pc/get-pos model-entity)
+    (let [entity (get-player-entity)
+          pos (pc/get-pos entity)
+          model-entity (get-model-entity)
           eul (pc/get-loc-euler model-entity)
           state {:px (j/get pos :x)
                  :py (j/get pos :y)
