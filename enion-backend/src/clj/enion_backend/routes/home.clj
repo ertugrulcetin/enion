@@ -387,6 +387,7 @@
         (> ping 5000) skill-failed
         (not (alive? world-state)) skill-failed
         (not (cooldown-finished? skill player)) skill-failed
+        (not (cooldown-finished? "mpPotion" player)) skill-failed
         :else (let [total-health (get player :health)]
                 (swap! world update-in [id :health] use-potion (-> common.skills/skills (get skill) :hp) total-health)
                 (swap! players assoc-in [id :last-time :skill skill] (now))
@@ -399,24 +400,18 @@
         (> ping 5000) skill-failed
         (not (alive? world-state)) skill-failed
         (not (cooldown-finished? skill player)) skill-failed
+        (not (cooldown-finished? "hpPotion" player)) skill-failed
         :else (let [total-mana (get player :mana)]
                 (swap! world update-in [id :mana] use-potion (-> common.skills/skills (get skill) :mp) total-mana)
                 (swap! players assoc-in [id :last-time :skill skill] (now))
                 {:skill skill})))))
 
 (comment
-  @world
   (swap! world assoc-in [88 :health] 1600)
-  (swap! world assoc-in [76 :mana] 0)
 
   (clojure.pprint/pprint @players)
-
   (clojure.pprint/pprint @world)
 
-  (reset-states)
-  @world
-  @players
-  (swap! world assoc-in [29 :mana] 1000)
   (mount/start)
   (mount/stop)
   )

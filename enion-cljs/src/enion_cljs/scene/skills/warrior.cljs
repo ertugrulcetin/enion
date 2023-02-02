@@ -127,13 +127,17 @@
   (fire :ui-cooldown "shieldWall")
   (skills.effects/apply-effect-shield-wall player))
 
-(defmethod skills/skill-response "hpPotion" [_]
-  (fire :ui-cooldown "hpPotion")
-  (skills.effects/apply-effect-hp-potion player))
+(let [hp-recover {:hp true}]
+  (defmethod skills/skill-response "hpPotion" [_]
+    (fire :ui-cooldown "hpPotion")
+    (fire :ui-send-msg hp-recover)
+    (skills.effects/apply-effect-hp-potion player)))
 
-(defmethod skills/skill-response "mpPotion" [_]
-  (fire :ui-cooldown "mpPotion")
-  (skills.effects/apply-effect-mp-potion player))
+(let [mp-recover {:mp true}]
+  (defmethod skills/skill-response "mpPotion" [_]
+    (fire :ui-cooldown "mpPotion")
+    (fire :ui-send-msg mp-recover)
+    (skills.effects/apply-effect-mp-potion player)))
 
 (let [too-far-msg {:too-far true}]
   (defn- close-for-attack? [selected-player-id]

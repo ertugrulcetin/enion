@@ -264,7 +264,6 @@
    [:&.hit {:color "#e1dedeff"}]
    [:&.bp {:color "#5f5fcbff"}]
    [:&.skill {:color "#e1dedeff"}]
-   [:&.using-potion {:color "#01ffbbd3"}]
    [:&.hp-recover {:color "#53b226ff"}]
    [:&.mp-recover {:color "#2691b2ff"}]
    [:&.skill-failed {:color "#ffc301c8"}]]

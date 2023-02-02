@@ -102,35 +102,6 @@
       (when @(subscribe [::subs/cooldown-in-progress? skill])
         [cooldown skill])])])
 
-(comment
-  @(subscribe [::subs/skill-description])
-  (js/setInterval
-    (fn []
-      (dispatch [::events/cooldown "heal"])
-      (dispatch [::events/cooldown "cure"])
-      (dispatch [::events/cooldown "fleetFoot"])
-      (dispatch [::events/cooldown "hpPotion"])
-      (dispatch [::events/cooldown "mpPotion"]))
-    100)
-  (js/clearInterval 117963)
-
-  (dispatch [::events/cooldown "attackOneHand"])
-  (dispatch [::events/cooldown "attackSlowDown"])
-  (dispatch [::events/cooldown "shieldWall"])
-  (dispatch [::events/cooldown "fleetFoot"])
-  (dispatch [::events/cooldown "hpPotion"])
-  (dispatch [::events/cooldown "mpPotion"])
-
-  (dispatch [::events/cooldown "heal"])
-  (dispatch [::events/cooldown "cure"])
-
-  (dispatch [::events/cooldown "attackSlowDown"])
-
-  (dispatch [::events/cooldown "attackOneHand"])
-  (dispatch [::events/cancel-skill "attackOneHand"])
-  (dispatch [::events/cancel-skill "shieldWall"])
-  )
-
 (defn- hp-bar []
   (let [health @(subscribe [::subs/health])
         total-health @(subscribe [::subs/total-health])
@@ -268,26 +239,25 @@
     (:hit message) "hit"
     (:bp message) "bp"
     (:skill message) "skill"
-    (:potion message) "using-potion"
     (:hp message) "hp-recover"
     (:mp message) "mp-recover"
     (:skill-failed message) "skill-failed"
     (:too-far message) "skill-failed"
     (:not-enough-mana message) "skill-failed"))
 
-(defn- info-message->text [message]
-  (cond
-    (:damage message) (str "You took " (:damage message) " damage from " (:from message))
-    (:hit message) (str (:to message) " received " (:hit message) " damage")
-    (:bp message) (str "Earned " (:bp message) " battle points")
-    (:skill message) (str "Using " (:skill message))
-    (:skill-failed message) "Skill failed"
-    (:too-far message) "Too far"
-    (= (:potion message) :hp) "Using HP potion"
-    (= (:potion message) :mp) "Using MP potion"
-    (:hp message) "240 HP recovered"
-    (:mp message) "120 MP recovered"
-    (:not-enough-mana message) "Not enough mana!"))
+(let [hp-message (-> "hpPotion" common.skills/skills :hp (str " HP recovered"))
+      mp-message (-> "mpPotion" common.skills/skills :mp (str " MP recovered"))]
+  (defn- info-message->text [message]
+    (cond
+      (:damage message) (str "You took " (:damage message) " damage from " (:from message))
+      (:hit message) (str (:to message) " received " (:hit message) " damage")
+      (:bp message) (str "Earned " (:bp message) " battle points")
+      (:skill message) (str "Using " (:skill message))
+      (:skill-failed message) "Skill failed"
+      (:too-far message) "Too far"
+      (:hp message) hp-message
+      (:mp message) mp-message
+      (:not-enough-mana message) "Not enough mana!")))
 
 (defn- info-message [message]
   [:<>
@@ -330,13 +300,6 @@
      [:div (styles/hp-bar-selected-player)
       [:div (styles/hp-hit health)]
       [:div (styles/hp health)]]]))
-
-(comment
-
-  (do
-    (set! (.-width (.-style (js/document.getElementById "ertus"))) "50%")
-    (set! (.-width (.-style (js/document.getElementById "ertus-hit"))) "50%"))
-  )
 
 (def x (r/atom 0))
 (def y (r/atom 0))
