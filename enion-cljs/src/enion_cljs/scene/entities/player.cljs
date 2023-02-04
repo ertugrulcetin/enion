@@ -492,6 +492,20 @@
     (on :cooldown-ready? (fn [{:keys [ready? skill]}]
                            (st/set-cooldown ready? skill)))))
 
+(defn- play-running-sound [dt model-entity]
+  (when (and (= "run" (pc/get-anim-state model-entity))
+             (j/get player :on-ground?))
+    (when (> (j/get player :sound-run-elapsed-time) (if (j/get player :fleet-foot?) 0.3 0.4))
+      (if (j/get player :sound-run-1?)
+        (do
+          (j/call-in (st/get-player-entity) [:c :sound :slots "run_1" :play])
+          (j/assoc! player :sound-run-1? false))
+        (do
+          (j/call-in (st/get-player-entity) [:c :sound :slots "run_2" :play])
+          (j/assoc! player :sound-run-1? true)))
+      (j/assoc! player :sound-run-elapsed-time 0))
+    (j/update! player :sound-run-elapsed-time + dt)))
+
 ;; TODO add if entity is able to move - like app-focused? and alive? etc.
 (defn- process-movement [dt _]
   (when (st/alive?)
@@ -545,17 +559,7 @@
             (when (pressing-wasd-or-has-target?)
               (pc/set-loc-euler model-entity 0 (j/get player :target-y) 0)
               (pc/set-anim-boolean model-entity "run" true))))
-        (when (and (= "run" (pc/get-anim-state model-entity)) (j/get player :on-ground?))
-          (when (> (j/get player :sound-run-elapsed-time) (if (j/get player :fleet-foot?) 0.3 0.4))
-            (if (j/get player :sound-run-1?)
-              (do
-                (j/call-in (st/get-player-entity) [:c :sound :slots "run_1" :play])
-                (j/assoc! player :sound-run-1? false))
-              (do
-                (j/call-in (st/get-player-entity) [:c :sound :slots "run_2" :play])
-                (j/assoc! player :sound-run-1? true)))
-            (j/assoc! player :sound-run-elapsed-time 0))
-          (j/update! player :sound-run-elapsed-time + dt))))))
+        (play-running-sound dt model-entity)))))
 
 (defn enable-effect [name]
   (j/assoc! (pc/find-by-name (st/get-player-entity) name) :enabled true))

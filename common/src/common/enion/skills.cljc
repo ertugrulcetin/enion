@@ -34,13 +34,15 @@
                     :name "Phantom Vision"
                     :description (str "Allows the assassin and their party members to see invisible "
                                    "enemies who are using stealth or invisibility abilities")
-                    :required-mana 200}
+                    :required-mana 200
+                    :effect-duration (* 120 1000)}
    "hide" {:cooldown 15000
            :name "Ghost Step"
            :description (str "Stealthy movement ability that allows the assassin to move invisibly "
                           "while running. However, Ghost Step does have a limited duration, and the assassin "
                           "will become visible again after 50 seconds or when taking damage")
-           :required-mana 150}
+           :required-mana 150
+           :effect-duration (* 50 1000)}
    ;;Warrior
    "attackOneHand" {:cooldown 950
                     :name "Savage Chop"

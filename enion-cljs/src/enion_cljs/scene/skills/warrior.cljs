@@ -20,25 +20,22 @@
   (concat
     skills/common-states
     [{:anim-state "attackOneHand" :event "onAttackOneHandEnd" :skill? true :end? true}
-     {:anim-state "attackOneHand" :event "onAttackOneHandCall" :call? true :call-name :attack-one-hand}
+     {:anim-state "attackOneHand" :event "onAttackOneHandCall" :call? true}
      {:anim-state "attackOneHand" :event "onAttackOneHandLockRelease" :r-release? true}
      {:anim-state "attackOneHand" :event "onAttackOneHandLock" :r-lock? true}
      {:anim-state "attackR" :event "onAttackREnd" :skill? true :end? true}
-     {:anim-state "attackR" :event "onAttackRCall" :call? true :call-name :attack-r}
+     {:anim-state "attackR" :event "onAttackRCall" :call? true}
      {:anim-state "attackR" :event "onAttackRLockRelease" :r-release? true}
      {:anim-state "attackR" :event "onAttackRLock" :r-lock? true}
-     {:anim-state "attackSlowDown" :event "onAttackSlowDownCall" :call? true :call-name :attack-slow-down}
+     {:anim-state "attackSlowDown" :event "onAttackSlowDownCall" :call? true}
      {:anim-state "attackSlowDown" :event "onAttackSlowDownEnd" :skill? true :end? true}]))
 
 (def last-one-hand-combo (volatile! (js/Date.now)))
 
 (def attack-one-hand-cooldown (-> common.skills/skills (get "attackOneHand") :cooldown))
-
 (def attack-one-hand-required-mana (-> common.skills/skills (get "attackOneHand") :required-mana))
 (def attack-slow-down-required-mana (-> common.skills/skills (get "attackSlowDown") :required-mana))
-(def attack-r-required-mana (-> common.skills/skills (get "attackR") :required-mana))
 (def shield-required-mana (-> common.skills/skills (get "shieldWall") :required-mana))
-(def fleet-food-required-mana (-> common.skills/skills (get "fleetFoot") :required-mana))
 
 (defmethod skills/skill-response "attackOneHand" [params]
   (fire :ui-cooldown "attackOneHand")
@@ -109,13 +106,6 @@
     (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
                         :damage damage})))
 
-(defmethod skills/skill-response "fleetFoot" [_]
-  (fire :ui-cooldown "fleetFoot")
-  (skills.effects/apply-effect-fleet-foot player)
-  (j/assoc! player
-            :fleet-foot? true
-            :speed (if (st/asas?) 850 700)))
-
 (defmethod net/dispatch-pro-response :fleet-foot-finished [_]
   (dlog "fleetFood finished")
   (j/assoc! st/player
@@ -126,33 +116,6 @@
 (defmethod skills/skill-response "shieldWall" [_]
   (fire :ui-cooldown "shieldWall")
   (skills.effects/apply-effect-shield-wall player))
-
-(let [hp-recover {:hp true}]
-  (defmethod skills/skill-response "hpPotion" [_]
-    (fire :ui-cooldown "hpPotion")
-    (fire :ui-send-msg hp-recover)
-    (skills.effects/apply-effect-hp-potion player)))
-
-(let [mp-recover {:mp true}]
-  (defmethod skills/skill-response "mpPotion" [_]
-    (fire :ui-cooldown "mpPotion")
-    (fire :ui-send-msg mp-recover)
-    (skills.effects/apply-effect-mp-potion player)))
-
-(let [too-far-msg {:too-far true}]
-  (defn- close-for-attack? [selected-player-id]
-    (let [result (<= (st/distance-to selected-player-id) common.skills/close-attack-distance-threshold)]
-      (when-not result
-        (fire :ui-send-msg too-far-msg))
-      result)))
-
-(defn- r-combo? [e active-state selected-player-id]
-  (and (= active-state "attackOneHand")
-       (skills/skill-pressed? e "attackR")
-       (j/get player :can-r-attack-interrupt?)
-       (st/enemy-selected? selected-player-id)
-       (st/alive? selected-player-id)
-       (close-for-attack? selected-player-id)))
 
 (defn- one-hand-combo? [e active-state selected-player-id]
   (and (= active-state "attackR")
@@ -165,14 +128,7 @@
        (st/enemy-selected? selected-player-id)
        (st/alive? selected-player-id)
        (st/enough-mana? attack-one-hand-required-mana)
-       (close-for-attack? selected-player-id)))
-
-(defn- idle? [active-state]
-  (and (= "idle" active-state) (k/pressing-wasd?)))
-
-(defn- jump? [e active-state]
-  (and (skills/idle-run-states active-state)
-       (pc/key? e :KEY_SPACE) (j/get player :on-ground?)))
+       (skills/close-for-attack? selected-player-id)))
 
 (defn- attack-one-hand? [e active-state selected-player-id]
   (and
@@ -182,7 +138,7 @@
     (st/enemy-selected? selected-player-id)
     (st/alive? selected-player-id)
     (st/enough-mana? attack-one-hand-required-mana)
-    (close-for-attack? selected-player-id)))
+    (skills/close-for-attack? selected-player-id)))
 
 (defn- attack-slow-down? [e active-state selected-player-id]
   (and
@@ -192,42 +148,13 @@
     (st/enemy-selected? selected-player-id)
     (st/alive? selected-player-id)
     (st/enough-mana? attack-slow-down-required-mana)
-    (close-for-attack? selected-player-id)))
-
-(defn- attack-r? [e active-state selected-player-id]
-  (and
-    (skills/idle-run-states active-state)
-    (skills/skill-pressed? e "attackR")
-    (st/enemy-selected? selected-player-id)
-    (st/alive? selected-player-id)
-    (st/enough-mana? attack-r-required-mana)
-    (close-for-attack? selected-player-id)))
+    (skills/close-for-attack? selected-player-id)))
 
 (defn- shield-wall? [e]
   (and
     (skills/skill-pressed? e "shieldWall")
     (st/cooldown-ready? "shieldWall")
     (st/enough-mana? shield-required-mana)))
-
-(defn- fleet-foot? [e]
-  (and
-    (skills/skill-pressed? e "fleetFoot")
-    (st/cooldown-ready? "fleetFoot")
-    (st/enough-mana? fleet-food-required-mana)
-    (not (j/get player :fleet-foot?))
-    (not (j/get player :slow-down?))))
-
-(defn- hp-potion? [e]
-  (and
-    (skills/skill-pressed? e "hpPotion")
-    (st/cooldown-ready? "hpPotion")
-    (st/cooldown-ready? "mpPotion")))
-
-(defn- mp-potion? [e]
-  (and
-    (skills/skill-pressed? e "mpPotion")
-    (st/cooldown-ready? "hpPotion")
-    (st/cooldown-ready? "mpPotion")))
 
 (defn process-skills [e]
   ;; TODO add check if our char is alive -- APPLY FOR ALL CLASSES - then DELETE THIS TODO
@@ -241,7 +168,7 @@
         active-state
         player)
       (cond
-        (r-combo? e active-state selected-player-id)
+        (skills/r-combo? e "attackOneHand" active-state selected-player-id)
         (do
           (dlog "R combo!")
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
@@ -256,10 +183,10 @@
           (pc/set-anim-boolean model-entity "attackOneHand" true)
           (vreset! last-one-hand-combo (js/Date.now)))
 
-        (idle? active-state)
+        (skills/idle? active-state)
         (pc/set-anim-boolean model-entity "run" true)
 
-        (jump? e active-state)
+        (skills/jump? e active-state)
         (pc/set-anim-boolean model-entity "jump" true)
 
         (attack-one-hand? e active-state selected-player-id)
@@ -272,7 +199,7 @@
           (j/assoc-in! player [:skill->selected-player-id "attackSlowDown"] selected-player-id)
           (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true))
 
-        (attack-r? e active-state selected-player-id)
+        (skills/attack-r? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackR" true))
@@ -280,13 +207,13 @@
         (shield-wall? e)
         (dispatch-pro :skill {:skill "shieldWall"})
 
-        (fleet-foot? e)
+        (skills/fleet-foot? e)
         (dispatch-pro :skill {:skill "fleetFoot"})
 
-        (hp-potion? e)
+        (skills/hp-potion? e)
         (dispatch-pro :skill {:skill "hpPotion"})
 
-        (mp-potion? e)
+        (skills/mp-potion? e)
         (dispatch-pro :skill {:skill "mpPotion"})))))
 
 (comment

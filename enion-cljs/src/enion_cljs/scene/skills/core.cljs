@@ -1,11 +1,13 @@
 (ns enion-cljs.scene.skills.core
   (:require
     [applied-science.js-interop :as j]
+    [common.enion.skills :as common.skills]
     [enion-cljs.common :as common :refer [fire]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.states :refer [player get-model-entity get-player-entity]]))
+    [enion-cljs.scene.skills.effects :as skills.effects]
+    [enion-cljs.scene.states :as st :refer [player get-model-entity get-player-entity]]))
 
 (def key->skill)
 
@@ -36,6 +38,9 @@
    {:anim-state "jump" :event "onJumpStart" :f (fn [player-entity _]
                                                  (pc/apply-impulse player-entity 0 200 0))}])
 
+(def fleet-food-required-mana (-> common.skills/skills (get "fleetFoot") :required-mana))
+(def attack-r-required-mana (-> common.skills/skills (get "attackR") :required-mana))
+
 (defmulti skill-response #(-> % :skill :skill))
 
 (defmethod net/dispatch-pro-response :skill [params]
@@ -55,8 +60,75 @@
 (defn skill-pressed? [e skill]
   (= (key->skill (j/get e :key)) skill))
 
-;; TODO remove this
-(def latency 100)
+(defn idle? [active-state]
+  (and (= "idle" active-state) (k/pressing-wasd?)))
+
+(defn jump? [e active-state]
+  (and (idle-run-states active-state)
+       (pc/key? e :KEY_SPACE) (j/get player :on-ground?)))
+
+(let [too-far-msg {:too-far true}]
+  (defn close-for-attack? [selected-player-id]
+    (let [result (<= (st/distance-to selected-player-id) common.skills/close-attack-distance-threshold)]
+      (when-not result
+        (fire :ui-send-msg too-far-msg))
+      result)))
+
+(defn attack-r? [e active-state selected-player-id]
+  (and
+    (idle-run-states active-state)
+    (skill-pressed? e "attackR")
+    (st/enemy-selected? selected-player-id)
+    (st/alive? selected-player-id)
+    (st/enough-mana? attack-r-required-mana)
+    (close-for-attack? selected-player-id)))
+
+(defn r-combo? [e prev-state active-state selected-player-id]
+  (and (= active-state prev-state)
+       (skill-pressed? e "attackR")
+       (j/get player :can-r-attack-interrupt?)
+       (st/enemy-selected? selected-player-id)
+       (st/alive? selected-player-id)
+       (close-for-attack? selected-player-id)))
+
+(defn fleet-foot? [e]
+  (and
+    (skill-pressed? e "fleetFoot")
+    (st/cooldown-ready? "fleetFoot")
+    (st/enough-mana? fleet-food-required-mana)
+    (not (j/get player :fleet-foot?))
+    (not (j/get player :slow-down?))))
+
+(defn hp-potion? [e]
+  (and
+    (skill-pressed? e "hpPotion")
+    (st/cooldown-ready? "hpPotion")
+    (st/cooldown-ready? "mpPotion")))
+
+(defn mp-potion? [e]
+  (and
+    (skill-pressed? e "mpPotion")
+    (st/cooldown-ready? "hpPotion")
+    (st/cooldown-ready? "mpPotion")))
+
+(let [hp-recover {:hp true}]
+  (defmethod skill-response "hpPotion" [_]
+    (fire :ui-cooldown "hpPotion")
+    (fire :ui-send-msg hp-recover)
+    (skills.effects/apply-effect-hp-potion player)))
+
+(let [mp-recover {:mp true}]
+  (defmethod skill-response "mpPotion" [_]
+    (fire :ui-cooldown "mpPotion")
+    (fire :ui-send-msg mp-recover)
+    (skills.effects/apply-effect-mp-potion player)))
+
+(defmethod skill-response "fleetFoot" [_]
+  (fire :ui-cooldown "fleetFoot")
+  (skills.effects/apply-effect-fleet-foot player)
+  (j/assoc! player
+            :fleet-foot? true
+            :speed (if (st/asas?) 850 700)))
 
 (defn register-skill-events [events]
   (let [player-entity (get-player-entity)
@@ -92,11 +164,7 @@
                               (j/assoc-in! player [:skill->selected-player-id anim-state] nil)
 
                               (dispatch-pro :skill (cond-> {:skill anim-state}
-                                                     selected-player-id (assoc :selected-player-id (js/parseInt selected-player-id))))
-                              #_(when call-name
-                        (js/setTimeout
-                          #(fire call-name selected-player-id)
-                          latency)))
+                                                     selected-player-id (assoc :selected-player-id (js/parseInt selected-player-id)))))
                       r-release? (j/assoc! player :can-r-attack-interrupt? true)
                       r-lock? (j/assoc! player :can-r-attack-interrupt? false)))))))
 
