@@ -1,9 +1,12 @@
 (ns enion-cljs.scene.skills.asas
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.scene.keyboard :as k]
+    [common.enion.skills :as common.skills]
+    [enion-cljs.common :refer [fire on dlog]]
+    [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.core :as skills]
+    [enion-cljs.scene.skills.effects :as skills.effects]
     [enion-cljs.scene.states :as st :refer [player]]
     [enion-cljs.scene.utils :as utils])
   (:require-macros
@@ -24,7 +27,10 @@
      {:anim-state "hide" :event "onHideCall" :call? true}
      {:anim-state "hide" :event "onHideEnd" :skill? true :end? true}]))
 
-(def last-one-hand-combo (atom (js/Date.now)))
+(def attack-dagger-cooldown (-> common.skills/skills (get "attackDagger") :cooldown))
+(def attack-dagger-required-mana (-> common.skills/skills (get "attackDagger") :required-mana))
+
+(def last-one-hand-combo (volatile! (js/Date.now)))
 
 ;; TODO hide olurken gelip birisi vurunca appear olunmali, appear hide asamasini iptal etmeli
 ;; su an hide olurken ortasinda appear gelince hide devam ediyor...
@@ -124,45 +130,112 @@
         (j/call tween-opacity :start)
         nil))))
 
+(defmethod skills/skill-response "attackDagger" [params]
+  (fire :ui-cooldown "attackDagger")
+  (let [selected-player-id (-> params :skill :selected-player-id)
+        damage (-> params :skill :damage)
+        enemy (st/get-other-player selected-player-id)]
+    (skills.effects/apply-effect-attack-dagger enemy)
+    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+                        :hit damage})))
+
+(defmethod skills/skill-response "phantomVision" [_]
+  (fire :ui-cooldown "phantomVision")
+  (skills.effects/apply-effect-phantom-vision player)
+  (skills/enable-phantom-vision))
+
+(defmethod skills/skill-response "hide" [_]
+  (fire :ui-cooldown "hide")
+  (j/call-in player [:skills :hide]))
+
+(defmethod net/dispatch-pro-response :hide-finished [_]
+  (j/call-in player [:skills :appear]))
+
+(defn- dagger-combo? [e active-state selected-player-id]
+  (and (= active-state "attackR")
+       (skills/skill-pressed? e "attackDagger")
+       (j/get player :can-r-attack-interrupt?)
+       (> (- (js/Date.now) @last-one-hand-combo) (utils/rand-between
+                                                   attack-dagger-cooldown
+                                                   (+ attack-dagger-cooldown 400)))
+       (st/cooldown-ready? "attackDagger")
+       (st/enemy-selected? selected-player-id)
+       (st/alive? selected-player-id)
+       (st/enough-mana? attack-dagger-required-mana)
+       (skills/close-for-attack? selected-player-id)))
+
+;; create a function like attack-one-hand? but for attackDagger skill
+(defn- attack-dagger? [e active-state selected-player-id]
+  (and
+    (skills/idle-run-states active-state)
+    (skills/skill-pressed? e "attackDagger")
+    (st/cooldown-ready? "attackDagger")
+    (st/enemy-selected? selected-player-id)
+    (st/alive? selected-player-id)
+    (st/enough-mana? attack-dagger-required-mana)
+    (skills/close-for-attack? selected-player-id)))
+
+
+
+(def phantom-vision-required-mana (-> common.skills/skills (get "phantomVision") :required-mana))
+
+(defn- phantom-vision? [e]
+  (and
+    (skills/skill-pressed? e "phantomVision")
+    (st/cooldown-ready? "phantomVision")
+    (st/enough-mana? phantom-vision-required-mana)))
+
 (defn process-skills [e]
   (when-not (-> e .-event .-repeat)
     (let [model-entity (st/get-model-entity)
-          active-state (pc/get-anim-state model-entity)]
+          active-state (pc/get-anim-state model-entity)
+          selected-player-id (st/get-selected-player-id)]
       (m/process-cancellable-skills
         ["attackDagger" "attackR" "hide"]
         (j/get-in e [:event :code])
         active-state
         player)
       (cond
-        (and (= active-state "attackDagger")
-             (skills/skill-pressed? e "attackR")
-             (j/get player :can-r-attack-interrupt?))
+        (skills/r-combo? e "attackDagger" active-state selected-player-id)
         (do
-          (println "R combo!")
+          (dlog "R combo!")
           (pc/set-anim-boolean model-entity "attackDagger" false)
           (pc/set-anim-boolean model-entity "attackR" true))
 
-        (and (= active-state "attackR")
-             (skills/skill-pressed? e "attackDagger")
-             (j/get player :can-r-attack-interrupt?)
-             (> (- (js/Date.now) @last-one-hand-combo) (utils/rand-between 750 1200)))
+        (dagger-combo? e active-state selected-player-id)
         (do
           (println "dagger combo...!")
           (pc/set-anim-boolean model-entity "attackR" false)
           (pc/set-anim-boolean model-entity "attackDagger" true)
-          (reset! last-one-hand-combo (js/Date.now)))
+          (vreset! last-one-hand-combo (js/Date.now)))
 
-        (and (= "idle" active-state) (k/pressing-wasd?))
+        (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
 
-        (and (skills/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get player :on-ground?))
+        (skills/jump? e active-state)
         (pc/set-anim-boolean model-entity "jump" true)
 
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackDagger"))
-        (pc/set-anim-boolean model-entity "attackDagger" true)
+        (attack-dagger? e active-state selected-player-id)
+        (do
+          (j/assoc-in! player [:skill->selected-player-id "attackDagger"] selected-player-id)
+          (pc/set-anim-boolean (st/get-model-entity) "attackDagger" true))
 
         (and (skills/idle-run-states active-state) (skills/skill-pressed? e "hide"))
         (pc/set-anim-boolean model-entity "hide" true)
 
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackR"))
-        (pc/set-anim-boolean model-entity "attackR" true)))))
+        (skills/attack-r? e active-state selected-player-id)
+        (do
+          (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
+          (pc/set-anim-boolean model-entity "attackR" true))
+
+        (phantom-vision? e)
+        (dispatch-pro :skill {:skill "phantomVision"})
+
+        (skills/fleet-foot? e)
+        (dispatch-pro :skill {:skill "fleetFoot"})
+
+        (skills/hp-potion? e)
+        (dispatch-pro :skill {:skill "hpPotion"})
+
+        (skills/mp-potion? e)
+        (dispatch-pro :skill {:skill "mpPotion"})))))

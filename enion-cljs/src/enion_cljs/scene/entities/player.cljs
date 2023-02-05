@@ -89,11 +89,13 @@
             pos (pc/get-pos e)
             distance (pc/distance pos (get-position))]
         (cond
+          (and (j/get other-player :enemy?) (or (> distance char-selection-distance-threshold)
+                                                (and (j/get other-player :hide?)
+                                                     (not (j/get player :phantom-vision?)))))
+          (st/cancel-selected-player)
+
           (< distance char-selection-distance-threshold)
           (pc/set-selected-player-position (j/get pos :x) (j/get pos :z))
-
-          (and (j/get other-player :enemy?) (> distance char-selection-distance-threshold))
-          (st/cancel-selected-player)
 
           (and (not (j/get other-player :enemy?)) (> distance char-selection-distance-threshold))
           (pc/set-selected-player-position)))
@@ -105,15 +107,6 @@
 
 (defn- has-phantom-vision? []
   (j/get player :phantom-vision?))
-
-(defn- get-hidden-enemy-asases []
-  (reduce
-    (fn [acc id]
-      (let [other-player (j/get other-players id)]
-        (if (and (j/get other-player :enemy?) (j/get other-player :hide?))
-          (conj acc other-player)
-          acc)))
-    [] (js/Object.keys other-players)))
 
 (defn- select-closest-enemy* []
   (if-let [id (->> (js/Object.keys other-players)
@@ -175,16 +168,6 @@
                       (process-running)))
     (skills/register-skill-events events)
     (on :update-skills-order skills/register-key->skills)))
-
-(defn enable-phantom-vision []
-  (j/assoc! player :phantom-vision? true)
-  (doseq [a (get-hidden-enemy-asases)]
-    (j/call-in a [:skills :hide])))
-
-(defn disable-phantom-vision []
-  (j/assoc! player :phantom-vision? false)
-  (doseq [a (get-hidden-enemy-asases)]
-    (j/call-in a [:skills :hide])))
 
 (defn- get-selected-enemy-id [e]
   (let [result (pc/raycast-rigid-body e entity.camera/entity)

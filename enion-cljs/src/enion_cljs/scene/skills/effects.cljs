@@ -157,6 +157,7 @@
                         nil?
                         (mapcat
                           (fn [id]
+                            ;; todo replace -1 with current player id
                             (when-let [e (if (= id "-1")
                                            (j/get player :entity)
                                            (j/get-in other-players [id :entity]))]

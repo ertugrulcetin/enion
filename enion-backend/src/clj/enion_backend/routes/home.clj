@@ -34,6 +34,26 @@
 (defonce players (atom {}))
 (defonce world (atom {}))
 
+(defonce effects-stream (s/stream))
+
+(defn- add-effect [effect target-id]
+  (s/put! effects-stream {:effect effect
+                          :target-id target-id}))
+
+(defn- take-while-stream [pred stream]
+  (loop [result []]
+    (let [value @(s/try-take! stream 0)]
+      (if (pred value)
+        (recur (conj result value))
+        result))))
+
+(defn- create-effects->player-ids-mapping [effects]
+  (->> effects
+    (group-by :effect)
+    (reduce-kv
+      (fn [acc k v]
+        (assoc acc k (vec (distinct (map :target-id v))))) {})))
+
 (defn home-page
   [request]
   (layout/render request "home.html" {:docs (-> "docs/docs.md" io/resource slurp)}))
@@ -51,7 +71,11 @@
 (defn- send-world-snapshots* []
   ;; Simulating latency...
   (Thread/sleep (rand-between 50 100))
-  (let [w @world]
+  (let [effects (->> effects-stream
+                  (take-while-stream (comp not nil?))
+                  create-effects->player-ids-mapping)
+        w @world
+        w (if (empty? effects) w (assoc w :effects effects))]
     (doseq [player-id (keys w)]
       (send! player-id :world-snapshot w))))
 
@@ -220,6 +244,16 @@
         z1 (:pz other-player-world-state)]
     (<= (distance x x1 y y1 z z1) (+ common.skills/close-attack-distance-threshold 0.25))))
 
+(defn hidden? [selected-player-id]
+  (get-in @players [selected-player-id :effects :hide :result]))
+
+(defn make-asas-appear-if-hidden [selected-player-id]
+  (when (hidden? selected-player-id)
+    (add-effect :appear selected-player-id)
+    (send! selected-player-id :hide-finished true)))
+
+;;TODO make asas hide false when he gets damage
+
 (defmethod apply-skill "attackOneHand" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
   (when-let [player (get @players id)]
     (when (get @players selected-player-id)
@@ -243,6 +277,8 @@
                                  (-> world
                                    (update-in [id :mana] - required-mana)
                                    (assoc-in [selected-player-id :health] health-after-damage))))
+                  (add-effect :attack-one-hand selected-player-id)
+                  (make-asas-appear-if-hidden selected-player-id)
                   (swap! players assoc-in [id :last-time :skill skill] (now))
                   (when (= 0 health-after-damage)
                     (swap! players assoc-in [id :last-time :died] (now)))
@@ -283,6 +319,8 @@
                   (send! selected-player-id :got-attack-slow-down-damage {:damage damage
                                                                           :player-id id
                                                                           :slow-down? slow-down?})
+                  (add-effect :attack-slow-down selected-player-id)
+                  (make-asas-appear-if-hidden selected-player-id)
                   (when slow-down?
                     (swap! players assoc-in [selected-player-id :last-time :skill "fleetFoot"] nil)
                     (when-let [task (get-in @players [selected-player-id :effects :slow-down :task])]
@@ -318,6 +356,7 @@
                     tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
                           (bound-fn []
                             (when (get @players id)
+                              (send! id :shield-wall-finished true)
                               (swap! players (fn [players]
                                                (-> players
                                                  (assoc-in [id :effects :shield-wall :result] false)
@@ -354,6 +393,9 @@
                                    (update-in [id :mana] - required-mana)
                                    (assoc-in [selected-player-id :health] health-after-damage))))
                   (swap! players assoc-in [id :last-time :skill skill] (now))
+                  (add-effect :attack-r selected-player-id)
+                  (make-asas-appear-if-hidden selected-player-id)
+                  (make-asas-appear-if-hidden id)
                   (when (= 0 health-after-damage)
                     (swap! players assoc-in [id :last-time :died] (now)))
                   (send! selected-player-id :got-attack-r-damage {:damage damage
@@ -375,6 +417,7 @@
         :else (let [required-mana (get-required-mana skill)]
                 (swap! world update-in [id :mana] - required-mana)
                 (swap! players assoc-in [id :last-time :skill skill] (now))
+                (add-effect :fleet-foot id)
                 (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
                   (bound-fn []
                     (when (get @players id)
@@ -392,6 +435,7 @@
         :else (let [total-health (get player :health)]
                 (swap! world update-in [id :health] use-potion (-> common.skills/skills (get skill) :hp) total-health)
                 (swap! players assoc-in [id :last-time :skill skill] (now))
+                (add-effect :hp-potion id)
                 {:skill skill})))))
 
 (defmethod apply-skill "mpPotion" [{:keys [id ping] {:keys [skill]} :data}]
@@ -405,10 +449,9 @@
         :else (let [total-mana (get player :mana)]
                 (swap! world update-in [id :mana] use-potion (-> common.skills/skills (get skill) :mp) total-mana)
                 (swap! players assoc-in [id :last-time :skill skill] (now))
+                (add-effect :mp-potion id)
                 {:skill skill})))))
 
-;; write the same function like (defmethod apply-skill "attackOneHand"..) but for asas class and for skill attackDagger
-;; make sure that we check the player has the class asas
 (defmethod apply-skill "attackDagger" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
   (when-let [player (get @players id)]
     (when (get @players selected-player-id)
@@ -432,16 +475,19 @@
                                  (-> world
                                    (update-in [id :mana] - required-mana)
                                    (assoc-in [selected-player-id :health] health-after-damage))))
+                  (add-effect :attack-dagger selected-player-id)
+                  (make-asas-appear-if-hidden id)
+                  (make-asas-appear-if-hidden selected-player-id)
                   (swap! players assoc-in [id :last-time :skill skill] (now))
                   (when (= 0 health-after-damage)
                     (swap! players assoc-in [id :last-time :died] (now)))
                   (send! selected-player-id :got-attack-dagger-damage {:damage damage
-                                                                      :player-id id})
+                                                                       :player-id id})
                   {:skill skill
                    :damage damage
                    :selected-player-id selected-player-id}))))))
 
-;; write function like (defmethod apply-skill "fleetFloot"..) but for asas class and for skill phantomVision
+;; write the same function of shieldWall defmethod but for asas class and for skill phantomVision
 (defmethod apply-skill "phantomVision" [{:keys [id ping] {:keys [skill]} :data}]
   (when-let [player (get @players id)]
     (when-let [world-state (get @world id)]
@@ -451,17 +497,26 @@
         (not (alive? world-state)) skill-failed
         (not (enough-mana? skill world-state)) not-enough-mana
         (not (cooldown-finished? skill player)) skill-failed
-        :else (let [required-mana (get-required-mana skill)]
-                ;;TODO apply phantomVision for party members when party system is implemented
+        :else (let [required-mana (get-required-mana skill)
+                    _ (when-let [task (get-in @players [id :effects :phantom-vision :task])]
+                        (tea/cancel! task))
+                    tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
+                          (bound-fn []
+                            (when (get @players id)
+                              (send! id :phantom-vision-finished true)
+                              (swap! players (fn [players]
+                                               (-> players
+                                                 (assoc-in [id :effects :phantom-vision :result] false)
+                                                 (assoc-in [id :effects :phantom-vision :task] nil)))))))]
+                ;;TODO update here, after implementing party system
                 (swap! world update-in [id :mana] - required-mana)
-                (swap! players assoc-in [id :last-time :skill skill] (now))
-                (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                  (bound-fn []
-                    (when (get @players id)
-                      (send! id :phantom-vision-finished true))))
+                (swap! players (fn [players]
+                                 (-> players
+                                   (assoc-in [id :last-time :skill skill] (now))
+                                   (assoc-in [id :effects :phantom-vision :result] true)
+                                   (assoc-in [id :effects :phantom-vision :task] tea))))
                 {:skill skill})))))
 
-;; write function like (defmethod apply-skill "phantomVision"..) but for asas class and for skill hide
 (defmethod apply-skill "hide" [{:keys [id ping] {:keys [skill]} :data}]
   (when-let [player (get @players id)]
     (when-let [world-state (get @world id)]
@@ -473,25 +528,32 @@
         (not (cooldown-finished? skill player)) skill-failed
         :else (let [required-mana (get-required-mana skill)]
                 (swap! world update-in [id :mana] - required-mana)
-                (swap! players assoc-in [id :last-time :skill skill] (now))
+                (swap! players (fn [players]
+                                 (-> players
+                                   (assoc-in [id :last-time :skill skill] (now))
+                                   (assoc-in [id :effects :hide :result] true))))
+                (add-effect :hide id)
                 (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
                   (bound-fn []
                     (when (get @players id)
-                      (send! id :hide-finished true))))
+                      (send! id :hide-finished true)
+                      (swap! players assoc-in [id :effects :hide :result] false)
+                      (add-effect :appear id))))
                 {:skill skill})))))
 
 (comment
-  (swap! world assoc-in [88 :health] 1600)
-
   ;; set everyones health to 1600 in world atom
   ;; move above to a function using defn
   (swap! world (fn [world]
                  (reduce (fn [world id]
                            (assoc-in world [id :health] 1600))
-                         world
-                         (keys @players))))
+                   world
+                   (keys @players))))
+
+  (send! id :phantom-vision-finished true)
 
   (clojure.pprint/pprint @players)
+
   (clojure.pprint/pprint @world)
 
   (mount/start)

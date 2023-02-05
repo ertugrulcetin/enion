@@ -3,10 +3,8 @@
     [applied-science.js-interop :as j]
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on dlog]]
-    [enion-cljs.scene.keyboard :as k]
-    [enion-cljs.scene.network :as net :refer [dispatch-pro]]
+    [enion-cljs.scene.network :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.simulation :as sm]
     [enion-cljs.scene.skills.core :as skills]
     [enion-cljs.scene.skills.effects :as skills.effects]
     [enion-cljs.scene.states :as st :refer [player]]
@@ -42,76 +40,24 @@
   (let [selected-player-id (-> params :skill :selected-player-id)
         damage (-> params :skill :damage)
         enemy (st/get-other-player selected-player-id)]
-    (skills.effects/apply-effect-attack-one-hand enemy)
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
                         :hit damage})))
-
-(defmethod net/dispatch-pro-response :got-attack-one-hand-damage [params]
-  (let [params (:got-attack-one-hand-damage params)
-        damage (:damage params)
-        player-id (:player-id params)]
-    (skills.effects/apply-effect-attack-one-hand st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
-
-(defmethod net/dispatch-pro-response :cured-attack-slow-down-damage [_]
-  (pc/update-anim-speed (st/get-model-entity) "run" 1)
-  (j/assoc! st/player
-            :slow-down? false
-            :speed st/speed)
-  (j/assoc-in! (st/get-player-entity) [:c :sound :slots :run_2 :pitch] 1)
-  (fire :ui-slow-down? false)
-  (fire :ui-cancel-skill "fleetFoot")
-  (st/set-cooldown true "fleetFoot"))
 
 (defmethod skills/skill-response "attackSlowDown" [params]
   (fire :ui-cooldown "attackSlowDown")
   (let [selected-player-id (-> params :skill :selected-player-id)
         damage (-> params :skill :damage)
         enemy (st/get-other-player selected-player-id)]
-    (skills.effects/apply-effect-attack-slow-down enemy)
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
                         :hit damage})))
-
-(defmethod net/dispatch-pro-response :got-attack-slow-down-damage [params]
-  (let [params (:got-attack-slow-down-damage params)
-        damage (:damage params)
-        player-id (:player-id params)
-        slow-down? (:slow-down? params)]
-    (when slow-down?
-      (j/assoc! st/player
-                :slow-down? true
-                :fleet-foot? false)
-      (j/assoc-in! (st/get-player-entity) [:c :sound :slots :run_2 :pitch] 0)
-      (fire :ui-slow-down? true)
-      (fire :ui-cancel-skill "fleetFoot"))
-    (skills.effects/apply-effect-attack-slow-down st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
 
 (defmethod skills/skill-response "attackR" [params]
   (fire :ui-cooldown "attackR")
   (let [selected-player-id (-> params :skill :selected-player-id)
         damage (-> params :skill :damage)
         enemy (st/get-other-player selected-player-id)]
-    (skills.effects/apply-effect-attack-r enemy)
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
                         :hit damage})))
-
-(defmethod net/dispatch-pro-response :got-attack-r-damage [params]
-  (let [params (:got-attack-r-damage params)
-        damage (:damage params)
-        player-id (:player-id params)]
-    (skills.effects/apply-effect-attack-r st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
-
-(defmethod net/dispatch-pro-response :fleet-foot-finished [_]
-  (dlog "fleetFood finished")
-  (j/assoc! st/player
-            :fleet-foot? false
-            :speed st/speed)
-  (pc/update-anim-speed (st/get-model-entity) "run" 1))
 
 (defmethod skills/skill-response "shieldWall" [_]
   (fire :ui-cooldown "shieldWall")
@@ -183,7 +129,7 @@
           (pc/set-anim-boolean model-entity "attackOneHand" true)
           (vreset! last-one-hand-combo (js/Date.now)))
 
-        (skills/idle? active-state)
+        (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
 
         (skills/jump? e active-state)

@@ -30,13 +30,13 @@
                                   "to wield two daggers with deadly precision")
                    :required-mana 100
                    :damage-fn  (create-damage-fn 150 250)}
-   "phantomVision" {:cooldown 30000
+   "phantomVision" {:cooldown 60000
                     :name "Phantom Vision"
                     :description (str "Allows the assassin and their party members to see invisible "
                                    "enemies who are using stealth or invisibility abilities")
                     :required-mana 200
                     :effect-duration (* 120 1000)}
-   "hide" {:cooldown 15000
+   "hide" {:cooldown 30000
            :name "Ghost Step"
            :description (str "Stealthy movement ability that allows the assassin to move invisibly "
                           "while running. However, Ghost Step does have a limited duration, and the assassin "

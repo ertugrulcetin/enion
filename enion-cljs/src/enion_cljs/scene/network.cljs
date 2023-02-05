@@ -3,6 +3,7 @@
     [applied-science.js-interop :as j]
     [enion-cljs.common :refer [fire on dlog]]
     [enion-cljs.scene.pc :as pc]
+    [enion-cljs.scene.skills.effects :as effects]
     [enion-cljs.scene.states :as st]
     [msgpack-cljs.core :as msg]))
 
@@ -47,17 +48,16 @@
   (dlog "player left")
   (-> (:player-exit params) st/destroy-player))
 
-(defn- process-world-snapshot-for-player []
-  (let [state (get world current-player-id)
-        health (:health state)
+(defn- process-world-snapshot-for-player [state]
+  (let [health (:health state)
         mana (:mana state)]
     (st/set-health health)
     (st/set-mana mana)
     (when (= 0 health)
       (pc/set-anim-int (st/get-model-entity) "health" 0))))
 
-(defn- process-world-snapshot []
-  (doseq [s (dissoc world current-player-id)
+(defn- process-world-snapshot [world]
+  (doseq [s world
           :let [id (str (first s))
                 new-state (second s)
                 other-player (st/get-other-player id)
@@ -98,10 +98,32 @@
         (st/rotate-player id (:ex new-state) (:ey new-state) (:ez new-state))
         (st/set-anim-state id (:st new-state))))))
 
+(defn- process-effects [effects]
+  (doseq [[e ids] effects
+          id ids
+          :when (not= id current-player-id)
+          :let [enemy-state (st/get-other-player id)]]
+    (case e
+      :attack-r (effects/apply-effect-attack-r enemy-state)
+      :attack-dagger (effects/apply-effect-attack-dagger enemy-state)
+      :attack-one-hand (effects/apply-effect-attack-one-hand enemy-state)
+      :attack-slow-down (effects/apply-effect-attack-slow-down enemy-state)
+      :hp-potion (effects/apply-effect-hp-potion enemy-state)
+      :mp-potion (effects/apply-effect-mp-potion enemy-state)
+      :fleet-foot (effects/apply-effect-fleet-foot enemy-state)
+      :hide (j/call-in enemy-state [:skills :hide])
+      :appear (j/call-in enemy-state [:skills :appear])
+      :else (js/console.error "Unknown effect: " e))))
+
 (defmethod dispatch-pro-response :world-snapshot [params]
-  (set! world (:world-snapshot params))
-  (process-world-snapshot-for-player)
-  (process-world-snapshot))
+  (let [ws  (:world-snapshot params)
+        effects (:effects ws)
+        ws (dissoc ws :effects)]
+    (set! world ws)
+    (process-world-snapshot-for-player (get ws current-player-id))
+    ;; TODO when tab is not focused, send that data to server and server makes the state idle for this player to other players
+    (process-world-snapshot (dissoc ws current-player-id))
+    (process-effects effects)))
 
 (defn send-states-to-server []
   (if-let [id @send-state-interval-id]
@@ -136,7 +158,7 @@
                            (reset! open? true)
                            (dispatch-pro :init {:username "NeaTBuSTeR"
                                                 :race "orc"
-                                                :class "warrior"}))
+                                                :class "asas"}))
                 :on-close (fn []
                             (println "WS connection closed.")
                             (reset! open? false))

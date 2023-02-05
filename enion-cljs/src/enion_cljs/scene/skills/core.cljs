@@ -2,7 +2,7 @@
   (:require
     [applied-science.js-interop :as j]
     [common.enion.skills :as common.skills]
-    [enion-cljs.common :as common :refer [fire]]
+    [enion-cljs.common :as common :refer [dlog fire]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
@@ -60,7 +60,7 @@
 (defn skill-pressed? [e skill]
   (= (key->skill (j/get e :key)) skill))
 
-(defn idle? [active-state]
+(defn run? [active-state]
   (and (= "idle" active-state) (k/pressing-wasd?)))
 
 (defn jump? [e active-state]
@@ -73,6 +73,25 @@
       (when-not result
         (fire :ui-send-msg too-far-msg))
       result)))
+
+(defn- get-hidden-enemy-asases []
+  (reduce
+    (fn [acc id]
+      (let [other-player (j/get st/other-players id)]
+        (if (and (j/get other-player :enemy?) (j/get other-player :hide?))
+          (conj acc other-player)
+          acc)))
+    [] (js/Object.keys st/other-players)))
+
+(defn enable-phantom-vision []
+  (j/assoc! player :phantom-vision? true)
+  (doseq [a (get-hidden-enemy-asases)]
+    (j/call-in a [:skills :hide])))
+
+(defn disable-phantom-vision []
+  (j/assoc! player :phantom-vision? false)
+  (doseq [a (get-hidden-enemy-asases)]
+    (j/call-in a [:skills :hide])))
 
 (defn attack-r? [e active-state selected-player-id]
   (and
@@ -140,8 +159,7 @@
                     end?
                     r-lock?
                     r-release?
-                    f
-                    call-name]} events]
+                    f]} events]
       (pc/on-anim model-entity event
                   (fn []
                     (when f
@@ -177,3 +195,64 @@
 
 (defn char-cant-run? []
   (skills-char-cant-run (pc/get-anim-state (get-model-entity))))
+
+(defmethod net/dispatch-pro-response :got-attack-one-hand-damage [params]
+  (let [params (:got-attack-one-hand-damage params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (skills.effects/apply-effect-attack-one-hand st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
+(defmethod net/dispatch-pro-response :got-attack-slow-down-damage [params]
+  (let [params (:got-attack-slow-down-damage params)
+        damage (:damage params)
+        player-id (:player-id params)
+        slow-down? (:slow-down? params)]
+    (when slow-down?
+      (j/assoc! st/player
+                :slow-down? true
+                :fleet-foot? false)
+      (j/assoc-in! (st/get-player-entity) [:c :sound :slots :run_2 :pitch] 0)
+      (fire :ui-slow-down? true)
+      (fire :ui-cancel-skill "fleetFoot"))
+    (skills.effects/apply-effect-attack-slow-down st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
+(defmethod net/dispatch-pro-response :got-attack-dagger-damage [params]
+  (let [params (:got-attack-dagger-damage params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (skills.effects/apply-effect-attack-dagger st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
+(defmethod net/dispatch-pro-response :cured-attack-slow-down-damage [_]
+  (pc/update-anim-speed (st/get-model-entity) "run" 1)
+  (j/assoc! st/player
+            :slow-down? false
+            :speed st/speed)
+  (j/assoc-in! (st/get-player-entity) [:c :sound :slots :run_2 :pitch] 1)
+  (fire :ui-slow-down? false)
+  (fire :ui-cancel-skill "fleetFoot")
+  (st/set-cooldown true "fleetFoot"))
+
+(defmethod net/dispatch-pro-response :got-attack-r-damage [params]
+  (let [params (:got-attack-r-damage params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (skills.effects/apply-effect-attack-r st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
+(defmethod net/dispatch-pro-response :fleet-foot-finished [_]
+  (dlog "fleetFood finished")
+  (j/assoc! st/player
+            :fleet-foot? false
+            :speed st/speed)
+  (pc/update-anim-speed (st/get-model-entity) "run" 1))
+
+(defmethod net/dispatch-pro-response :phantom-vision-finished [_]
+  (dlog "phantom vision finished")
+  (j/assoc! st/player :phantom-vision? false))
