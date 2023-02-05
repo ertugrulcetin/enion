@@ -71,28 +71,31 @@
       nil)))
 
 (let [last-state #js {:value 0}]
-  (defn- effect-particle-fade-out [skill duration]
-    (let [new-counter (-> skill (j/update! :counter inc) (j/get :counter))
-          entity (j/get skill :entity)
-          _ (j/assoc! entity :enabled true)
-          par (j/get-in entity [:children 0 :particlesystem])
-          _ (j/assoc! par :loop true)
-          _ (j/call par :reset)
-          _ (j/call par :play)
-          _ (j/assoc-in! skill [:state :value] 1)
-          state (j/get skill :state)
-          tween-particle (-> (j/call entity :tween state)
-                             (j/call :to last-state duration pc/linear))
-          _ (j/call tween-particle :on "update"
-                    (fn []
-                      (when (<= (j/get-in skill [:state :value]) 0.2)
-                        (j/assoc! par :loop false))))
-          _ (j/call tween-particle :on "complete"
-                    (fn []
-                      (when (= new-counter (j/get skill :counter))
-                        (j/assoc! entity :enabled false))))]
-      (j/call tween-particle :start)
-      nil)))
+  (defn- effect-particle-fade-out
+    ([skill duration]
+     (effect-particle-fade-out skill duration true))
+    ([skill duration disable-loop?]
+     (let [new-counter (-> skill (j/update! :counter inc) (j/get :counter))
+           entity (j/get skill :entity)
+           _ (j/assoc! entity :enabled true)
+           par (j/get-in entity [:children 0 :particlesystem])
+           _ (j/assoc! par :loop true)
+           _ (j/call par :reset)
+           _ (j/call par :play)
+           _ (j/assoc-in! skill [:state :value] 1)
+           state (j/get skill :state)
+           tween-particle (-> (j/call entity :tween state)
+                              (j/call :to last-state duration pc/linear))
+           _ (j/call tween-particle :on "update"
+                     (fn []
+                       (when (and (<= (j/get-in skill [:state :value]) 0.2) disable-loop?)
+                         (j/assoc! par :loop false))))
+           _ (j/call tween-particle :on "complete"
+                     (fn []
+                       (when (= new-counter (j/get skill :counter))
+                         (j/assoc! entity :enabled false))))]
+       (j/call tween-particle :start)
+       nil))))
 
 (defn apply-effect-attack-r [state]
   (effect-opacity-fade-out (j/get-in state [:effects :attack_r]) 0.2))
@@ -122,7 +125,7 @@
   (effect-particle-fade-out (j/get-in state [:effects :particle_flame_dots]) 2.5))
 
 (defn apply-effect-heal-particles [state]
-  (effect-particle-fade-out (j/get-in state [:effects :particle_heal_hands]) 2))
+  (effect-particle-fade-out (j/get-in state [:effects :particle_heal_hands]) 2 false))
 
 (defn apply-effect-cure-particles [state]
   (effect-particle-fade-out (j/get-in state [:effects :particle_cure_hands]) 2))

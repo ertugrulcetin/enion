@@ -444,7 +444,7 @@
 
 (defn- update-fleet-foot-cooldown-if-asas [class]
   (when (= "asas" class)
-    (common/update-skill-cooldown "fleetFoot" 13000)))
+    (common/update-fleet-foot-cooldown-for-asas)))
 
 (defn- init-fn [this player-data]
   (let [player-entity (j/get this :entity)

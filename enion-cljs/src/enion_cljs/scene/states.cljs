@@ -82,7 +82,9 @@
   (j/get player :selected-player-id))
 
 (defn enemy-selected? [player-id]
-  (j/get-in other-players [player-id :enemy?]))
+  (boolean
+    (when player-id
+      (j/get-in other-players [player-id :enemy?]))))
 
 (defn ally-selected? [player-id]
   (boolean

@@ -38,24 +38,21 @@
 (defmethod skills/skill-response "attackOneHand" [params]
   (fire :ui-cooldown "attackOneHand")
   (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)
-        enemy (st/get-other-player selected-player-id)]
+        damage (-> params :skill :damage)]
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
                         :hit damage})))
 
 (defmethod skills/skill-response "attackSlowDown" [params]
   (fire :ui-cooldown "attackSlowDown")
   (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)
-        enemy (st/get-other-player selected-player-id)]
+        damage (-> params :skill :damage)]
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
                         :hit damage})))
 
 (defmethod skills/skill-response "attackR" [params]
   (fire :ui-cooldown "attackR")
   (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)
-        enemy (st/get-other-player selected-player-id)]
+        damage (-> params :skill :damage)]
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
                         :hit damage})))
 

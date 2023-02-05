@@ -239,14 +239,17 @@
     (:hit message) "hit"
     (:bp message) "bp"
     (:skill message) "skill"
+    (:heal message) "hp-recover"
     (:hp message) "hp-recover"
+    (:cure message) "hp-recover"
     (:mp message) "mp-recover"
     (:skill-failed message) "skill-failed"
     (:too-far message) "skill-failed"
     (:not-enough-mana message) "skill-failed"))
 
 (let [hp-message (-> "hpPotion" common.skills/skills :hp (str " HP recovered"))
-      mp-message (-> "mpPotion" common.skills/skills :mp (str " MP recovered"))]
+      mp-message (-> "mpPotion" common.skills/skills :mp (str " MP recovered"))
+      heal-message (-> "heal" common.skills/skills :hp (str " HP recovered"))]
   (defn- info-message->text [message]
     (cond
       (:damage message) (str "You took " (:damage message) " damage from " (:from message))
@@ -255,8 +258,10 @@
       (:skill message) (str "Using " (:skill message))
       (:skill-failed message) "Skill failed"
       (:too-far message) "Too far"
+      (:heal message) heal-message
       (:hp message) hp-message
       (:mp message) mp-message
+      (:cure message) "Toxic effect removed"
       (:not-enough-mana message) "Not enough mana!")))
 
 (defn- info-message [message]
@@ -342,6 +347,33 @@
                           [:div (styles/map-overflow)
                            [map-holder]
                            [:div (styles/minimap-player)]]])})))
+
+;; write a function that takes callback as an argument, and creates event listener on document with addEventListener
+;; when user pressing and holding ESC key at the sametime for 0.5 seconds, call the callback
+#_(defn- on-esc-pressed-for-1-5-seconds [callback]
+  (let [esc-key-code 27
+        esc-key-pressed? (atom false)
+        esc-key-pressed-timeout-id (atom nil)]
+    (j/call js/document :addEventListener "keydown"
+            (fn [e]
+              (when (= esc-key-code (.-keyCode e))
+                (reset! esc-key-pressed? true)
+                (reset! esc-key-pressed-timeout-id
+                        (js/setTimeout
+                         (fn []
+                           (when @esc-key-pressed?
+                             (callback)
+                             (reset! esc-key-pressed? false)))
+                         500)))))
+    (j/call js/document :addEventListener "keyup"
+            (fn [e]
+              (when (= esc-key-code (.-keyCode e))
+                (reset! esc-key-pressed? false)
+                (js/clearTimeout @esc-key-pressed-timeout-id))))))
+
+(comment
+  (on-esc-pressed-for-1-5-seconds (fn []
+                                   (println "heyy"))))
 
 (defn- party-list []
   (when @(subscribe [::subs/party-list-open?])

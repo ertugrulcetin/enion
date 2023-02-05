@@ -2,6 +2,7 @@
   (:require [clojure.string :as str]))
 
 (def close-attack-distance-threshold 0.75)
+(def priest-skills-distance-threshold 8)
 
 (defn rand-between [min max]
   (+ (Math/floor (* (Math/random) (+ (- max min) 1))) min))
@@ -67,7 +68,8 @@
    "heal" {:cooldown 2000
            :name "Healing Touch"
            :description "Restores 480 HP to your character or selected party member"
-           :required-mana 200}
+           :required-mana 200
+           :hp 480}
    "breakDefense" {:cooldown 1500
                    :name "Toxic Spores"
                    :description (str "Unleashes a powerful burst of toxic energy, breaking the defenses "
@@ -102,12 +104,14 @@
               :damage-fn (create-damage-fn 20 50)}
 
    ;;TODO cooldown is different for asas, handle in the backend!
-   "fleetFoot" {:cooldown 26000
+   "fleetFoot" {:cooldown 26500
+                :cooldown-asas 13500
                 :name "Fleet Foot"
                 :description (str "Increases your character's running speed by 30% for 25 seconds. "
                                "(Assassins receive a 50% increase for 12 seconds)")
                 :required-mana 50
-                :effect-duration 25000}
+                :effect-duration 25000
+                :effect-duration-asas 12000}
    "hpPotion" {:cooldown 1500
                :name "HP Potion"
                :description "Restores 240 HP"

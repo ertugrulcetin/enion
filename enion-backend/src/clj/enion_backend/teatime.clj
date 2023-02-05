@@ -2,24 +2,37 @@
   "Clocks and scheduled tasks. Provides functions for getting the current time
   and running functions (Tasks) at specific times and periods. Includes a
   threadpool for task execution, controlled by (start!) and (stop!)."
-  (:import [java.util.concurrent ConcurrentSkipListSet]
-           [java.util.concurrent.locks LockSupport])
-  (:require [clojure.stacktrace :refer [print-stack-trace]]
-            [clojure.tools.logging :refer [warn info]]))
+  (:require
+    [clojure.stacktrace :refer [print-stack-trace]]
+    [clojure.tools.logging :refer [warn info]])
+  (:import
+    (java.util.concurrent
+      ConcurrentSkipListSet)
+    (java.util.concurrent.locks
+      LockSupport)))
 
 (defprotocol Task
-  (succ [task]
+
+  (succ
+    [task]
     "The successive task to this one.")
-  (run [task]
+
+  (run
+    [task]
     "Executes this task.")
-  (cancel! [task]
+
+  (cancel!
+    [task]
     "Cancel this task."))
 
 (defprotocol Deferrable
-  (defer! [this delay]
+
+  (defer!
+    [this delay]
     "Schedule a task for a new time measured in seconds from now")
 
-  (defer-micros! [this delay]
+  (defer-micros!
+    [this delay]
     "Schedule a task for a new time measured in microseconds from now"))
 
 ;; The clock implementation ;;;;;;;;;;;;;;;;;;;;;
@@ -93,8 +106,8 @@
 
 ;; Global state ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; TODO: pull this stuff out into some sort of configurable Scheduler datatype,
-; and provide a global default?
+;; TODO: pull this stuff out into some sort of configurable Scheduler datatype,
+;; and provide a global default?
 
 (def max-task-id
   (atom 0))
@@ -103,7 +116,7 @@
   "Scheduled operations."
   (ConcurrentSkipListSet.
     (fn [a b] (compare [(:t a) (:id a)]
-                [(:t b) (:id b)]))))
+                       [(:t b) (:id b)]))))
 
 (def thread-count
   "Number of threads in the threadpool"
@@ -146,7 +159,7 @@
   ([anchor dt now]
    (+ now (- dt (mod (- now anchor) dt)))))
 
-; Look at all these bang! methods! Mutability is SO EXCITING!
+;; Look at all these bang! methods! Mutability is SO EXCITING!
 
 (defn reset-tasks!
   "Resets the task queue to empty, without triggering side effects."
@@ -174,32 +187,53 @@
 
 ;; Task datatypes ;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord Once [id f ^long t cancelled]
+(defrecord Once
+  [id f ^long t cancelled]
+
   Task
+
   (succ [this] nil)
+
+
   (run [this] (when-not @cancelled (f)))
-  (cancel! [this]
+
+
+  (cancel!
+    [this]
     (reset! cancelled true)))
 
-(defrecord Every [id f ^long t ^long interval deferred-t cancelled]
+(defrecord Every
+  [id f ^long t ^long interval deferred-t cancelled]
+
   Task
-  (succ [this]
+
+  (succ
+    [this]
     (when-not @cancelled
       (let [next-time (or @deferred-t (+ t interval))]
         (reset! deferred-t nil)
         (assoc this :t next-time))))
 
-  (run [this]
+
+  (run
+    [this]
     (when-not (or @deferred-t @cancelled) (f)))
 
-  (cancel! [this]
+
+  (cancel!
+    [this]
     (reset! cancelled true))
 
+
   Deferrable
-  (defer! [this delay]
+
+  (defer!
+    [this delay]
     (micros->seconds (defer-micros! this (seconds->micros delay))))
 
-  (defer-micros! [this delay]
+
+  (defer-micros!
+    [this delay]
     (reset! deferred-t (+ (linear-time-micros) delay))))
 
 (defn at-linear-micros!
@@ -223,9 +257,9 @@
   "Calls f after delay seconds."
   [delay f]
   (schedule! (Once. (task-id)
-               f
-               (+ (linear-time-micros) (seconds->micros delay))
-               (atom false))))
+                    f
+                    (+ (linear-time-micros) (seconds->micros delay))
+                    (atom false))))
 
 (defn every!
   "Calls f every interval seconds, after delay, also in seconds. If no delay is
@@ -235,11 +269,11 @@
   ([interval delay f]
    (assert (not (neg? delay)))
    (schedule! (Every. (task-id)
-                f
-                (+ (linear-time-micros) (seconds->micros delay))
-                (seconds->micros interval)
-                (atom nil)
-                (atom false)))))
+                      f
+                      (+ (linear-time-micros) (seconds->micros delay))
+                      (seconds->micros interval)
+                      (atom nil)
+                      (atom false)))))
 
 (defn run-tasks!
   "While running, takes tasks from the queue and executes them when ready. Will
@@ -248,14 +282,14 @@
   (while @running
     (try
       (if-let [task (poll-task!)]
-        ; We've acquired a task.
+        ;; We've acquired a task.
         (do
-          ; (info "Task acquired")
+          ;; (info "Task acquired")
           (if (<= (:t task) (linear-time-micros))
-            ; This task is ready to run
+            ;; This task is ready to run
             (do
-              ;(info :task task :time (linear-time-micros))
-              ; Run task
+              ;; (info :task task :time (linear-time-micros))
+              ;; Run task
               (try
                 (run task)
                 (catch Exception e
@@ -263,23 +297,23 @@
                 (catch AssertionError t
                   (warn t "Tea-Time task" task "threw")))
               (when-let [task' (succ task)]
-                ; Schedule the next task.
+                ;; Schedule the next task.
                 (schedule-sneaky! task')))
             (do
-              ; Return task.
+              ;; Return task.
               (schedule-sneaky! task)
-              ; Park until that task comes up next. We can't use parkUntil cuz
-              ; it uses posix time which is non-monotonic. WHYYYYYY Note that
-              ; we're sleeping 100 microseconds minimum, and aiming to wake up
-              ; 1 ms before, so we have a better chance of actually executing
-              ; on time.
+              ;; Park until that task comes up next. We can't use parkUntil cuz
+              ;; it uses posix time which is non-monotonic. WHYYYYYY Note that
+              ;; we're sleeping 100 microseconds minimum, and aiming to wake up
+              ;; 1 ms before, so we have a better chance of actually executing
+              ;; on time.
               (->> (- (:t task) (linear-time-micros) 1000)
-                (max 10)
-                (min park-interval-micros)
-                (* 1000)
-                LockSupport/parkNanos))))
+                   (max 10)
+                   (min park-interval-micros)
+                   (* 1000)
+                   LockSupport/parkNanos))))
 
-        ; No task available; park for a bit and try again.
+        ;; No task available; park for a bit and try again.
         (LockSupport/parkNanos (* 1000 park-interval-micros)))
       (catch Exception e
         (warn e "tea-time task threw"))
@@ -294,7 +328,7 @@
     (when @running
       (reset! running false)
       (while (some #(.isAlive ^Thread %) @threadpool)
-        ; Allow at most 1/10th park-interval to pass after all threads exit.
+        ;; Allow at most 1/10th park-interval to pass after all threads exit.
         (Thread/sleep (/ park-interval-micros 10000)))
       (reset! threadpool []))))
 
@@ -306,11 +340,11 @@
     (when-not @running
       (reset! running true)
       (reset! threadpool
-        (map (fn [i]
-               (let [^Runnable f (bound-fn [] (run-tasks! i))]
-                 (doto (Thread. f (str "Tea-Time " i))
-                   (.start))))
-          (range thread-count))))))
+              (map (fn [i]
+                     (let [^Runnable f (bound-fn [] (run-tasks! i))]
+                       (doto (Thread. f (str "Tea-Time " i))
+                         (.start))))
+                   (range thread-count))))))
 
 (def threadpool-users
   "Number of callers who would like a threadpool open right now"

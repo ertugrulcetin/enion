@@ -175,8 +175,6 @@
     (st/enough-mana? attack-dagger-required-mana)
     (skills/close-for-attack? selected-player-id)))
 
-
-
 (def phantom-vision-required-mana (-> common.skills/skills (get "phantomVision") :required-mana))
 
 (defn- phantom-vision? [e]

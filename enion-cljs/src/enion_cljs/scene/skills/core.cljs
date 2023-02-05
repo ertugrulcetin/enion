@@ -22,6 +22,8 @@
     "heal"
     "cure"})
 
+;; TODO add MP used message after each success skill
+
 ;; TODO eger karakter stateti idle ve run degilse, ve belirlenen sureden fazla o statete kalmissa duzenleme yap
 ;; networkten gelen koddan dolayi sikinti olabilir
 (def common-states
@@ -256,3 +258,13 @@
 (defmethod net/dispatch-pro-response :phantom-vision-finished [_]
   (dlog "phantom vision finished")
   (j/assoc! st/player :phantom-vision? false))
+
+(let [heal-msg {:heal true}]
+  (defmethod net/dispatch-pro-response :got-heal [_]
+    (skills.effects/add-to-healed-ids)
+    (fire :ui-send-msg heal-msg)))
+
+(let [cure-msg {:cure true}]
+  (defmethod net/dispatch-pro-response :got-cure [_]
+    (skills.effects/apply-effect-got-cure st/player)
+    (fire :ui-send-msg cure-msg)))
