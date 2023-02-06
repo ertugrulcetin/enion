@@ -116,7 +116,7 @@
   (effect-scale-down (j/get-in state [:effects :portal]) 0.5 2))
 
 (defn apply-effect-got-defense-break [state]
-  (effect-particle-fade-out (j/get-in state [:effects :particle_got_defense_break]) 1.1))
+  (effect-particle-fade-out (j/get-in state [:effects :particle_got_defense_break]) 1.2))
 
 (defn apply-effect-fire-hands [state]
   (effect-particle-fade-out (j/get-in state [:effects :particle_fire_hands]) 2))

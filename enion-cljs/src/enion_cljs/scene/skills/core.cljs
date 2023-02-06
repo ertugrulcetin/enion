@@ -268,3 +268,13 @@
   (defmethod net/dispatch-pro-response :got-cure [_]
     (skills.effects/apply-effect-got-cure st/player)
     (fire :ui-send-msg cure-msg)))
+
+(let [defense-break-msg {:defense-break true}]
+  (defmethod net/dispatch-pro-response :got-defense-break [_]
+    (skills.effects/apply-effect-got-defense-break st/player)
+    (fire :ui-send-msg defense-break-msg)))
+
+;; write for :cured-defense-break-damage
+(defmethod net/dispatch-pro-response :cured-defense-break [_]
+  ;; TODO implement
+  )

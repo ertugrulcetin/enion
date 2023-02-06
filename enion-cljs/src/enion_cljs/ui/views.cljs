@@ -236,6 +236,7 @@
 (defn- info-message->class [message]
   (cond
     (:damage message) "damage"
+    (:defense-break message) "damage"
     (:hit message) "hit"
     (:bp message) "bp"
     (:skill message) "skill"
@@ -262,6 +263,7 @@
       (:hp message) hp-message
       (:mp message) mp-message
       (:cure message) "Toxic effect removed"
+      (:defense-break message) "Infected with Toxic Spores"
       (:not-enough-mana message) "Not enough mana!")))
 
 (defn- info-message [message]

@@ -25,14 +25,18 @@
 
 (def heal-required-mana (-> common.skills/skills (get "heal") :required-mana))
 (def cure-required-mana (-> common.skills/skills (get "cure") :required-mana))
+(def break-defense-required-mana (-> common.skills/skills (get "breakDefense") :required-mana))
 
 (let [too-far-msg {:too-far true}]
-  (defn close-for-skill? [selected-player-id]
-    (let [result (or (nil? selected-player-id)
-                     (<= (st/distance-to selected-player-id) common.skills/priest-skills-distance-threshold))]
-      (when-not result
-        (fire :ui-send-msg too-far-msg))
-      result)))
+  (defn close-for-skill?
+    ([selected-player-id]
+     (close-for-skill? selected-player-id false))
+    ([selected-player-id enemy?]
+     (let [result (or (and (not enemy?) (nil? selected-player-id))
+                      (<= (st/distance-to selected-player-id) common.skills/priest-skills-distance-threshold))]
+       (when-not result
+         (fire :ui-send-msg too-far-msg))
+       result))))
 
 (defn heal? [e selected-player-id]
   (and (skills/skill-pressed? e "heal")
@@ -50,6 +54,14 @@
        (st/enough-mana? cure-required-mana)
        (close-for-skill? selected-player-id)))
 
+(defn break-defense? [e selected-player-id]
+  (and (skills/skill-pressed? e "breakDefense")
+       (st/cooldown-ready? "breakDefense")
+       (st/enemy-selected? selected-player-id)
+       (st/alive? selected-player-id)
+       (st/enough-mana? break-defense-required-mana)
+       (close-for-skill? selected-player-id true)))
+
 (let [heal-msg {:heal true}]
   (defmethod skills/skill-response "heal" [params]
     (fire :ui-cooldown "heal")
@@ -65,6 +77,9 @@
       (when (= selected-player-id net/current-player-id)
         (skills.effects/apply-effect-got-cure player)
         (fire :ui-send-msg cure-msg)))))
+
+(defmethod skills/skill-response "breakDefense" [_]
+  (fire :ui-cooldown "breakDefense"))
 
 (defn- get-selected-player-id-for-priest-skill [selected-player-id]
   (if (st/enemy-selected? selected-player-id)
@@ -94,16 +109,17 @@
           (pc/set-anim-boolean model-entity "cure" true)
           (skills.effects/apply-effect-cure-particles player))
 
+        (break-defense? e selected-player-id)
+        (do
+          (j/assoc-in! player [:skill->selected-player-id "breakDefense"] selected-player-id)
+          (pc/set-anim-boolean model-entity "breakDefense" true)
+          (skills.effects/apply-effect-defense-break-particles player))
+
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
 
         (skills/jump? e active-state)
         (pc/set-anim-boolean model-entity "jump" true)
-
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "breakDefense"))
-        (do
-          (pc/set-anim-boolean model-entity "breakDefense" true)
-          (skills.effects/apply-effect-defense-break-particles player))
 
         (skills/attack-r? e active-state selected-player-id)
         (do

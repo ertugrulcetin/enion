@@ -210,6 +210,9 @@
 (defn has-defense? [id]
   (get-in @players [id :effects :shield-wall :result]))
 
+(defn has-break-defense? [id]
+  (get-in @players [id :effects :break-defense :result]))
+
 (defn now []
   (.toEpochMilli (Instant/now)))
 
@@ -290,7 +293,9 @@
           (not (close-for-attack? player-world-state other-player-world-state)) too-far
           :else (let [required-mana (get-required-mana skill)
                       ;; TODO update damage, player might have defense or poison etc.
-                      damage ((-> common.skills/skills (get skill) :damage-fn) (has-defense? selected-player-id))
+                      damage ((-> common.skills/skills (get skill) :damage-fn)
+                              (has-defense? selected-player-id)
+                              (has-break-defense? selected-player-id))
                       health-after-damage (- (:health other-player-world-state) damage)
                       health-after-damage (Math/max ^long health-after-damage 0)]
                   (swap! world (fn [world]
@@ -325,7 +330,9 @@
           (not (close-for-attack? player-world-state other-player-world-state)) too-far
           :else (let [required-mana (get-required-mana skill)
                       ;; TODO update damage, player might have defense or poison etc.
-                      damage ((-> common.skills/skills (get skill) :damage-fn) (has-defense? selected-player-id))
+                      damage ((-> common.skills/skills (get skill) :damage-fn)
+                              (has-defense? selected-player-id)
+                              (has-break-defense? selected-player-id))
                       health-after-damage (- (:health other-player-world-state) damage)
                       health-after-damage (Math/max ^long health-after-damage 0)
                       slow-down? (prob? 0.5)]
@@ -407,7 +414,9 @@
           (not (close-for-attack? player-world-state other-player-world-state)) too-far
           :else (let [required-mana (get-required-mana skill)
                       ;; TODO update damage, player might have defense or poison etc.
-                      damage ((-> common.skills/skills (get skill) :damage-fn) (has-defense? selected-player-id))
+                      damage ((-> common.skills/skills (get skill) :damage-fn)
+                              (has-defense? selected-player-id)
+                              (has-break-defense? selected-player-id))
                       health-after-damage (- (:health other-player-world-state) damage)
                       health-after-damage (Math/max ^long health-after-damage 0)]
                   (swap! world (fn [world]
@@ -492,7 +501,9 @@
           (not (close-for-attack? player-world-state other-player-world-state)) too-far
           :else (let [required-mana (get-required-mana skill)
                       ;; TODO update damage, player might have defense or poison etc.
-                      damage ((-> common.skills/skills (get skill) :damage-fn) (has-defense? selected-player-id))
+                      damage ((-> common.skills/skills (get skill) :damage-fn)
+                              (has-defense? selected-player-id)
+                              (has-break-defense? selected-player-id))
                       health-after-damage (- (:health other-player-world-state) damage)
                       health-after-damage (Math/max ^long health-after-damage 0)]
                   (swap! world (fn [world]
@@ -605,7 +616,6 @@
     (when-let [player (get players* id)]
       (when-let [world-state (get @world id)]
         (when-let [other-player-world-state (get @world selected-player-id)]
-          (println "aaa")
           (cond
             (> ping 5000) skill-failed
             (not (priest? id)) skill-failed
@@ -617,17 +627,59 @@
             (and (not= id selected-player-id)
                  (not (close-for-priest-skills? world-state other-player-world-state))) too-far
             :else (let [required-mana (get-required-mana skill)
-                        _ (when-let [task (get-in players* [selected-player-id :effects :poison :task])]
+                        _ (when-let [task (get-in players* [selected-player-id :effects :break-defense :task])]
                             (tea/cancel! task))
                         _ (swap! players (fn [players]
                                            (-> players
-                                               (assoc-in [selected-player-id :effects :poison :result] false)
-                                               (assoc-in [selected-player-id :effects :poison :task] nil))))]
+                                               (assoc-in [selected-player-id :effects :break-defense :result] false)
+                                               (assoc-in [selected-player-id :effects :break-defense :task] nil))))]
                     (swap! world update-in [id :mana] - required-mana)
                     (add-effect :cure selected-player-id)
                     (when-not (= id selected-player-id)
                       (send! selected-player-id :got-cure true))
                     (swap! players assoc-in [id :last-time :skill skill] (now))
+                    {:skill skill
+                     :selected-player-id selected-player-id})))))))
+
+;; write a function for "defenseBreak" skill that breaks the defense of the selected enemy by 25% for 10 seconds
+;; make sure selected player is an enemy and use `enemy?` function, also enemy should be alive too
+(defmethod apply-skill "breakDefense" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
+  (let [players* @players]
+    (when-let [player (get players* id)]
+      (when-let [world-state (get @world id)]
+        (when-let [other-player-world-state (get @world selected-player-id)]
+          (cond
+            (> ping 5000) skill-failed
+            (not (priest? id)) skill-failed
+            (not (enemy? id selected-player-id)) skill-failed
+            (not (alive? world-state)) skill-failed
+            (not (alive? other-player-world-state)) skill-failed
+            (not (enough-mana? skill world-state)) not-enough-mana
+            (not (cooldown-finished? skill player)) skill-failed
+            (not (close-for-priest-skills? world-state other-player-world-state)) too-far
+            :else (let [required-mana (get-required-mana skill)
+                        _ (when-let [task (get-in players* [selected-player-id :effects :break-defense :task])]
+                            (tea/cancel! task))
+                        _ (when-let [task (get-in @players [id :effects :shield-wall :task])]
+                            (tea/cancel! task))
+                        tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
+                                        (bound-fn []
+                                          (when (get @players selected-player-id)
+                                            (swap! players (fn [players]
+                                                             (-> players
+                                                                 (assoc-in [selected-player-id :effects :break-defense :result] false)
+                                                                 (assoc-in [selected-player-id :effects :break-defense :task] nil)
+                                                                 (assoc-in [selected-player-id :effects :shield-wall :result] false)
+                                                                 (assoc-in [selected-player-id :effects :shield-wall :task] nil))))
+                                            (send! selected-player-id :cured-defense-break true))))]
+                    (swap! players (fn [players]
+                                     (-> players
+                                         (assoc-in [selected-player-id :effects :break-defense :result] true)
+                                         (assoc-in [selected-player-id :effects :break-defense :task] tea)
+                                         (assoc-in [id :last-time :skill skill] (now)))))
+                    (swap! world update-in [id :mana] - required-mana)
+                    (add-effect :break-defense selected-player-id)
+                    (send! selected-player-id :got-defense-break true)
                     {:skill skill
                      :selected-player-id selected-player-id})))))))
 

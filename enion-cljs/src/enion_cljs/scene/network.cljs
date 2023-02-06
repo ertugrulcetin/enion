@@ -106,8 +106,8 @@
               "heal" (effects/apply-effect-heal-particles other-player)
               "cure" (effects/apply-effect-cure-particles other-player)
               "breakDefense" (effects/apply-effect-defense-break-particles other-player)
-              (effects/apply-effect-heal-particles other-player))
-            (j/assoc-in! st/other-players [id :prev-state] new-anim-state)))))))
+              nil))
+          (j/assoc-in! st/other-players [id :prev-state] new-anim-state))))))
 
 (defn- process-effects [effects]
   (doseq [[e ids] effects
@@ -124,6 +124,7 @@
       :fleet-foot (effects/apply-effect-fleet-foot enemy-state)
       :heal (effects/add-player-id-to-healed-ids id)
       :cure (effects/apply-effect-got-cure enemy-state)
+      :break-defense (effects/apply-effect-got-defense-break enemy-state)
       :hide (j/call-in enemy-state [:skills :hide])
       :appear (j/call-in enemy-state [:skills :appear])
       :else (js/console.error "Unknown effect: " e))))
@@ -171,7 +172,7 @@
                            (reset! open? true)
                            (dispatch-pro :init {:username "NeaTBuSTeR"
                                                 :race "orc"
-                                                :class "asas"}))
+                                                :class "priest"}))
                 :on-close (fn []
                             (println "WS connection closed.")
                             (reset! open? false))
