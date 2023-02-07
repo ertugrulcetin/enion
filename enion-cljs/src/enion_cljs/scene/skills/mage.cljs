@@ -27,6 +27,8 @@
      {:anim-state "teleport" :event "onTeleportEnd" :skill? true :end? true}]))
 
 (def attack-range-required-mana (-> common.skills/skills (get "attackRange") :required-mana))
+(def attack-single-required-mana (-> common.skills/skills (get "attackSingle") :required-mana))
+(def teleport-required-mana (-> common.skills/skills (get "teleport") :required-mana))
 
 (let [too-far-msg {:too-far true}]
   (defn throw-nova [e]
@@ -112,8 +114,43 @@
         (fire :ui-send-msg {:to (j/get (st/get-other-player (:id enemy)) :username)
                             :hit (:damage enemy)})))))
 
+(defmethod skills/skill-response "attackSingle" [params]
+  (fire :ui-cooldown "attackSingle")
+  (let [selected-player-id (-> params :skill :selected-player-id)
+        damage (-> params :skill :damage)]
+    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+                        :hit damage})))
+
+(defmethod skills/skill-response "teleport" [_]
+  (fire :ui-cooldown "teleport"))
+
+(let [too-far-msg {:too-far true}]
+  (defn close-for-attack-single? [selected-player-id]
+    (let [result (<= (st/distance-to selected-player-id) common.skills/attack-single-distance-threshold)]
+      (when-not result
+        (fire :ui-send-msg too-far-msg))
+      result)))
+
+(defn- attack-single? [e active-state selected-player-id]
+  (and (skills/idle-run-states active-state)
+       (skills/skill-pressed? e "attackSingle")
+       (st/alive? selected-player-id)
+       (st/cooldown-ready? "attackSingle")
+       (st/enemy-selected? selected-player-id)
+       (st/enough-mana? attack-range-required-mana)
+       (close-for-attack-single? selected-player-id)))
+
+;; TODO check if selected ally in the same party
+(defn teleport? [e active-state selected-player-id]
+  (and (skills/idle-run-states active-state)
+       (skills/skill-pressed? e "teleport")
+       (st/alive? selected-player-id)
+       (st/ally-selected? selected-player-id)
+       (st/cooldown-ready? "teleport")
+       (st/enough-mana? teleport-required-mana)))
+
 (defn process-skills [e]
-  (when-not (-> e .-event .-repeat)
+  (when (and (not (-> e .-event .-repeat)) (st/alive?))
     (let [model-entity (get-model-entity)
           active-state (pc/get-anim-state model-entity)
           selected-player-id (st/get-selected-player-id)]
@@ -128,15 +165,19 @@
           (j/assoc! player :positioning-nova? true)
           (st/show-nova-circle e))
 
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackSingle"))
+        (attack-single? e active-state selected-player-id)
         (do
           (j/assoc! player :positioning-nova? false)
+          (pc/set-nova-circle-pos)
+          (j/assoc-in! player [:skill->selected-player-id "attackSingle"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackSingle" true)
           (skills.effects/apply-effect-fire-hands player))
 
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "teleport"))
+        (teleport? e active-state selected-player-id)
         (do
           (j/assoc! player :positioning-nova? false)
+          (pc/set-nova-circle-pos)
+          (j/assoc-in! player [:skill->selected-player-id "teleport"] selected-player-id)
           (pc/set-anim-boolean model-entity "teleport" true))
 
         (skills/run? active-state)

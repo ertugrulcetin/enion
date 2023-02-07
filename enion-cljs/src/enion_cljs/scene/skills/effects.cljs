@@ -112,7 +112,7 @@
 (defn apply-effect-attack-slow-down [state]
   (effect-scale-down (j/get-in state [:effects :attack_slow_down]) 0.3 0.2))
 
-(defn apply-effect-attack-portal [state]
+(defn apply-effect-teleport [state]
   (effect-scale-down (j/get-in state [:effects :portal]) 0.5 2))
 
 (defn apply-effect-got-defense-break [state]

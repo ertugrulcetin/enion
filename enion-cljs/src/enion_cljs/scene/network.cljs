@@ -56,7 +56,7 @@
     (when (= 0 health)
       (pc/set-anim-int (st/get-model-entity) "health" 0))))
 
-(let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange"}
+(let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange" "attackSingle"}
       temp-pos (pc/vec3)]
   (defn- process-world-snapshot [world]
     (doseq [s world
@@ -114,6 +114,7 @@
               "cure" (effects/apply-effect-cure-particles other-player)
               "breakDefense" (effects/apply-effect-defense-break-particles other-player)
               "attackRange" (effects/apply-effect-flame-particles other-player)
+              "attackSingle" (effects/apply-effect-fire-hands other-player)
               nil))))
       (-> st/other-players
           (j/assoc-in! [id :prev-pos] new-pos)
@@ -123,20 +124,22 @@
   (doseq [[e ids] effects
           id ids
           :when (not= id current-player-id)
-          :let [enemy-state (st/get-other-player id)]]
+          :let [other-player-state (st/get-other-player id)]]
     (case e
-      :attack-r (effects/apply-effect-attack-r enemy-state)
-      :attack-dagger (effects/apply-effect-attack-dagger enemy-state)
-      :attack-one-hand (effects/apply-effect-attack-one-hand enemy-state)
-      :attack-slow-down (effects/apply-effect-attack-slow-down enemy-state)
-      :hp-potion (effects/apply-effect-hp-potion enemy-state)
-      :mp-potion (effects/apply-effect-mp-potion enemy-state)
-      :fleet-foot (effects/apply-effect-fleet-foot enemy-state)
+      :attack-r (effects/apply-effect-attack-r other-player-state)
+      :attack-dagger (effects/apply-effect-attack-dagger other-player-state)
+      :attack-one-hand (effects/apply-effect-attack-one-hand other-player-state)
+      :attack-slow-down (effects/apply-effect-attack-slow-down other-player-state)
+      :attack-single (effects/apply-effect-attack-flame other-player-state)
+      :teleport (effects/apply-effect-teleport other-player-state)
+      :hp-potion (effects/apply-effect-hp-potion other-player-state)
+      :mp-potion (effects/apply-effect-mp-potion other-player-state)
+      :fleet-foot (effects/apply-effect-fleet-foot other-player-state)
       :heal (effects/add-player-id-to-healed-ids id)
-      :cure (effects/apply-effect-got-cure enemy-state)
-      :break-defense (effects/apply-effect-got-defense-break enemy-state)
-      :hide (j/call-in enemy-state [:skills :hide])
-      :appear (j/call-in enemy-state [:skills :appear])
+      :cure (effects/apply-effect-got-cure other-player-state)
+      :break-defense (effects/apply-effect-got-defense-break other-player-state)
+      :hide (j/call-in other-player-state [:skills :hide])
+      :appear (j/call-in other-player-state [:skills :appear])
       :else (js/console.error "Unknown effect: " e))))
 
 (let [temp-pos (pc/vec3)]

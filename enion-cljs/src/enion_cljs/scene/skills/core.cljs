@@ -294,3 +294,20 @@
     (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
                         :damage damage})
     (entity.camera/shake-camera)))
+
+;; write function for :got-attack-single
+(defmethod net/dispatch-pro-response :got-attack-single [params]
+  (let [params (:got-attack-single params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})
+    (skills.effects/apply-effect-attack-flame st/player)))
+
+(defmethod net/dispatch-pro-response :teleported [params]
+  (let [params (:teleported params)
+        x (:x params)
+        y (:y params)
+        z (:z params)]
+    (j/call-in (st/get-player-entity) [:rigidbody :teleport] x y z)
+    (skills.effects/apply-effect-teleport st/player)))

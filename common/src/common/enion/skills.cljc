@@ -6,6 +6,7 @@
 (def close-attack-distance-threshold 0.75)
 (def priest-skills-distance-threshold 8)
 (def attack-range-distance-threshold 12)
+(def attack-single-distance-threshold 9)
 
 
 (defn rand-between
@@ -100,13 +101,13 @@
                                     "of intense flames in a certain radius")
                   :required-mana 300
                   :damage-fn (create-damage-fn 300 400)}
-   "attackSingle" {:cooldown 3000
+   "attackSingle" {:cooldown 2000
                    :name "Flame Strike"
                    :description (str "Long range fire-based attack that unleashes a "
                                      "devastating blast of flame on a single enemy")
                    :required-mana 100
                    :damage-fn (create-damage-fn 100 150)}
-   "teleport" {:cooldown 500
+   "teleport" {:cooldown 1000
                :name "Teleport"
                :description (str "Powerful arcane ability that allows the mage to instantly transport a "
                                  "single party member to the same location as the mage")

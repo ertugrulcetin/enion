@@ -100,7 +100,6 @@
     (st/enough-mana? shield-required-mana)))
 
 (defn process-skills [e]
-  ;; TODO add check if our char is alive -- APPLY FOR ALL CLASSES - then DELETE THIS TODO
   (when (and (not (-> e .-event .-repeat)) (st/alive?))
     (let [model-entity (st/get-model-entity)
           active-state (pc/get-anim-state model-entity)

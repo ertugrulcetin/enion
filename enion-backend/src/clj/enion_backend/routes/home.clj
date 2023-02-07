@@ -149,7 +149,7 @@
           attrs {:id id
                  :username username
                  ;; :race race
-                 :race (if (odd? id) "human" "orc")
+                 :race "human" #_(if (odd? id) "human" "orc")
                  :class class
                  :health health
                  :mana mana
@@ -250,7 +250,14 @@
   (close-distance? player-world-state other-player-world-state (+ common.skills/close-attack-distance-threshold 0.25)))
 
 (defn- close-for-priest-skills? [player-world-state other-player-world-state]
-  (close-distance? player-world-state other-player-world-state common.skills/priest-skills-distance-threshold))
+  (close-distance? player-world-state other-player-world-state (+ common.skills/priest-skills-distance-threshold 0.5)))
+
+(defn- close-for-attack-single? [player-world-state other-player-world-state]
+  (close-distance? player-world-state other-player-world-state (+ common.skills/attack-single-distance-threshold 0.5)))
+
+(defn- attack-range-in-distance? [world-state x y z]
+  (let [{:keys [px py pz]} world-state]
+    (<= (distance px x py y pz z) common.skills/attack-range-distance-threshold)))
 
 (defn hidden? [selected-player-id]
   (get-in @players [selected-player-id :effects :hide :result]))
@@ -684,14 +691,6 @@
                     {:skill skill
                      :selected-player-id selected-player-id})))))))
 
-;; write a method for apply-skill "attackRange", it is for mage class. damages enemies in a certain radius (2.25).
-;; filter alive enemies and enemies that are in range, then apply damage to them. in order to find enemies in range use inside-circle? function
-;; also get the current positions from world atom and use them to find enemies in range
-;; make sure to use `enemy?` function to filter enemies
-;; make sure to use `alive?` function to filter alive enemies
-;; make sure to use `inside-circle?` function to find enemies in range
-;; mage will provide x y z coordinates, not selected player id
-
 (defmethod apply-skill "attackRange" [{:keys [id ping] {:keys [skill x y z]} :data}]
   (let [players* @players
         w* @world]
@@ -703,6 +702,7 @@
           (not (alive? world-state)) skill-failed
           (not (enough-mana? skill world-state)) not-enough-mana
           (not (cooldown-finished? skill player)) skill-failed
+          (not (attack-range-in-distance? world-state x y z)) skill-failed
           :else (let [required-mana (get-required-mana skill)
                       _ (swap! players assoc-in [id :last-time :skill skill] (now))
                       _ (swap! world update-in [id :mana] - required-mana)
@@ -731,6 +731,66 @@
                    :y y
                    :z z
                    :damages damaged-enemies}))))))
+
+(defmethod apply-skill "attackSingle" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
+  (let [players* @players
+        w* @world]
+    (when-let [player (get players* id)]
+      (when-let [world-state (get w* id)]
+        (when-let [other-player-world-state (get w* selected-player-id)]
+          (cond
+            (> ping 5000) skill-failed
+            (not (mage? id)) skill-failed
+            (not (enemy? id selected-player-id)) skill-failed
+            (not (alive? world-state)) skill-failed
+            (not (alive? other-player-world-state)) skill-failed
+            (not (enough-mana? skill world-state)) not-enough-mana
+            (not (cooldown-finished? skill player)) skill-failed
+            (not (close-for-attack-single? world-state other-player-world-state)) too-far
+            :else (let [required-mana (get-required-mana skill)
+                        _ (swap! players assoc-in [id :last-time :skill skill] (now))
+                        _ (swap! world update-in [id :mana] - required-mana)
+                        damage ((-> common.skills/skills (get skill) :damage-fn)
+                                (has-defense? selected-player-id)
+                                (has-break-defense? selected-player-id))
+                        health-after-damage (- (:health other-player-world-state) damage)
+                        health-after-damage (Math/max ^long health-after-damage 0)]
+                    (swap! world assoc-in [selected-player-id :health] health-after-damage)
+                    (send! selected-player-id :got-attack-single {:damage damage
+                                                                  :player-id id})
+                    (add-effect :attack-single selected-player-id)
+                    {:skill skill
+                     :selected-player-id selected-player-id
+                     :damage damage})))))))
+
+(defmethod apply-skill "teleport" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
+  (let [players* @players
+        w* @world]
+    (when-let [player (get players* id)]
+      (when-let [world-state (get w* id)]
+        (when-let [other-player-world-state (get w* selected-player-id)]
+          (cond
+            (> ping 5000) skill-failed
+            (not (mage? id)) skill-failed
+            (not (ally? id selected-player-id)) skill-failed
+            (not (alive? world-state)) skill-failed
+            (not (alive? other-player-world-state)) skill-failed
+            (not (enough-mana? skill world-state)) not-enough-mana
+            (not (cooldown-finished? skill player)) skill-failed
+            (= id selected-player-id) skill-failed
+            :else (let [required-mana (get-required-mana skill)
+                        current-time (now)
+                        new-pos {:x (:px world-state)
+                                 :y (:py world-state)
+                                 :z (:pz world-state)}
+                        _ (send! selected-player-id :teleported new-pos)
+                        _ (swap! players (fn [players]
+                                           (-> players
+                                               (assoc-in [id :last-time :skill skill] current-time)
+                                               (assoc-in [selected-player-id :last-time :teleported] current-time))))
+                        _ (swap! world update-in [id :mana] - required-mana)]
+                    (add-effect :teleport selected-player-id)
+                    {:skill skill})))))))
 
 (comment
   ;; set everyones health to 1600 in world atom
@@ -784,7 +844,7 @@
                            (future
                              ;; TODO optimize in here, in between other players could attack etc. and update non existed player's state
                              ;; like check again after 5 secs or so...
-                             (Thread/sleep 2500)
+                             (Thread/sleep 1000)
                              (swap! world dissoc player-id)
                              (notify-players-for-exit player-id)))))
           ;; TODO register socket in here

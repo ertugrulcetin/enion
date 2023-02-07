@@ -184,7 +184,7 @@
     (st/enough-mana? phantom-vision-required-mana)))
 
 (defn process-skills [e]
-  (when-not (-> e .-event .-repeat)
+  (when (and (not (-> e .-event .-repeat)) (st/alive?))
     (let [model-entity (st/get-model-entity)
           active-state (pc/get-anim-state model-entity)
           selected-player-id (st/get-selected-player-id)]

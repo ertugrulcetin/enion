@@ -87,7 +87,7 @@
     (or selected-player-id net/current-player-id)))
 
 (defn process-skills [e]
-  (when-not (j/get-in e [:event :repeat])
+  (when (and (not (-> e .-event .-repeat)) (st/alive?))
     (let [model-entity (get-model-entity)
           active-state (pc/get-anim-state model-entity)
           selected-player-id (st/get-selected-player-id)]

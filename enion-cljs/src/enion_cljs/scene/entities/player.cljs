@@ -357,7 +357,7 @@
   (skills.effects/apply-effect-attack-dagger player)
   (skills.effects/apply-effect-attack-one-hand player)
   (skills.effects/apply-effect-attack-slow-down player)
-  (skills.effects/apply-effect-attack-portal player)
+  (skills.effects/apply-effect-teleport player)
   (skills.effects/apply-effect-got-defense-break player)
   (skills.effects/apply-effect-fire-hands player)
   (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
