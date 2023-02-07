@@ -158,13 +158,6 @@
       (notify-players-for-new-join id attrs)
       attrs)))
 
-(comment
-  (clojure.pprint/pprint @players)
-  (send! 49 :init {:username "0000000"
-                   :race "orc"
-                   :class "asas"})
-  )
-
 (reg-pro
   :connect-to-world-state
   (fn [{:keys [id]}]
@@ -697,6 +690,7 @@
   (clojure.pprint/pprint @players)
 
   (clojure.pprint/pprint @world)
+  (swap! world assoc-in [4 :pz] -39.04)
 
   (mount/start)
   (mount/stop)
@@ -730,10 +724,11 @@
             (s/on-closed socket
                          (fn []
                            (swap! players dissoc player-id)
+                           (swap! world dissoc player-id)
                            (future
                              ;; TODO optimize in here, in between other players could attack etc. and update non existed player's state
                              ;; like check again after 5 secs or so...
-                             (Thread/sleep 1000)
+                             (Thread/sleep 2500)
                              (swap! world dissoc player-id)
                              (notify-players-for-exit player-id)))))
           ;; TODO register socket in here

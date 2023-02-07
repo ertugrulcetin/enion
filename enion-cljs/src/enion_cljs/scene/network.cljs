@@ -56,7 +56,8 @@
     (when (= 0 health)
       (pc/set-anim-int (st/get-model-entity) "health" 0))))
 
-(let [skills-effects-before-response #{"heal" "cure" "breakDefense"}]
+(let [skills-effects-before-response #{"heal" "cure" "breakDefense"}
+      temp-pos (pc/vec3)]
   (defn- process-world-snapshot [world]
     (doseq [s world
             :let [id (str (first s))
@@ -64,7 +65,12 @@
                   other-player (st/get-other-player id)
                   entity (j/get other-player :entity)
                   health (:health new-state)
-                  new-anim-state (:st new-state)]
+                  new-anim-state (:st new-state)
+                  new-pos (do
+                            (pc/setv temp-pos (:px new-state) (:py new-state) (:pz new-state))
+                            temp-pos)
+                  prev-pos (j/get-in st/other-players [id :prev-pos])
+                  pos (some-> entity pc/get-pos)]
             :when (and entity (or (st/alive? id) (> health 0)))]
       (st/set-health id health)
       (if (= health 0)
@@ -75,13 +81,14 @@
           ;; TODO remove 'constantly' for prod
           (when-let [tw (j/get-in st/other-players [id :tween :interpolation])]
             (j/call (tw) :stop))
+
           ;; TODO bu checkten dolayi karakter havada basliyor
           ;; TODO also do not run (st/move-player) for players far away - LOD optimization
           (when (or (not= "idle" new-anim-state)
-                    ;; TODO buradan dolayi yeni gelen oyuncular karakterleri eski poziyonda goruyor sanirim surekli render etmek lazim
-                    (not (some-> id st/get-model-entity pc/get-anim-state (= "idle"))))
-            (let [pos (pc/get-pos entity)
-                  x (j/get pos :x)
+                    (not (some-> id st/get-model-entity pc/get-anim-state (= "idle")))
+                    (or (nil? prev-pos)
+                        (not (j/call prev-pos :equals pos))))
+            (let [x (j/get pos :x)
                   y (j/get pos :y)
                   z (j/get pos :z)
                   initial-pos (j/get-in st/other-players [id :tween :initial-pos])
@@ -106,8 +113,10 @@
               "heal" (effects/apply-effect-heal-particles other-player)
               "cure" (effects/apply-effect-cure-particles other-player)
               "breakDefense" (effects/apply-effect-defense-break-particles other-player)
-              nil))
-          (j/assoc-in! st/other-players [id :prev-state] new-anim-state))))))
+              nil))))
+      (-> st/other-players
+          (j/assoc-in!  [id :prev-pos] new-pos)
+          (j/assoc-in!  [id :prev-state] new-anim-state)))))
 
 (defn- process-effects [effects]
   (doseq [[e ids] effects
@@ -172,7 +181,7 @@
                            (reset! open? true)
                            (dispatch-pro :init {:username "NeaTBuSTeR"
                                                 :race "orc"
-                                                :class "priest"}))
+                                                :class "warrior"}))
                 :on-close (fn []
                             (println "WS connection closed.")
                             (reset! open? false))
@@ -184,9 +193,6 @@
 
 (comment
   (fire :start-ws)
-  (dispatch-pro :init {:username "NeaTBuSTeR"
-                       :race "orc"
-                       :class "warrior"})
 
 
   (send-states-to-server)
