@@ -24,14 +24,6 @@
 
 (def char-selection-distance-threshold 35)
 
-(defn- pressing-wasd-or-has-target? []
-  (or (k/pressing-wasd?) (j/get player :target-pos-available?)))
-
-(defn- process-running []
-  (if (pressing-wasd-or-has-target?)
-    (pc/set-anim-boolean (st/get-model-entity) "run" true)
-    (pc/set-anim-boolean (st/get-model-entity) "run" false)))
-
 (defn- process-esc [e]
   (when (= "Escape" (j/get-in e [:event :key]))
     (when (j/get player :selected-player-id)
@@ -168,7 +160,7 @@
                       (look-at-selected-player e)))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
-                      (process-running)))
+                      (st/process-running)))
     (skills/register-skill-events events)
     (on :update-skills-order skills/register-key->skills)))
 
@@ -197,7 +189,7 @@
         (j/assoc! player :target-pos (pc/setv (j/get player :target-pos) x y z)
                   :target-pos-available? true)
         (pc/set-locater-target x z)
-        (process-running)))))
+        (st/process-running)))))
 
 (defn- select-player-or-set-target [e]
   (if-let [ally-id (get-selected-ally-id e)]
@@ -500,10 +492,7 @@
                 dir (-> temp-dir (pc/sub pos) pc/normalize (pc/scale speed))]
             (if (>= (pc/distance target pos) 0.2)
               (pc/apply-force player-entity (j/get dir :x) 0 (j/get dir :z))
-              (do
-                (j/assoc! player :target-pos-available? false)
-                (pc/set-locater-target)
-                (process-running))))
+              (st/cancel-target-pos)))
           (do
             (pc/setv world-dir 0 0 0)
             (j/assoc! player :x 0 :z 0 :target-y (j/get-in entity.camera/state [:eulers :x]))
@@ -531,7 +520,7 @@
               (pc/pressed? :KEY_A) (j/update! player :target-y + 90)
               (pc/pressed? :KEY_D) (j/update! player :target-y - 90)
               (pc/pressed? :KEY_S) (j/update! player :target-y + 180))
-            (when (pressing-wasd-or-has-target?)
+            (when (st/pressing-wasd-or-has-target?)
               (pc/set-loc-euler model-entity 0 (j/get player :target-y) 0)
               (pc/set-anim-boolean model-entity "run" true))))
         (play-running-sound dt model-entity)))))

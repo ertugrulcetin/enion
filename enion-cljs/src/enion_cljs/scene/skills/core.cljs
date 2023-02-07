@@ -310,4 +310,5 @@
         y (:y params)
         z (:z params)]
     (j/call-in (st/get-player-entity) [:rigidbody :teleport] x y z)
-    (skills.effects/apply-effect-teleport st/player)))
+    (skills.effects/apply-effect-teleport st/player)
+    (st/cancel-target-pos)))

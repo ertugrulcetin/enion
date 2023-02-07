@@ -4,6 +4,7 @@
     [clojure.data :as data]
     [enion-cljs.common :refer [fire]]
     [enion-cljs.scene.entities.camera :as entity.camera]
+    [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]))
 
 (def speed 550)
@@ -209,3 +210,16 @@
               z (j/get-in result [:point :z])]
           ;; (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 2.25)
           (pc/set-nova-circle-pos player x y z))))))
+
+(defn pressing-wasd-or-has-target? []
+  (or (k/pressing-wasd?) (j/get player :target-pos-available?)))
+
+(defn process-running []
+  (if (pressing-wasd-or-has-target?)
+    (pc/set-anim-boolean (get-model-entity) "run" true)
+    (pc/set-anim-boolean (get-model-entity) "run" false)))
+
+(defn cancel-target-pos []
+  (j/assoc! player :target-pos-available? false)
+  (pc/set-locater-target)
+  (process-running))
