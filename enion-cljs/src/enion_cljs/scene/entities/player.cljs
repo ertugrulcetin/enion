@@ -35,7 +35,10 @@
 (defn- process-esc [e]
   (when (= "Escape" (j/get-in e [:event :key]))
     (when (j/get player :selected-player-id)
-      (st/cancel-selected-player))))
+      (st/cancel-selected-player))
+    (when (j/get player :positioning-nova?)
+      (j/assoc! player :positioning-nova? false)
+      (pc/set-nova-circle-pos))))
 
 (defn- square [n]
   (js/Math.pow n 2))
@@ -207,17 +210,6 @@
         (st/set-selected-player enemy-id))
       (set-target-position e))))
 
-(defn- show-nova-circle [e]
-  (when (j/get player :positioning-nova?)
-    (let [result (pc/raycast-rigid-body e entity.camera/entity)
-          hit-entity-name (j/get-in result [:entity :name])]
-      (when (= "terrain" hit-entity-name)
-        (let [x (j/get-in result [:point :x])
-              y (j/get-in result [:point :y])
-              z (j/get-in result [:point :z])]
-          ;; (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 2.25)
-          (pc/set-nova-circle-pos player x y z))))))
-
 (defn- register-mouse-events []
   (pc/on-mouse :EVENT_MOUSEDOWN
                (fn [e]
@@ -237,7 +229,7 @@
     (pc/on-mouse :EVENT_MOUSEMOVE
                  (fn [e]
                    (when-not (j/get player :mouse-left-locked?)
-                     (show-nova-circle e)))))
+                     (st/show-nova-circle e)))))
 
   (pc/on-mouse :EVENT_MOUSEUP
                (fn [e]

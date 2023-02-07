@@ -17,7 +17,7 @@
                          :wheel-x 0
                          :time 0
                          :time-since-last-shake 0
-                         :last-shake-time (js/Date.now)}))
+                         :last-shake-time nil}))
 
 (defonce entity nil)
 
@@ -109,7 +109,8 @@
           (j/assoc! state :shaking? false))))))
 
 (defn shake-camera []
-  (when (> (- (js/Date.now) (j/get state :last-shake-time)) 10000)
+  (when (or (nil? (j/get state :last-shake-time))
+            (> (- (js/Date.now) (j/get state :last-shake-time)) 30000))
     (j/assoc-in! state [:start-euler] (pc/clone (pc/get-loc-euler entity)))
     (j/assoc! state :time 0
               :shaking? true

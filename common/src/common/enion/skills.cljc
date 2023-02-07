@@ -5,6 +5,7 @@
 
 (def close-attack-distance-threshold 0.75)
 (def priest-skills-distance-threshold 8)
+(def attack-range-distance-threshold 12)
 
 
 (defn rand-between

@@ -2,7 +2,8 @@
   (:require
     [applied-science.js-interop :as j]
     [camel-snake-kebab.core :as csk]
-    [clojure.string :as str]))
+    [clojure.string :as str]
+    [common.enion.skills :as common.skills]))
 
 (defonce app nil)
 
@@ -106,6 +107,9 @@
 
 (defn raycast-first [from to]
   (j/call-in app [:systems :rigidbody :raycastFirst] from to))
+
+(defn raycast-all [from to]
+  (j/call-in app [:systems :rigidbody :raycastAll] from to))
 
 (defn look-at
   ([e v]
@@ -257,9 +261,11 @@
      (j/call @terrain-mat :setParameter "spell_available" false))
     ([player x y z]
      (j/assoc! target 0 x 1 z)
-     (j/assoc! player :nova-pos target)
      (setv nova-pos x y z)
-     (j/call @terrain-mat :setParameter "spell_opacity" (if (> (distance nova-pos (get-pos (j/get player :entity))) 13) 0.1 1.0))
+     (j/call @terrain-mat :setParameter "spell_opacity"
+             (if (> (distance nova-pos (get-pos (j/get player :entity))) common.skills/attack-range-distance-threshold)
+               0.1
+               1.0))
      (j/call @terrain-mat :setParameter "spell_position" target)
      (j/call @terrain-mat :setParameter "spell_available" true))))
 
@@ -294,3 +300,11 @@
         from (get-pos camera-entity)
         to (screen-to-world camera x y)]
     (raycast-first from to)))
+
+(defn raycast-all-rigid-body [e camera-entity]
+  (let [x (j/get e :x)
+        y (j/get e :y)
+        camera (j/get camera-entity :camera)
+        from (get-pos camera-entity)
+        to (screen-to-world camera x y)]
+    (raycast-all from to)))

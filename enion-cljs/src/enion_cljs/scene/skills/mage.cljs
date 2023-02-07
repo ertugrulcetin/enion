@@ -1,16 +1,19 @@
 (ns enion-cljs.scene.skills.mage
   (:require
     [applied-science.js-interop :as j]
+    [common.enion.skills :as common.skills]
+    [enion-cljs.common :as common :refer [dlog fire]]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
+    [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.core :as skills]
     [enion-cljs.scene.skills.effects :as skills.effects]
-    [enion-cljs.scene.states :refer [player get-model-entity]])
+    [enion-cljs.scene.states :refer [player get-model-entity]]
+    [enion-cljs.scene.states :as st])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
 
-;; TODO define combo rand ranges in a var
 (def events
   (concat
     skills/common-states
@@ -23,49 +26,32 @@
      {:anim-state "teleport" :event "onTeleportCall" :call? true}
      {:anim-state "teleport" :event "onTeleportEnd" :skill? true :end? true}]))
 
-(defn throw-nova [e]
-  (when (j/get player :positioning-nova?)
-    (let [result (pc/raycast-rigid-body e entity.camera/entity)
-          hit-entity-name (j/get-in result [:entity :name])]
-      (when (= "terrain" hit-entity-name)
-        (j/assoc! player :positioning-nova? false)
-        (pc/set-nova-circle-pos)
-        ((j/get-in player [:skills :throw-nova]) (j/get result :point))
-        (entity.camera/shake-camera)))))
+(def attack-range-required-mana (-> common.skills/skills (get "attackRange") :required-mana))
 
-(defn process-skills [e]
-  (when-not (-> e .-event .-repeat)
-    (let [model-entity (get-model-entity)
-          active-state (pc/get-anim-state model-entity)]
-      (m/process-cancellable-skills
-        ["attackRange" "attackSingle" "attackR" "teleport"]
-        (j/get-in e [:event :code])
-        active-state
-        player)
-      (cond
-        (and (= "idle" active-state) (k/pressing-wasd?))
-        (pc/set-anim-boolean model-entity "run" true)
-
-        (and (skills/idle-run-states active-state) (pc/key? e :KEY_SPACE) (j/get player :on-ground?))
-        (pc/set-anim-boolean model-entity "jump" true)
-
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackRange"))
-        (do
-          (j/assoc! player :positioning-nova? true)
-          ;; (pc/set-anim-boolean model-entity "attackRange" true)
-          ;; (skills.effects/apply-effect-flame-particles player)
-          )
-
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackSingle"))
-        (do
-          (pc/set-anim-boolean model-entity "attackSingle" true)
-          (skills.effects/apply-effect-fire-hands player))
-
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "teleport"))
-        (pc/set-anim-boolean model-entity "teleport" true)
-
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackR"))
-        (pc/set-anim-boolean model-entity "attackR" true)))))
+(let [too-far-msg {:too-far true}]
+  (defn throw-nova [e]
+    (when (j/get player :positioning-nova?)
+      (let [result (some
+                     (fn [result]
+                       (when (= "terrain" (j/get-in result [:entity :name]))
+                         result))
+                     (pc/raycast-all-rigid-body e entity.camera/entity))
+            hit-entity-name (j/get-in result [:entity :name])
+            nova-pos (j/get result :point)]
+        (if (= "terrain" hit-entity-name)
+          (do
+            (if (> (pc/distance nova-pos (pc/get-pos (st/get-player-entity)))
+                   common.skills/attack-range-distance-threshold)
+              (fire :ui-send-msg too-far-msg)
+              (do
+                (pc/set-anim-boolean (st/get-model-entity) "attackRange" true)
+                (skills.effects/apply-effect-flame-particles player)
+                (j/assoc! player :nova-pos nova-pos)))
+            (j/assoc! player :positioning-nova? false)
+            (pc/set-nova-circle-pos))
+          (do
+            (j/assoc! player :positioning-nova? false)
+            (pc/set-nova-circle-pos)))))))
 
 (defn create-throw-nova-fn [entity]
   (let [temp-first-pos #js {}
@@ -106,3 +92,69 @@
         (j/call tween-opacity :start)
         (j/call-in entity [:children 0 :particlesystem :play])
         nil))))
+
+(defn attack-range? [e active-state]
+  (and (skills/idle-run-states active-state)
+       (skills/skill-pressed? e "attackRange")
+       (st/cooldown-ready? "attackRange")
+       (st/enough-mana? attack-range-required-mana)))
+
+(let [temp-pos (pc/vec3)]
+  (defmethod skills/skill-response "attackRange" [params]
+    (fire :ui-cooldown "attackRange")
+    (let [damaged-enemies (-> params :skill :damages)
+          x (-> params :skill :x)
+          y (-> params :skill :y)
+          z (-> params :skill :z)]
+      (pc/setv temp-pos x y z)
+      ((j/get-in player [:skills :throw-nova]) temp-pos)
+      (doseq [enemy damaged-enemies]
+        (fire :ui-send-msg {:to (j/get (st/get-other-player (:id enemy)) :username)
+                            :hit (:damage enemy)})))))
+
+(defn process-skills [e]
+  (when-not (-> e .-event .-repeat)
+    (let [model-entity (get-model-entity)
+          active-state (pc/get-anim-state model-entity)
+          selected-player-id (st/get-selected-player-id)]
+      (m/process-cancellable-skills
+        ["attackRange" "attackSingle" "attackR" "teleport"]
+        (j/get-in e [:event :code])
+        active-state
+        player)
+      (cond
+        (attack-range? e active-state)
+        (do
+          (j/assoc! player :positioning-nova? true)
+          (st/show-nova-circle e))
+
+        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "attackSingle"))
+        (do
+          (j/assoc! player :positioning-nova? false)
+          (pc/set-anim-boolean model-entity "attackSingle" true)
+          (skills.effects/apply-effect-fire-hands player))
+
+        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "teleport"))
+        (do
+          (j/assoc! player :positioning-nova? false)
+          (pc/set-anim-boolean model-entity "teleport" true))
+
+        (skills/run? active-state)
+        (pc/set-anim-boolean model-entity "run" true)
+
+        (skills/jump? e active-state)
+        (pc/set-anim-boolean model-entity "jump" true)
+
+        (skills/attack-r? e active-state selected-player-id)
+        (do
+          (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
+          (pc/set-anim-boolean model-entity "attackR" true))
+
+        (skills/fleet-foot? e)
+        (dispatch-pro :skill {:skill "fleetFoot"})
+
+        (skills/hp-potion? e)
+        (dispatch-pro :skill {:skill "hpPotion"})
+
+        (skills/mp-potion? e)
+        (dispatch-pro :skill {:skill "mpPotion"})))))

@@ -35,9 +35,9 @@
 
 (defonce effects-stream (s/stream))
 
-(defn- add-effect [effect target-id]
+(defn- add-effect [effect data]
   (s/put! effects-stream {:effect effect
-                          :target-id target-id}))
+                          :data data}))
 
 (defn- take-while-stream [pred stream]
   (loop [result []]
@@ -51,7 +51,7 @@
        (group-by :effect)
        (reduce-kv
          (fn [acc k v]
-           (assoc acc k (vec (distinct (map :target-id v))))) {})))
+           (assoc acc k (vec (distinct (map :data v))))) {})))
 
 (defn home-page
   [request]
@@ -267,6 +267,14 @@
 (defn ally? [player-id selected-player-id]
   (= (get-in @players [player-id :race])
      (get-in @players [selected-player-id :race])))
+
+(defn- square [n]
+  (Math/pow n 2))
+
+(defn inside-circle?
+  "Clojure formula of (x - center_x)² + (y - center_y)² < radius²"
+  [x z center-x center-z radius]
+  (< (+ (square (- x center-x)) (square (- z center-z))) (square radius)))
 
 ;; TODO make asas hide false when he gets damage
 (defmethod apply-skill "attackOneHand" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
@@ -675,6 +683,54 @@
                     (send! selected-player-id :got-defense-break true)
                     {:skill skill
                      :selected-player-id selected-player-id})))))))
+
+;; write a method for apply-skill "attackRange", it is for mage class. damages enemies in a certain radius (2.25).
+;; filter alive enemies and enemies that are in range, then apply damage to them. in order to find enemies in range use inside-circle? function
+;; also get the current positions from world atom and use them to find enemies in range
+;; make sure to use `enemy?` function to filter enemies
+;; make sure to use `alive?` function to filter alive enemies
+;; make sure to use `inside-circle?` function to find enemies in range
+;; mage will provide x y z coordinates, not selected player id
+
+(defmethod apply-skill "attackRange" [{:keys [id ping] {:keys [skill x y z]} :data}]
+  (let [players* @players
+        w* @world]
+    (when-let [player (get players* id)]
+      (when-let [world-state (get w* id)]
+        (cond
+          (> ping 5000) skill-failed
+          (not (mage? id)) skill-failed
+          (not (alive? world-state)) skill-failed
+          (not (enough-mana? skill world-state)) not-enough-mana
+          (not (cooldown-finished? skill player)) skill-failed
+          :else (let [required-mana (get-required-mana skill)
+                      _ (swap! players assoc-in [id :last-time :skill skill] (now))
+                      _ (swap! world update-in [id :mana] - required-mana)
+                      _ (add-effect :attack-range {:id id
+                                                   :x x
+                                                   :y y
+                                                   :z z})
+                      damaged-enemies (doall
+                                        (for [enemy-id (keys players*)
+                                              :let [enemy-world-state (get w* enemy-id)]
+                                              :when (and (enemy? id enemy-id)
+                                                         (alive? enemy-world-state)
+                                                         (inside-circle? (:px enemy-world-state) (:pz enemy-world-state) x z 2.25))]
+                                          (let [damage ((-> common.skills/skills (get skill) :damage-fn)
+                                                        (has-defense? enemy-id)
+                                                        (has-break-defense? enemy-id))
+                                                health-after-damage (- (:health enemy-world-state) damage)
+                                                health-after-damage (Math/max ^long health-after-damage 0)]
+                                            (swap! world assoc-in [enemy-id :health] health-after-damage)
+                                            (send! enemy-id :got-attack-range {:damage damage
+                                                                               :player-id id})
+                                            {:id enemy-id
+                                             :damage damage})))]
+                  {:skill skill
+                   :x x
+                   :y y
+                   :z z
+                   :damages damaged-enemies}))))))
 
 (comment
   ;; set everyones health to 1600 in world atom

@@ -3,6 +3,7 @@
     [applied-science.js-interop :as j]
     [common.enion.skills :as common.skills]
     [enion-cljs.common :as common :refer [dlog fire]]
+    [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
@@ -179,12 +180,18 @@
                                              (j/get player :target-pos))]
                         (pc/look-at model-entity (j/get target :x) (j/get (pc/get-pos model-entity) :y) (j/get target :z) true)))
                     (cond
-                      call? (let [selected-player-id (j/get-in player [:skill->selected-player-id anim-state])]
+                      call? (let [selected-player-id (j/get-in player [:skill->selected-player-id anim-state])
+                                  nova-pos (j/get player :nova-pos)]
                               (j/assoc! player :skill-locked? true)
                               (j/assoc-in! player [:skill->selected-player-id anim-state] nil)
+                              (j/assoc! player :nova-pos nil)
 
-                              (dispatch-pro :skill (cond-> {:skill anim-state}
-                                                     selected-player-id (assoc :selected-player-id (js/parseInt selected-player-id)))))
+                              (dispatch-pro :skill
+                                            (cond-> {:skill anim-state}
+                                              selected-player-id (assoc :selected-player-id (js/parseInt selected-player-id))
+                                              nova-pos (assoc :x (j/get nova-pos :x)
+                                                              :y (j/get nova-pos :y)
+                                                              :z (j/get nova-pos :z)))))
                       r-release? (j/assoc! player :can-r-attack-interrupt? true)
                       r-lock? (j/assoc! player :can-r-attack-interrupt? false)))))))
 
@@ -278,3 +285,12 @@
 (defmethod net/dispatch-pro-response :cured-defense-break [_]
   ;; TODO implement
   )
+
+;; write a function like got-attack-one-hand-damage but for :got-attack-range
+(defmethod net/dispatch-pro-response :got-attack-range [params]
+  (let [params (:got-attack-range params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})
+    (entity.camera/shake-camera)))

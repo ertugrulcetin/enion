@@ -56,7 +56,7 @@
     (when (= 0 health)
       (pc/set-anim-int (st/get-model-entity) "health" 0))))
 
-(let [skills-effects-before-response #{"heal" "cure" "breakDefense"}
+(let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange"}
       temp-pos (pc/vec3)]
   (defn- process-world-snapshot [world]
     (doseq [s world
@@ -113,10 +113,11 @@
               "heal" (effects/apply-effect-heal-particles other-player)
               "cure" (effects/apply-effect-cure-particles other-player)
               "breakDefense" (effects/apply-effect-defense-break-particles other-player)
+              "attackRange" (effects/apply-effect-flame-particles other-player)
               nil))))
       (-> st/other-players
-          (j/assoc-in!  [id :prev-pos] new-pos)
-          (j/assoc-in!  [id :prev-state] new-anim-state)))))
+          (j/assoc-in! [id :prev-pos] new-pos)
+          (j/assoc-in! [id :prev-state] new-anim-state)))))
 
 (defn- process-effects [effects]
   (doseq [[e ids] effects
@@ -138,15 +139,29 @@
       :appear (j/call-in enemy-state [:skills :appear])
       :else (js/console.error "Unknown effect: " e))))
 
+(let [temp-pos (pc/vec3)]
+  (defn- process-attack-ranges [attack-ranges]
+    (doseq [data attack-ranges
+            :let [id (:id data)
+                  x (:x data)
+                  y (:y data)
+                  z (:z data)]
+            :when (not= id current-player-id)]
+      (pc/setv temp-pos x y z)
+      (j/call-in st/other-players [id :skills :throw-nova] temp-pos))))
+
 (defmethod dispatch-pro-response :world-snapshot [params]
   (let [ws (:world-snapshot params)
         effects (:effects ws)
-        ws (dissoc ws :effects)]
+        ws (dissoc ws :effects)
+        attack-ranges (get effects :attack-range)
+        effects (dissoc effects :attack-range)]
     (set! world ws)
     (process-world-snapshot-for-player (get ws current-player-id))
     ;; TODO when tab is not focused, send that data to server and server makes the state idle for this player to other players
     (process-world-snapshot (dissoc ws current-player-id))
-    (process-effects effects)))
+    (process-effects effects)
+    (process-attack-ranges attack-ranges)))
 
 (defn send-states-to-server []
   (if-let [id @send-state-interval-id]
@@ -181,7 +196,7 @@
                            (reset! open? true)
                            (dispatch-pro :init {:username "NeaTBuSTeR"
                                                 :race "orc"
-                                                :class "warrior"}))
+                                                :class "mage"}))
                 :on-close (fn []
                             (println "WS connection closed.")
                             (reset! open? false))

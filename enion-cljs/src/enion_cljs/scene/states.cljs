@@ -3,6 +3,7 @@
     [applied-science.js-interop :as j]
     [clojure.data :as data]
     [enion-cljs.common :refer [fire]]
+    [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.pc :as pc]))
 
 (def speed 550)
@@ -192,3 +193,19 @@
       (when-not result
         (fire :ui-send-msg not-enough-mana-msg))
       result)))
+
+(defn show-nova-circle [e]
+  (when (j/get player :positioning-nova?)
+    ;; TODO raycast all and find terrain
+    (let [result (some
+                   (fn [result]
+                     (when (= "terrain" (j/get-in result [:entity :name]))
+                       result))
+                   (pc/raycast-all-rigid-body e entity.camera/entity))
+          hit-entity-name (j/get-in result [:entity :name])]
+      (when (= "terrain" hit-entity-name)
+        (let [x (j/get-in result [:point :x])
+              y (j/get-in result [:point :y])
+              z (j/get-in result [:point :z])]
+          ;; (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 2.25)
+          (pc/set-nova-circle-pos player x y z))))))
