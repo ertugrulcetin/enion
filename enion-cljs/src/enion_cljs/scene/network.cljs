@@ -78,21 +78,23 @@
                              :order (.indexOf party-member-ids* id)})))
           {} party-member-ids*))
 
-(defn- update-username-text-color [party-member-ids*]
+(defn- update-username-text-color [party-member-ids* in-the-party?]
   (doseq [id party-member-ids*
           :let [template-entity (if (= id current-player-id)
                                   (j/get st/player :template-entity)
                                   (j/get (st/get-other-player id) :template-entity))
                 username-text-entity (pc/find-by-name template-entity "char_name")]
           :when username-text-entity]
-    (j/assoc-in! username-text-entity [:element :color] st/username-party-color)))
+    (j/assoc-in! username-text-entity [:element :color] (if in-the-party?
+                                                          st/username-party-color
+                                                          st/username-color))))
 
 (defmethod party-response :joined-party [params]
   (let [player-id (-> params :party :player-id)]
     (if (empty? @party-member-ids)
       (vswap! party-member-ids conj current-player-id player-id)
       (vswap! party-member-ids conj player-id))
-    (update-username-text-color @party-member-ids)
+    (update-username-text-color @party-member-ids true)
     (fire :register-party-members (register-party-members @party-member-ids))))
 
 (let [no-selected-player-msg {:no-selected-player true}]
@@ -109,13 +111,23 @@
 (defmethod party-response :accept-party-request [params]
   (let [party-member-ids* (-> params :party :party-members-ids vec)]
     (vreset! party-member-ids party-member-ids*)
-    (update-username-text-color party-member-ids*)
+    (update-username-text-color party-member-ids* true)
     (fire :register-party-members (register-party-members party-member-ids*))))
+
+(let [d #js []]
+  (j/call d :push 1)
+  (j/call d :push 2)
+  d)
 
 (defmethod party-response :reject-party-request [params])
 
 (defmethod party-response :party-request-rejected [params]
   (fire :ui-send-msg {:party-request-rejected (-> params :party :player-id st/get-username)}))
+
+(defmethod party-response :party-cancelled [params]
+  (update-username-text-color @party-member-ids false)
+  (vreset! party-member-ids [])
+  (fire :cancel-party))
 
 (comment
   (dispatch-pro :party {:type :remove-from-party

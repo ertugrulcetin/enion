@@ -202,21 +202,33 @@
         (fire :ui-send-msg not-enough-mana-msg))
       result)))
 
-(defn show-nova-circle [e]
-  (when (j/get player :positioning-nova?)
-    ;; TODO raycast all and find terrain
-    (let [result (some
-                   (fn [result]
-                     (when (= "terrain" (j/get-in result [:entity :name]))
-                       result))
-                   (pc/raycast-all-rigid-body e entity.camera/entity))
-          hit-entity-name (j/get-in result [:entity :name])]
-      (when (= "terrain" hit-entity-name)
-        (let [x (j/get-in result [:point :x])
-              y (j/get-in result [:point :y])
-              z (j/get-in result [:point :z])]
-          ;; (inside-circle? (j/get char-pos :x) (j/get char-pos :z) x z 2.25)
-          (pc/set-nova-circle-pos player x y z))))))
+(let [temp (pc/vec3)]
+  (defn show-nova-circle [e]
+    (when (j/get player :positioning-nova?)
+      ;; TODO raycast all and find terrain
+      (let [results (filter
+                      (fn [result]
+                        (when (= "terrain" (j/get-in result [:entity :name]))
+                          result))
+                      (pc/raycast-all-rigid-body e entity.camera/entity))
+            player-pos (pc/get-pos (get-player-entity))
+            total-results (count results)
+            result (cond
+                     (= 1 total-results) (first results)
+                     (> total-results 1) (first (sort-by
+                                                  (fn [result]
+                                                    (let [x (j/get-in result [:point :x])
+                                                          y (j/get-in result [:point :y])
+                                                          z (j/get-in result [:point :z])]
+                                                      (pc/setv temp x y z)
+                                                      (pc/distance player-pos temp)))
+                                                  results))
+                     :else nil)]
+        (when result
+          (let [x (j/get-in result [:point :x])
+                y (j/get-in result [:point :y])
+                z (j/get-in result [:point :z])]
+            (pc/set-nova-circle-pos player x y z)))))))
 
 (defn pressing-wasd-or-has-target? []
   (or (k/pressing-wasd?) (j/get player :target-pos-available?)))

@@ -35,7 +35,7 @@
    :border "2px solid #10131dcc"
    :border-radius "5px"
    :color "white"
-   :cursor :pointer
+   :cursor :unset
    :pointer-events :all
    :user-select :none}
   [:&:hover
@@ -171,7 +171,7 @@
   {:position :relative
    :border-radius "3px"
    :border "3px solid #293c40"
-   :cursor :pointer})
+   :cursor :unset})
 
 (defclass skill-img [blocked? not-enough-mana]
   (cond-> {:position :absolute

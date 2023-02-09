@@ -477,7 +477,8 @@
        (on :ui-show-party-request-modal #(dispatch [::events/show-party-request-modal %]))
        (on :register-party-members #(dispatch [::events/register-party-members %]))
        (on :add-party-member #(dispatch [::events/add-party-member %]))
-       (on :update-party-member-healths #(dispatch [::events/update-party-member-healths %])))
+       (on :update-party-member-healths #(dispatch [::events/update-party-member-healths %]))
+       (on :cancel-party #(dispatch [::events/cancel-party])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

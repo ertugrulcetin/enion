@@ -224,6 +224,11 @@
                  (assoc-in db [:party :members id :health] health)) db healths)))
 
 (reg-event-db
+  ::cancel-party
+  (fn [db]
+    (dissoc db :party)))
+
+(reg-event-db
   ::close-part-request-modal
   (fn [db]
     (assoc-in db [:party-request-modal :open?] false)))

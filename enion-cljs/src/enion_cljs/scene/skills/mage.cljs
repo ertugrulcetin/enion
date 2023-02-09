@@ -45,10 +45,12 @@
             (if (> (pc/distance nova-pos (pc/get-pos (st/get-player-entity)))
                    common.skills/attack-range-distance-threshold)
               (fire :ui-send-msg too-far-msg)
-              (do
+              (let [model-entity (st/get-model-entity)
+                    char-pos (pc/get-pos model-entity)]
                 (pc/set-anim-boolean (st/get-model-entity) "attackRange" true)
                 (skills.effects/apply-effect-flame-particles player)
-                (j/assoc! player :nova-pos nova-pos)))
+                (j/assoc! player :nova-pos nova-pos)
+                (pc/look-at model-entity (j/get nova-pos :x) (j/get char-pos :y) (j/get nova-pos :z) true)))
             (j/assoc! player :positioning-nova? false)
             (pc/set-nova-circle-pos))
           (do

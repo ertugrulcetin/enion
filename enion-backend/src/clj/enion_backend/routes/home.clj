@@ -888,7 +888,8 @@
         only-2-players-left? (= 2 (count (filter #(= party-id (:party-id %)) (vals players*))))
         party-cancelled? (or (= id selected-player-id) only-2-players-left?)
         party-member-ids (->> players*
-                              (filter #(= party-id (:party-id %2)))
+                              (filter (fn [[k v]]
+                                        (= party-id (:party-id v))))
                               (map first)
                               (set))]
     (if (or (= id selected-player-id)
@@ -1025,9 +1026,9 @@
             (swap! players assoc-in [player-id :socket] socket)
             (s/on-closed socket
                          (fn []
-                           #_(remove-from-party {:id player-id
-                                  :players* @players
-                                  :exit? true})
+                           (remove-from-party {:id player-id
+                                               :players* @players
+                                               :exit? true})
                            (swap! players dissoc player-id)
                            (swap! world dissoc player-id)
                            ;; TODO update for party members
