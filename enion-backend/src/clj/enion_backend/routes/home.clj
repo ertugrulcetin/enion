@@ -23,6 +23,8 @@
       Executors
       TimeUnit)))
 
+;; TODO add [id :last-time :died] to all attack skills!!!
+
 (def max-number-of-players 50)
 (def max-number-of-same-race-players (/ max-number-of-players 2))
 
@@ -30,6 +32,10 @@
 (def world-tick-rate (/ 1000 send-snapshot-count))
 
 (defonce id-generator (atom 0))
+(defonce party-id-generator (atom 0))
+
+(def max-number-of-party-members 5)
+
 (defonce players (atom {}))
 (defonce world (atom {}))
 
@@ -181,6 +187,7 @@
 (def skill-failed {:error :skill-failed})
 (def too-far {:error :too-far})
 (def not-enough-mana {:error :not-enough-mana})
+(def party-request-failed {:error :party-request-failed})
 
 (defn- alive? [state]
   (> (:health state) 0))
@@ -801,6 +808,16 @@
                    world
                    (keys @players))))
 
+  ;;remove party from all players also make party-leader? false if true
+  (swap! players (fn [players]
+                   (reduce (fn [players id]
+                             (-> players
+                               (assoc-in [id :party-id] nil)
+                               (assoc-in [id :party-leader?] false)))
+                     players
+                     (keys players))))
+
+
   (send! id :phantom-vision-finished true)
 
   (clojure.pprint/pprint @players)
@@ -824,6 +841,175 @@
                    (get @players (:id opts)))
         skill-failed))))
 
+(defmulti process-party-request (fn [{:keys [data]}]
+                                  (:type data)))
+
+(defn party-full? [player players]
+  (let [party-id (:party-id player)]
+    (and party-id
+         (= (count (filter #(= party-id (:party-id %)) (vals players))) max-number-of-party-members))))
+
+(defn leader? [player]
+  (:party-leader? player))
+
+(defn already-in-another-party? [player other-player]
+  (and (:party-id other-player)
+       (not= (:party-id player) (:party-id other-player))))
+
+(defn already-in-the-party? [player other-player]
+  (and (:party-id other-player)
+       (= (:party-id player) (:party-id other-player))))
+
+(defn blocked-party-requests? [other-player]
+  (:party-requests-blocked? other-player))
+
+(defmethod process-party-request :add-to-party [{:keys [id ping] {:keys [selected-player-id]} :data}]
+  (let [players* @players]
+    (when-let [player (get players* id)]
+      (when-let [other-player (get players* selected-player-id)]
+        (cond
+          (> ping 5000) party-request-failed
+          (= id selected-player-id) party-request-failed
+          (not (ally? id selected-player-id)) party-request-failed
+          (party-full? player players*) party-request-failed
+          (already-in-the-party? player other-player) party-request-failed
+          (already-in-another-party? player other-player) party-request-failed
+          (blocked-party-requests? other-player) party-request-failed
+          :else (do
+                  (swap! players assoc-in [id :last-time :add-to-party-request selected-player-id] (now))
+                  (send! selected-player-id :party {:type :party-request
+                                                    :player-id id})
+                  {:type :add-to-party
+                   :selected-player-id selected-player-id}))))))
+
+(defn- remove-from-party [{:keys [players* id selected-player-id exit?]}]
+  (let [player (get players* id)
+        party-id (:party-id player)
+        only-2-players-left? (= 2 (count (filter #(= party-id (:party-id %)) (vals players*))))
+        party-cancelled? (or (= id selected-player-id) only-2-players-left?)
+        party-member-ids (->> players*
+                              (filter #(= party-id (:party-id %2)))
+                              (map first)
+                              (set))]
+    (if (or (= id selected-player-id)
+            (and exit? (leader? player)))
+      (do
+        (swap! players (fn [players]
+                         (reduce
+                           (fn [players [player-id attrs]]
+                             (if (= party-id (:party-id attrs))
+                               (cond-> (assoc-in players [player-id :party-id] nil)
+                                 (= player-id id) (assoc-in [player-id :party-leader?] false))
+                               players)) players players)))
+        (doseq [[player-id attrs] players*
+                :when (and (not= id player-id)
+                           (= party-id (:party-id attrs)))]
+          (send! player-id :party {:type :party-cancelled})))
+      (do
+        (when only-2-players-left?
+          (swap! players (fn [players]
+                           (-> players
+                               (assoc-in [id :party-id] nil)
+                               (assoc-in [id :party-leader?] false)))))
+        (when selected-player-id
+          (swap! players assoc-in [selected-player-id :party-id] nil)
+          (doseq [id (disj party-member-ids id)]
+            (send! id :party {:type :removed-from-party
+                              :you? (= id selected-player-id)})))
+        (when exit?
+          (swap! players assoc-in [id :party-id] nil)
+          (doseq [id (disj party-member-ids id)]
+            (send! id :party {:type :exit-from-party})))))
+    (if exit?
+      {:type :exit-from-party}
+      {:type :remove-from-party
+       :selected-player-id selected-player-id
+       :party-cancelled? party-cancelled?})))
+
+(defmethod process-party-request :remove-from-party [{:keys [id ping] {:keys [selected-player-id]} :data}]
+  (let [players* @players]
+    (when-let [player (get players* id)]
+      (when-let [other-player (get players* selected-player-id)]
+        (cond
+          (> ping 5000) party-request-failed
+          (not (leader? player)) party-request-failed
+          (not (already-in-the-party? player other-player)) party-request-failed
+          :else (remove-from-party {:players* players*
+                                    :player player
+                                    :id id
+                                    :selected-player-id selected-player-id}))))))
+
+(defmethod process-party-request :exit-from-party [{:keys [id ping]}]
+  (let [players* @players]
+    (when-let [player (get players* id)]
+      (cond
+        (> ping 5000) party-request-failed
+        (not (:party-id player)) party-request-failed
+        (not (leader? player)) party-request-failed
+        :else (remove-from-party {:id id
+                                  :players* players*
+                                  :exit? true})))))
+
+(defn- accepts-or-rejects-party-request-on-time? [other-player id]
+  (let [last-time (get-in other-player [:last-time :add-to-party-request id])]
+    (and last-time (<= (- (now) last-time) 11000))))
+
+(defmethod process-party-request :accept-party-request [{:keys [id ping] {:keys [requested-player-id]} :data}]
+  (let [players* @players]
+    (when-let [player (get players* id)]
+      (when-let [other-player (get players* requested-player-id)]
+        (cond
+          (> ping 5000) party-request-failed
+          (not (accepts-or-rejects-party-request-on-time? other-player id)) party-request-failed
+          (party-full? other-player players*) party-request-failed
+          (already-in-another-party? other-player player) party-request-failed
+          (already-in-the-party? other-player player) party-request-failed
+          (blocked-party-requests? other-player) party-request-failed
+          :else (let [party-id (or (:party-id other-player) (swap! party-id-generator inc))]
+                  (swap! players (fn [players]
+                                   (-> players
+                                       (assoc-in [requested-player-id :party-id] party-id)
+                                       (assoc-in [requested-player-id :party-leader?] true)
+                                       (assoc-in [id :party-id] party-id)
+                                       (assoc-in [id :last-time :accepted-party] (now)))))
+                  (doseq [[player-id attrs] @players
+                          :when (and (not= id player-id)
+                                     (= party-id (:party-id attrs)))]
+                    (send! player-id :party {:type :joined-party
+                                             :player-id id}))
+                  {:type :accept-party-request
+                   :party-members-ids (cons requested-player-id
+                                            (->> @players
+                                                 (filter (fn [[_ attrs]]
+                                                           (and (= party-id (:party-id attrs)) (not (leader? attrs)))))
+                                                 (sort-by (comp :accepted-party :last-time second))
+                                                 (map first)))}))))))
+
+(defmethod process-party-request :reject-party-request [{:keys [id ping] {:keys [requested-player-id]} :data}]
+  (let [players* @players]
+    (when (get players* id)
+      (when-let [other-player (get players* requested-player-id)]
+        (cond
+          (> ping 5000) party-request-failed
+          (not (accepts-or-rejects-party-request-on-time? other-player id)) party-request-failed
+          :else (do
+                  (send! requested-player-id :party {:type :party-request-rejected
+                                                     :player-id id})
+                  {:type :reject-party-request
+                   :requested-player-id requested-player-id}))))))
+
+(reg-pro
+  :party
+  (fn [opts]
+    (try
+      (process-party-request opts)
+      (catch Throwable e
+        (log/error e
+                   "Something went wrong when applying party request."
+                   (pr-str (select-keys opts [:id :data :ping]))
+                   (get @players (:id opts)))
+        party-request-failed))))
+
 (defn- reset-states []
   (reset! world {})
   (reset! players {})
@@ -839,15 +1025,18 @@
             (swap! players assoc-in [player-id :socket] socket)
             (s/on-closed socket
                          (fn []
+                           #_(remove-from-party {:id player-id
+                                  :players* @players
+                                  :exit? true})
                            (swap! players dissoc player-id)
                            (swap! world dissoc player-id)
+                           ;; TODO update for party members
                            (future
                              ;; TODO optimize in here, in between other players could attack etc. and update non existed player's state
                              ;; like check again after 5 secs or so...
                              (Thread/sleep 1000)
                              (swap! world dissoc player-id)
                              (notify-players-for-exit player-id)))))
-          ;; TODO register socket in here
           (s/consume
             (fn [payload]
               (try

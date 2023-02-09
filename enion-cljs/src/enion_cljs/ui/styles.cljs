@@ -111,7 +111,7 @@
    :flex-direction :row
    :justify-content :end})
 
-(defattrs party-action-button []
+(defclass party-action-button []
   {:composes [(button)]
    :font-size "14px"
    :opacity 0.75
@@ -123,7 +123,7 @@
    :text-align :center
    :border (when selected? "2px solid rgb(15 188 3)")
    :width "145px"
-   :height "50px"
+   :height "35px"
    :margin-right "10px"
    :pointer-events :all})
 
@@ -406,3 +406,43 @@
     :height "100%"
     :width "100%"
     :z-index 9}])
+
+(defattrs party-request-modal []
+  {:position :absolute
+   :top "50%"
+   :left "50%"
+   :transform "translate(-50%, -50%)"
+   :color "white"
+   :border-radius "5px"
+   :background-color "#10131dcc"
+   :padding "20px"
+   :border "1px solid black"
+   :z-index 1
+   :font-size "20px"})
+
+(defattrs party-request-buttons-container []
+  {:display :flex
+   :justify-content :space-between
+   :margin-top "20px"})
+
+(defclass party-request-buttons []
+  {:composes [(button)]
+   :width "100px"
+   :height "40px"
+   :font-size "18px"
+   :border-radius "5px"})
+
+(defclass party-request-accept-button []
+  {:composes [(party-request-buttons)]}
+  [:&:hover {:color "rgb(15 188 3) !important"
+             :border "2px solid rgb(15 188 3)"}])
+
+(defclass party-request-reject-button []
+  {:composes [(party-request-buttons)]}
+  [:&:hover {:color "#b62c2b !important"
+             :border "2px solid #b62c2b"}])
+
+(defattrs party-request-count-down []
+  {:text-align :center
+   :font-size "20px"
+   :margin-top "10px"})

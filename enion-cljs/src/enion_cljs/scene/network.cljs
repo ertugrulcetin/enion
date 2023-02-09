@@ -48,6 +48,80 @@
   (dlog "player left")
   (-> (:player-exit params) st/destroy-player))
 
+(defonce party-member-ids (volatile! []))
+
+(defmulti party-response #(-> % :party :type))
+
+(defmethod dispatch-pro-response :party [params]
+  (dlog "party" params)
+  (if-let [error (-> params :party :error)]
+    (fire :ui-send-msg (hash-map error true))
+    (party-response params)))
+
+(defmethod party-response :party-request [params]
+  (let [player-id (-> params :party :player-id)]
+    (fire :ui-show-party-request-modal
+          {:username (st/get-username player-id)
+           :on-accept #(dispatch-pro :party {:type :accept-party-request
+                                             :requested-player-id player-id})
+           :on-reject #(dispatch-pro :party {:type :reject-party-request
+                                             :requested-player-id player-id})})))
+
+(defn- register-party-members [party-member-ids*]
+  (reduce (fn [acc id]
+            (let [player (if (= id current-player-id)
+                           st/player
+                           (st/get-other-player id))]
+              (assoc acc id {:username (j/get player :username)
+                             :health (j/get player :health)
+                             :total-health (j/get player :total-health)
+                             :order (.indexOf party-member-ids* id)})))
+          {} party-member-ids*))
+
+(defn- update-username-text-color [party-member-ids*]
+  (doseq [id party-member-ids*
+          :let [template-entity (if (= id current-player-id)
+                                  (j/get st/player :template-entity)
+                                  (j/get (st/get-other-player id) :template-entity))
+                username-text-entity (pc/find-by-name template-entity "char_name")]
+          :when username-text-entity]
+    (j/assoc-in! username-text-entity [:element :color] st/username-party-color)))
+
+(defmethod party-response :joined-party [params]
+  (let [player-id (-> params :party :player-id)]
+    (if (empty? @party-member-ids)
+      (vswap! party-member-ids conj current-player-id player-id)
+      (vswap! party-member-ids conj player-id))
+    (update-username-text-color @party-member-ids)
+    (fire :register-party-members (register-party-members @party-member-ids))))
+
+(let [no-selected-player-msg {:no-selected-player true}]
+  (on :add-to-party (fn []
+                      (if-let [selected-player-id (st/get-selected-player-id)]
+                        (dispatch-pro :party {:type :add-to-party
+                                              :selected-player-id (js/parseInt selected-player-id)})
+                        (fire :ui-send-msg no-selected-player-msg)))))
+
+(defmethod party-response :add-to-party [params]
+  (let [username (-> params :party :selected-player-id st/get-username)]
+    (fire :ui-send-msg {:party-requested-user username})))
+
+(defmethod party-response :accept-party-request [params]
+  (let [party-member-ids* (-> params :party :party-members-ids vec)]
+    (vreset! party-member-ids party-member-ids*)
+    (update-username-text-color party-member-ids*)
+    (fire :register-party-members (register-party-members party-member-ids*))))
+
+(defmethod party-response :reject-party-request [params])
+
+(defmethod party-response :party-request-rejected [params]
+  (fire :ui-send-msg {:party-request-rejected (-> params :party :player-id st/get-username)}))
+
+(comment
+  (dispatch-pro :party {:type :remove-from-party
+                        :selected-player-id 10})
+  )
+
 (defn- process-world-snapshot-for-player [state]
   (let [health (:health state)
         mana (:mana state)]
@@ -164,7 +238,10 @@
     ;; TODO when tab is not focused, send that data to server and server makes the state idle for this player to other players
     (process-world-snapshot (dissoc ws current-player-id))
     (process-effects effects)
-    (process-attack-ranges attack-ranges)))
+    (process-attack-ranges attack-ranges)
+    (when-let [ids (seq @party-member-ids)]
+      (fire :update-party-member-healths (reduce (fn [acc id]
+                                                   (assoc acc id (get-in ws [id :health]))) {} ids)))))
 
 (defn send-states-to-server []
   (if-let [id @send-state-interval-id]

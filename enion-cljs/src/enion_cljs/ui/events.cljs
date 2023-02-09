@@ -198,3 +198,32 @@
   ::block-slow-down-skill
   (fn [db [_ blocked?]]
     (assoc-in db [:player :slow-down-blocked?] blocked?)))
+
+(reg-event-db
+  ::show-party-request-modal
+  (fn [db [_ {:keys [username on-accept on-reject]}]]
+    (assoc db :party-request-modal {:open? true
+                                    :username username
+                                    :on-accept on-accept
+                                    :on-reject on-reject})))
+
+(reg-event-db
+  ::register-party-members
+  (fn [db [_ members]]
+    (assoc-in db [:party :members] members)))
+
+(reg-event-db
+  ::add-party-member
+  (fn [db [_ member]]
+    (update-in db [:party :members] (fnil conj []) member)))
+
+(reg-event-db
+  ::update-party-member-healths
+  (fn [db [_ healths]]
+    (reduce-kv (fn [db id health]
+                 (assoc-in db [:party :members id :health] health)) db healths)))
+
+(reg-event-db
+  ::close-part-request-modal
+  (fn [db]
+    (assoc-in db [:party-request-modal :open?] false)))

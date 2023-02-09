@@ -29,6 +29,10 @@
 (defonce other-players #js {})
 (defonce settings #js {})
 
+(def username-color (pc/color 2 2 2))
+(def username-party-color (pc/color 2 2 0))
+(def username-enemy-color (pc/color 2 0 0))
+
 (defn get-player-id []
   (j/get player :id))
 
@@ -46,6 +50,9 @@
 
 (defn get-other-player-entity [id]
   (j/get-in other-players [id :entity]))
+
+(defn get-username [player-id]
+  (-> player-id get-other-player (j/get :username)))
 
 (defn destroy-player [player-id]
   (when-let [entity (get-other-player-entity player-id)]

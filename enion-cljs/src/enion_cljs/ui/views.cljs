@@ -96,8 +96,9 @@
    [:span (styles/skill-number) (inc index)]
    (when-not (= :none skill)
      [:div (styles/childs-overlayed)
-      [:img {:class (styles/skill-img @(subscribe [::subs/blocked-skill? skill])
-                                      @(subscribe [::subs/not-enough-mana? skill]))
+      [:img {:class (styles/skill-img
+                      (or @(subscribe [::subs/blocked-skill? skill]) @(subscribe [::subs/died?]))
+                      @(subscribe [::subs/not-enough-mana? skill]))
              :src (skill->img skill)}]
       (when @(subscribe [::subs/cooldown-in-progress? skill])
         [cooldown skill])])])
@@ -125,22 +126,16 @@
    [hp-bar]
    [mp-bar]])
 
-(defn- party-member-hp-bar []
-  [:div (styles/party-member-hp-bar)
-   [:div (styles/party-member-hp-hit 100)]
-   [:div (styles/party-member-hp 100)]])
+(defn- party-member-hp-bar [health total-health]
+  (let [health-perc (/ (* 100 health) total-health)]
+    [:div (styles/party-member-hp-bar)
+     [:div (styles/party-member-hp-hit health-perc)]
+     [:div (styles/party-member-hp health-perc)]]))
 
-(defn- party-member-mp-bar []
-  [:div (styles/party-member-mp-bar)
-   [:div (styles/party-member-mp-used 100)]
-   [:div (styles/party-member-mp 100)]])
-
-(defn- party-member-hp-mp-bars [username]
+(defn- party-member-hp-mp-bars [username health total-health]
   [:div (styles/party-member-hp-mp-container false)
-   [party-member-hp-bar]
-   [party-member-mp-bar]
-   [:span (styles/party-member-username)
-    username]])
+   [party-member-hp-bar health total-health]
+   [:span (styles/party-member-username) username]])
 
 (defn- skill-bar []
   [:div (styles/skill-bar)
@@ -240,13 +235,17 @@
     (:hit message) "hit"
     (:bp message) "bp"
     (:skill message) "skill"
+    (:party-requested-user message) "skill"
+    (:party-request-rejected message) "skill"
     (:heal message) "hp-recover"
     (:hp message) "hp-recover"
     (:cure message) "hp-recover"
     (:mp message) "mp-recover"
     (:skill-failed message) "skill-failed"
     (:too-far message) "skill-failed"
-    (:not-enough-mana message) "skill-failed"))
+    (:not-enough-mana message) "skill-failed"
+    (:party-request-failed message) "skill-failed"
+    (:no-selected-player message) "skill-failed"))
 
 (let [hp-message (-> "hpPotion" common.skills/skills :hp (str " HP recovered"))
       mp-message (-> "mpPotion" common.skills/skills :mp (str " MP recovered"))
@@ -264,7 +263,11 @@
       (:mp message) mp-message
       (:cure message) "Toxic effect removed"
       (:defense-break message) "Infected with Toxic Spores"
-      (:not-enough-mana message) "Not enough mana!")))
+      (:not-enough-mana message) "Not enough mana!"
+      (:party-request-failed message) "Processing party request failed"
+      (:no-selected-player message) "No player selected"
+      (:party-requested-user message) (str "You invited " (:party-requested-user message) " to join your party")
+      (:party-request-rejected message) (str (:party-request-rejected message) " rejected your party request"))))
 
 (defn- info-message [message]
   [:<>
@@ -353,42 +356,77 @@
 ;; write a function that takes callback as an argument, and creates event listener on document with addEventListener
 ;; when user pressing and holding ESC key at the sametime for 0.5 seconds, call the callback
 #_(defn- on-esc-pressed-for-1-5-seconds [callback]
-  (let [esc-key-code 27
-        esc-key-pressed? (atom false)
-        esc-key-pressed-timeout-id (atom nil)]
-    (j/call js/document :addEventListener "keydown"
-            (fn [e]
-              (when (= esc-key-code (.-keyCode e))
-                (reset! esc-key-pressed? true)
-                (reset! esc-key-pressed-timeout-id
-                        (js/setTimeout
-                         (fn []
-                           (when @esc-key-pressed?
-                             (callback)
-                             (reset! esc-key-pressed? false)))
-                         500)))))
-    (j/call js/document :addEventListener "keyup"
-            (fn [e]
-              (when (= esc-key-code (.-keyCode e))
-                (reset! esc-key-pressed? false)
-                (js/clearTimeout @esc-key-pressed-timeout-id))))))
+    (let [esc-key-code 27
+          esc-key-pressed? (atom false)
+          esc-key-pressed-timeout-id (atom nil)]
+      (j/call js/document :addEventListener "keydown"
+        (fn [e]
+          (when (= esc-key-code (.-keyCode e))
+            (reset! esc-key-pressed? true)
+            (reset! esc-key-pressed-timeout-id
+              (js/setTimeout
+                (fn []
+                  (when @esc-key-pressed?
+                    (callback)
+                    (reset! esc-key-pressed? false)))
+                500)))))
+      (j/call js/document :addEventListener "keyup"
+        (fn [e]
+          (when (= esc-key-code (.-keyCode e))
+            (reset! esc-key-pressed? false)
+            (js/clearTimeout @esc-key-pressed-timeout-id))))))
+
+(defn countdown []
+  (let [countdown-seconds (r/atom 10)
+        interval-id (atom nil)]
+    (r/create-class
+      {:reagent-render (fn []
+                         [:div (styles/party-request-count-down)
+                          [:p (str "Seconds remaining: " @countdown-seconds)]])
+       :component-did-mount (fn []
+                              (reset! interval-id (js/setInterval
+                                                    (fn []
+                                                      (if (> @countdown-seconds 0)
+                                                        (swap! countdown-seconds dec)
+                                                        (dispatch [::events/close-part-request-modal])))
+                                                    1000)))
+       :component-will-unmount #(js/clearInterval @interval-id)})))
 
 (comment
   (on-esc-pressed-for-1-5-seconds (fn []
-                                   (println "heyy"))))
+                                    (println "heyy"))))
+
+(defn party-request-modal []
+  (let [{:keys [open? username on-accept on-reject]} @(subscribe [::subs/party-request-modal])]
+    (when open?
+      [:div (styles/party-request-modal)
+       [:p (str "Do you want to join " username "'s party?")]
+       [countdown]
+       [:div (styles/party-request-buttons-container)
+        [:button
+         {:class (styles/party-request-accept-button)
+          :on-click #(do
+                       (on-accept)
+                       (dispatch [::events/close-part-request-modal]))}
+         "Accept"]
+        [:button
+         {:class (styles/party-request-reject-button)
+          :on-click #(do
+                       (on-reject)
+                       (dispatch [::events/close-part-request-modal]))}
+         "Reject"]]])))
 
 (defn- party-list []
   (when @(subscribe [::subs/party-list-open?])
     [:div (styles/party-list-container @(subscribe [::subs/minimap-open?]))
      [:div (styles/party-action-button-container)
-      [:button (styles/party-action-button)
+      [:button {:class (styles/party-action-button)
+                :on-click #(fire :add-to-party)}
        "Add to party"]]
      [:div
-      [party-member-hp-mp-bars "NeaTBuSTeR"]
-      [party-member-hp-mp-bars "xXSatirciXx"]
-      [party-member-hp-mp-bars "0000000"]
-      [party-member-hp-mp-bars "E_R_T_U_G_R_U_L"]
-      [party-member-hp-mp-bars "F9DEVIL"]]]))
+      (for [{:keys [username health total-health]} @(subscribe [::subs/party-members])]
+        ^{:key username}
+        [party-member-hp-mp-bars username health total-health])]]))
 
 (defn- on-mouse-down [e]
   (when (= (j/get e :button) 0)
@@ -435,7 +473,11 @@
        (on :ui-player-set-total-health-and-mana #(dispatch [::events/set-total-health-and-mana %]))
        (on :ui-cooldown #(dispatch-sync [::events/cooldown %]))
        (on :ui-cancel-skill #(dispatch-sync [::events/cancel-skill %]))
-       (on :ui-slow-down? #(dispatch-sync [::events/block-slow-down-skill %])))
+       (on :ui-slow-down? #(dispatch-sync [::events/block-slow-down-skill %]))
+       (on :ui-show-party-request-modal #(dispatch [::events/show-party-request-modal %]))
+       (on :register-party-members #(dispatch [::events/register-party-members %]))
+       (on :add-party-member #(dispatch [::events/add-party-member %]))
+       (on :update-party-member-healths #(dispatch [::events/update-party-member-healths %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -444,6 +486,7 @@
           [minimap])
         [party-list]
         [chat]
+        [party-request-modal]
         [info-box]
         [actions-section]
         [temp-skill-img]

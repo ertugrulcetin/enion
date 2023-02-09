@@ -15,8 +15,7 @@
               :open? true
               :active-input? false
               :type :all}
-   ;; TODO make them true
-   :minimap-open? false
-   :party-list-open? false
+   :minimap-open? true
+   :party-list-open? true
    :player {:skills []
             :skill-move nil}})

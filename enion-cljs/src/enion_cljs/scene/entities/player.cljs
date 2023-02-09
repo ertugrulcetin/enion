@@ -18,10 +18,6 @@
 (when dev?
   (defonce player-default player))
 
-(def username-color (pc/color 2 2 2))
-(def username-party-color (pc/color 2 2 0))
-(def username-enemy-color (pc/color 2 0 0))
-
 (def char-selection-distance-threshold 35)
 
 (defn- process-esc [e]
@@ -263,9 +259,9 @@
 (defn- create-username-text [{:keys [template-entity username race class other-player? enemy?]}]
   (let [username-text-entity (pc/clone (pc/find-by-name "char_name"))]
     (j/assoc-in! username-text-entity [:element :text] username)
-    (j/assoc-in! username-text-entity [:element :color] username-color)
+    (j/assoc-in! username-text-entity [:element :color] st/username-color)
     (when enemy?
-      (j/assoc-in! username-text-entity [:element :color] username-enemy-color))
+      (j/assoc-in! username-text-entity [:element :color] st/username-enemy-color))
     (j/assoc-in! username-text-entity [:element :outlineThickness] 1.5)
     (pc/add-child template-entity username-text-entity)
     (when (and (= race "orc")

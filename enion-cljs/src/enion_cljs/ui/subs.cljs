@@ -88,6 +88,12 @@
     (-> db :player :health)))
 
 (reg-sub
+  ::died?
+  :<- [::health]
+  (fn [health]
+    (= health 0)))
+
+(reg-sub
   ::total-health
   (fn [db]
     (-> db :player :total-health)))
@@ -106,3 +112,13 @@
   ::skill-description
   (fn [db]
     (some->> (:skill-description db) (get common.skills/skills) :description)))
+
+(reg-sub
+  ::party-members
+  (fn [db]
+    (->> db :party :members vals (sort-by :order))))
+
+(reg-sub
+  ::party-request-modal
+  (fn [db]
+    (:party-request-modal db)))
