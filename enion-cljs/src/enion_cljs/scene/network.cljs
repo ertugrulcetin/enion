@@ -350,6 +350,29 @@
                             (reset! open? false))})))
 
 (on :connect-to-world-state #(dispatch-pro :connect-to-world-state))
+(on :send-global-message #(dispatch-pro :send-global-message {:msg %}))
+(on :send-party-message #(dispatch-pro :send-party-message {:msg %}))
+
+(let [global-msg-error-msg {:type :all
+                            :msg "Too many messages sent. Try again after 1 sec."}]
+  (defmethod dispatch-pro-response :send-global-message [params]
+    (when (-> params :send-global-message :error)
+      (fire :ui-chat-error global-msg-error-msg))))
+
+(let [party-msg-error-msg {:type :party
+                           :msg "Too many messages sent. Try again after 1 sec."}]
+  (defmethod dispatch-pro-response :send-party-message [params]
+    (when (-> params :send-party-message :error)
+      (fire :ui-chat-error party-msg-error-msg))))
+
+(defmethod dispatch-pro-response :global-message [params]
+  (fire :add-global-message (:global-message params)))
+
+(defmethod dispatch-pro-response :party-message [params]
+  (fire :add-party-message (:party-message params)))
+
+(defmethod dispatch-pro-response :earned-bp [params]
+  (fire :ui-send-msg {:bp (:earned-bp params)}))
 
 (comment
   (fire :start-ws)

@@ -33,11 +33,7 @@
 (let [too-far-msg {:too-far true}]
   (defn throw-nova [e]
     (when (j/get player :positioning-nova?)
-      (let [result (some
-                     (fn [result]
-                       (when (= "terrain" (j/get-in result [:entity :name]))
-                         result))
-                     (pc/raycast-all-rigid-body e entity.camera/entity))
+      (let [result (st/get-closest-terrain-hit e)
             hit-entity-name (j/get-in result [:entity :name])
             nova-pos (j/get result :point)]
         (if (= "terrain" hit-entity-name)

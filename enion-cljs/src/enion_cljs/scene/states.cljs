@@ -219,38 +219,49 @@
       result)))
 
 (let [temp (pc/vec3)]
-  (defn show-nova-circle [e]
-    (when (j/get player :positioning-nova?)
-      ;; TODO raycast all and find terrain
-      (let [results (filter
-                      (fn [result]
-                        (when (= "terrain" (j/get-in result [:entity :name]))
-                          result))
-                      (pc/raycast-all-rigid-body e entity.camera/entity))
-            player-pos (pc/get-pos (get-player-entity))
-            total-results (count results)
-            result (cond
-                     (= 1 total-results) (first results)
-                     (> total-results 1) (first (sort-by
-                                                  (fn [result]
-                                                    (let [x (j/get-in result [:point :x])
-                                                          y (j/get-in result [:point :y])
-                                                          z (j/get-in result [:point :z])]
-                                                      (pc/setv temp x y z)
-                                                      (pc/distance player-pos temp)))
-                                                  results))
-                     :else nil)]
-        (when result
-          (let [x (j/get-in result [:point :x])
-                y (j/get-in result [:point :y])
-                z (j/get-in result [:point :z])]
-            (pc/set-nova-circle-pos player x y z)))))))
+  (defn get-closest-terrain-hit [e]
+    (let [results (filter
+                    (fn [result]
+                      (when (= "terrain" (j/get-in result [:entity :name]))
+                        result))
+                    (pc/raycast-all-rigid-body e entity.camera/entity))
+          player-pos (pc/get-pos (get-player-entity))
+          total-results (count results)]
+      (cond
+        (= 1 total-results) (first results)
+        (> total-results 1) (first (sort-by
+                                     (fn [result]
+                                       (let [x (j/get-in result [:point :x])
+                                             y (j/get-in result [:point :y])
+                                             z (j/get-in result [:point :z])]
+                                         (pc/setv temp x y z)
+                                         (pc/distance player-pos temp)))
+                                     results))
+        :else nil))))
+
+(defn show-nova-circle [e]
+  (when (j/get player :positioning-nova?)
+    (let [result (get-closest-terrain-hit e)]
+      (when result
+        (let [x (j/get-in result [:point :x])
+              y (j/get-in result [:point :y])
+              z (j/get-in result [:point :z])]
+          (pc/set-nova-circle-pos player x y z))))))
 
 (defn pressing-wasd-or-has-target? []
   (or (k/pressing-wasd?) (j/get player :target-pos-available?)))
 
+(defn chat-open? []
+  (j/get player :chat-open?))
+
+(defn chat-closed? []
+  (not (j/get player :chat-open?)))
+
 (defn process-running []
-  (if (pressing-wasd-or-has-target?)
+  (if (or (and (chat-closed?) (pressing-wasd-or-has-target?))
+          (and (chat-open?)
+               (j/get player :target-pos-available?)
+               (pressing-wasd-or-has-target?)))
     (pc/set-anim-boolean (get-model-entity) "run" true)
     (pc/set-anim-boolean (get-model-entity) "run" false)))
 

@@ -1,6 +1,7 @@
 (ns enion-cljs.ui.events
   (:require
     [applied-science.js-interop :as j]
+    [clojure.string :as str]
     [enion-cljs.common :as common :refer [fire]]
     [enion-cljs.ui.db :as db]
     [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx]]))
@@ -24,6 +25,11 @@
                milli-secs)))))
 
 (reg-fx
+  ::clear-timeout
+  (fn [id]
+    (some-> id js/clearTimeout)))
+
+(reg-fx
   ::clear-interval
   (fn [id]
     (some-> id js/clearInterval)))
@@ -45,13 +51,18 @@
 
 (reg-event-db
   ::add-message-to-chat-all
-  (fn [db [_ msg]]
-    (update-in db [:chat-box :messages :all] conj msg)))
+  (fn [db [_ {:keys [username msg]}]]
+    (update-in db [:chat-box :messages :all] conj {:from username :text msg})))
 
 (reg-event-db
   ::add-message-to-chat-party
-  (fn [db [_ msg]]
-    (update-in db [:chat-box :messages :party] conj msg)))
+  (fn [db [_ {:keys [username msg]}]]
+    (update-in db [:chat-box :messages :party] conj {:from username :text msg})))
+
+(reg-event-db
+  ::add-chat-error-msg
+  (fn [db [_ {:keys [type msg]}]]
+    (update-in db [:chat-box :messages type] conj {:from "System" :text msg})))
 
 (reg-event-db
   ::toggle-box
@@ -74,15 +85,31 @@
     (assoc-in db [:chat-box :message] msg)))
 
 (reg-event-fx
+  ::close-chat
+  (fn [{:keys [db]}]
+    {:db (-> db
+             (assoc-in [:chat-box :active-input?] false)
+             (assoc-in [:chat-box :message] ""))
+     :fx [[::fire [:chat-open? false]]]}))
+
+(reg-event-fx
   ::send-message
   (fn [{:keys [db]}]
     (when (-> db :chat-box :open?)
       (let [input-open? (-> db :chat-box :active-input?)
-            msg (-> db :chat-box :message)]
-        ;; TODO implement network layer
+            msg (-> db :chat-box :message)
+            chat-type (or (-> db :chat-box :type) :all)]
         (cond
-          input-open? {:db (assoc-in db [:chat-box :active-input?] false)}
-          (not input-open?) {:db (assoc-in db [:chat-box :active-input?] true)})))))
+          input-open? {:db (-> db
+                               (assoc-in [:chat-box :active-input?] false)
+                               (assoc-in [:chat-box :message] ""))
+                       :fx [(when-not (str/blank? msg)
+                              (if (= chat-type :all)
+                                [::fire [:send-global-message msg]]
+                                [::fire [:send-party-message msg]]))
+                            [::fire [:chat-open? false]]]}
+          (not input-open?) {:db (assoc-in db [:chat-box :active-input?] true)
+                             :fx [[::fire [:chat-open? true]]]})))))
 
 (reg-event-db
   ::toggle-minimap
@@ -157,7 +184,7 @@
       (let [health (j/get player :health)
             total-health (j/get player :total-health)
             health (/ (* health 100) total-health)
-            player-id  (some-> player (j/get :id) js/parseInt)
+            player-id (some-> player (j/get :id) js/parseInt)
             party-member-id (and (get-in db [:party :members player-id]) player-id)]
         (-> db
             (assoc-in [:selected-player :username] (j/get player :username))
@@ -167,11 +194,6 @@
       (-> db
           (assoc :selected-player nil)
           (assoc-in [:party :selected-member] nil)))))
-
-(reg-fx
-  ::clear-timeout
-  (fn [id]
-    (js/clearTimeout id)))
 
 (reg-event-fx
   ::cancel-skill

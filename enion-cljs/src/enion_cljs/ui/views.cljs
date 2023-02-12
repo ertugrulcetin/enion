@@ -155,7 +155,6 @@
    [hp-mp-bars]
    [skill-bar]])
 
-;; TODO chat acikken karakter hareket edememeli
 (defn- chat-message [msg]
   (let [party? (= :party @(subscribe [::subs/chat-type]))]
     [:div (when party? (styles/chat-part-message-box))
@@ -276,7 +275,8 @@
       (:removed-from-party message) "You've been removed from the party"
       (:member-removed-from-party message) (str (:member-removed-from-party message) " has been removed from the party")
       (:party-cancelled message) "The party has been cancelled"
-      (:member-exit-from-party message) (str (:member-exit-from-party message) " exit from the party"))))
+      (:member-exit-from-party message) (str (:member-exit-from-party message) " exit from the party")
+      (:bp message) (str "Earned " (:bp message) " Battle Points (BP)"))))
 
 (defn- info-message [message]
   [:<>
@@ -385,6 +385,8 @@
             (reset! esc-key-pressed? false)
             (js/clearTimeout @esc-key-pressed-timeout-id))))))
 
+;; TODO component starts to countdown when the tab is focused, so it should be started when the action is taken
+;; so store the request time and countdown based on that
 (defn countdown []
   (let [countdown-seconds (r/atom 10)
         interval-id (atom nil)]
@@ -483,7 +485,9 @@
                                                  (let [code (j/get e :code)]
                                                    (cond
                                                      (= code "Enter")
-                                                     (dispatch [::events/send-message])
+                                                     (do
+                                                       (.preventDefault e)
+                                                       (dispatch [::events/send-message]))
 
                                                      (= code "KeyM")
                                                      (dispatch [::events/toggle-minimap])
@@ -492,7 +496,9 @@
                                                      (dispatch [::events/toggle-party-list])
 
                                                      (= code "Escape")
-                                                     (dispatch [::events/cancel-skill-move])))))
+                                                     (do
+                                                       (dispatch [::events/cancel-skill-move])
+                                                       (dispatch [::events/close-chat]))))))
        (on :ui-set-current-player-id #(dispatch [::events/set-current-player-id %]))
        (on :ui-set-as-party-leader #(dispatch [::events/set-as-party-leader %]))
        (on :init-skills #(dispatch [::events/init-skills %]))
@@ -507,7 +513,10 @@
        (on :ui-show-party-request-modal #(dispatch [::events/show-party-request-modal %]))
        (on :register-party-members #(dispatch [::events/register-party-members %]))
        (on :update-party-member-healths #(dispatch [::events/update-party-member-healths %]))
-       (on :cancel-party #(dispatch [::events/cancel-party])))
+       (on :cancel-party #(dispatch [::events/cancel-party]))
+       (on :add-global-message #(dispatch [::events/add-message-to-chat-all %]))
+       (on :add-party-message #(dispatch [::events/add-message-to-chat-party %]))
+       (on :ui-chat-error #(dispatch [::events/add-chat-error-msg %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

@@ -141,18 +141,17 @@
    :height :auto
    :bottom "45px"
    :z-index 15
-   :opacity 0.75})
+   :opacity 0.8})
 
 (defattrs info-box-wrapper []
   {:composes [(chat-wrapper)]
    :width "25%"
-   :right 0
+   :right "25px"
    :left :unset
    :bottom "10px"})
 
 (defattrs chat []
-  {:overflow :hidden
-   :width "100%"
+  {:width "100%"
    :border-radius "5px"
    :text-align :left
    :font-size "13px"
@@ -161,16 +160,12 @@
    :margin-right "10px"
    :right "0px"
    :bottom "50px"
-   :overflow-y :auto
    :padding "10px"
    ;; :height "180px"
    :pointer-events :all
    :left "10px"
    ;; For Firefox
-   :-ms-overflow-style :none
-   :scrollbar-width :none
-   :z-index 10}
-  ["&::-webkit-scrollbar" {:display :none}])
+   :z-index 10})
 
 (defattrs info-box []
   {:composes [(chat)]
@@ -178,15 +173,25 @@
    :bottom "20px"
    :height "150px"})
 
+(def scroll-bar
+  ["&::-webkit-scrollbar" {:width "10px"
+                           :background-color "rgba(33, 33, 33, 0.5)"
+                           :border-radius "5px"}])
+
+(def scroll-bar-thumb
+  ["&::-webkit-scrollbar-thumb" {:background-color "black"
+                                 :border-radius "5px"}])
+
 (defclass message-box []
   {:width "100%"
    :height "120px"
    :line-height "1.65em"
-   :overflow-y :auto
    ;; For Firefox
-   :-ms-overflow-style :none
-   :scrollbar-width :none}
-  ["&::-webkit-scrollbar" {:display :none}]
+   :overflow-y :auto
+   :scrollbar-width :none
+   :-ms-overflow-style :none}
+  scroll-bar
+  scroll-bar-thumb
   [:strong {:padding "2px"
             :background-color "#10131dcc"
             :border-radius "3px"}]
@@ -199,15 +204,16 @@
 (defclass info-message-box []
   {:composes [(message-box)]
    :height "150px"}
+  scroll-bar
+  scroll-bar-thumb
   [:span {:margin-left :unset}
    [:&.damage {:color "#ff0000ff"}]
    [:&.hit {:color "#e1dedeff"}]
-   [:&.bp {:color "#5f5fcbff"}]
+   [:&.bp {:color "#9696e8"}]
    [:&.skill {:color "#e1dedeff"}]
    [:&.hp-recover {:color "#53b226ff"}]
    [:&.mp-recover {:color "#2691b2ff"}]
-   [:&.skill-failed {:color "#ffc301c8"}]]
-  ["&::-webkit-scrollbar" {:display :block}])
+   [:&.skill-failed {:color "#ffc301c8"}]])
 
 (defattrs chat-part-message-box []
   {:color "rgb(15 188 3)"})

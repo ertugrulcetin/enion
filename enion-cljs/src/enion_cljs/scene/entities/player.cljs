@@ -149,11 +149,11 @@
     (skills/register-key->skills (common/skill-slot-order-by-class (keyword class)))
     (pc/on-keyboard :EVENT_KEYDOWN
                     (fn [e]
-                      ;; TODO chat acikken burayi disable edelim
-                      (process-esc e)
-                      (process-skills e)
-                      (select-closest-enemy e)
-                      (look-at-selected-player e)))
+                      (when (st/chat-closed?)
+                        (process-esc e)
+                        (process-skills e)
+                        (select-closest-enemy e)
+                        (look-at-selected-player e))))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
                       (st/process-running)))
@@ -489,7 +489,7 @@
             (if (>= (pc/distance target pos) 0.2)
               (pc/apply-force player-entity (j/get dir :x) 0 (j/get dir :z))
               (st/cancel-target-pos)))
-          (do
+          (when (st/chat-closed?)
             (pc/setv world-dir 0 0 0)
             (j/assoc! player :x 0 :z 0 :target-y (j/get-in entity.camera/state [:eulers :x]))
             (when (pc/pressed? :KEY_W)
@@ -520,6 +520,9 @@
               (pc/set-loc-euler model-entity 0 (j/get player :target-y) 0)
               (pc/set-anim-boolean model-entity "run" true))))
         (play-running-sound dt model-entity)))))
+
+(on :chat-open? (fn [open?]
+                  (j/assoc! player :chat-open? open?)))
 
 (defn enable-effect [name]
   (j/assoc! (pc/find-by-name (st/get-player-entity) name) :enabled true))
