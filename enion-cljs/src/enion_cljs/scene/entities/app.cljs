@@ -30,6 +30,7 @@
   (set! pc/linear js/pc.Linear)
   (set! pc/expo-in js/pc.ExponentialIn))
 
+;;TODO when unfocus - another tab etc, then show count down from 5 seconds and block everything...
 (defn init [init-ui]
   (pc/create-script :app
     {:init (fnt

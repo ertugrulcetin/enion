@@ -2,7 +2,7 @@
   (:require
     [applied-science.js-interop :as j]
     [clojure.data :as data]
-    [enion-cljs.common :refer [fire]]
+    [enion-cljs.common :refer [fire on]]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]))
@@ -64,21 +64,37 @@
   (doseq [id (js/Object.keys other-players)]
     (destroy-player id)))
 
-;; TODO when other player's health changes (network tick), in there we will trigger :ui-selected-player
-(def temp-selected-player #js {})
+(defonce temp-selected-player #js {})
+(defonce prev-selected-player #js {})
 
-(defn set-selected-player [player-id]
-  (j/assoc! player :selected-player-id player-id)
-  (if-let [selected-player (get-other-player player-id)]
-    (let [username (j/get selected-player :username)
-          health (j/get selected-player :health)
-          enemy? (j/get selected-player :enemy?)]
-      (j/assoc! temp-selected-player
-                :username username
-                :health health
-                :enemy? enemy?)
-      (fire :ui-selected-player temp-selected-player))
-    (fire :ui-selected-player nil)))
+;; TODO when other player's health changes (network tick), in there we will trigger :ui-selected-player
+(let [selected-player-cancelled? (volatile! nil)]
+  (defn set-selected-player [player-id]
+    (j/assoc! player :selected-player-id player-id)
+    (if-let [selected-player (get-other-player player-id)]
+      (let [username (j/get selected-player :username)
+            health (j/get selected-player :health)
+            total-health (j/get selected-player :total-health)
+            enemy? (j/get selected-player :enemy?)]
+        (j/assoc! temp-selected-player
+                  :id player-id
+                  :username username
+                  :health health
+                  :total-health total-health
+                  :enemy? enemy?)
+        (when (or (not= (j/get prev-selected-player :id) player-id)
+                  (not= (j/get prev-selected-player :health) health))
+          (fire :ui-selected-player temp-selected-player))
+        (vreset! selected-player-cancelled? false)
+        (j/assoc! prev-selected-player
+                  :id player-id
+                  :health health))
+      (do
+        (when-not @selected-player-cancelled?
+          (fire :ui-selected-player nil))
+        (vreset! selected-player-cancelled? true)))))
+
+(on :select-party-member set-selected-player)
 
 (defn cancel-selected-player []
   (pc/set-selected-player-position)
@@ -242,3 +258,13 @@
   (j/assoc! player :target-pos-available? false)
   (pc/set-locater-target)
   (process-running))
+
+(defn look-at-selected-player []
+  (when-let [selected-player-id (get-selected-player-id)]
+    (let [model-entity (get-model-entity)
+          char-pos (pc/get-pos model-entity)
+          selected-player (get-other-player-entity selected-player-id)
+          selected-player-pos (pc/get-pos selected-player)
+          x (j/get selected-player-pos :x)
+          z (j/get selected-player-pos :z)]
+      (pc/look-at model-entity x (j/get char-pos :y) z true))))

@@ -24,6 +24,11 @@
                milli-secs)))))
 
 (reg-fx
+  ::clear-interval
+  (fn [id]
+    (some-> id js/clearInterval)))
+
+(reg-fx
   ::fire
   (fn [[event x]]
     (fire event x)))
@@ -151,12 +156,17 @@
     (if player
       (let [health (j/get player :health)
             total-health (j/get player :total-health)
-            health (/ (* health 100) total-health)]
+            health (/ (* health 100) total-health)
+            player-id  (some-> player (j/get :id) js/parseInt)
+            party-member-id (and (get-in db [:party :members player-id]) player-id)]
         (-> db
             (assoc-in [:selected-player :username] (j/get player :username))
             (assoc-in [:selected-player :health] health)
-            (assoc-in [:selected-player :enemy?] (j/get player :enemy?))))
-      (assoc db :selected-player nil))))
+            (assoc-in [:selected-player :enemy?] (j/get player :enemy?))
+            (assoc-in [:party :selected-member] party-member-id)))
+      (-> db
+          (assoc :selected-player nil)
+          (assoc-in [:party :selected-member] nil)))))
 
 (reg-fx
   ::clear-timeout
@@ -199,23 +209,19 @@
   (fn [db [_ blocked?]]
     (assoc-in db [:player :slow-down-blocked?] blocked?)))
 
-(reg-event-db
+(reg-event-fx
   ::show-party-request-modal
-  (fn [db [_ {:keys [username on-accept on-reject]}]]
-    (assoc db :party-request-modal {:open? true
-                                    :username username
-                                    :on-accept on-accept
-                                    :on-reject on-reject})))
+  (fn [{:keys [db]} [_ {:keys [username on-accept on-reject]}]]
+    {:db (assoc db :party-request-modal {:open? true
+                                         :username username
+                                         :on-accept on-accept
+                                         :on-reject on-reject})
+     ::clear-interval (-> db :party-request-modal :countdown-interval-id)}))
 
 (reg-event-db
   ::register-party-members
   (fn [db [_ members]]
     (assoc-in db [:party :members] members)))
-
-(reg-event-db
-  ::add-party-member
-  (fn [db [_ member]]
-    (update-in db [:party :members] (fnil conj []) member)))
 
 (reg-event-db
   ::update-party-member-healths
@@ -232,3 +238,23 @@
   ::close-part-request-modal
   (fn [db]
     (assoc-in db [:party-request-modal :open?] false)))
+
+(reg-event-db
+  ::select-party-member
+  (fn [db [_ id]]
+    (assoc-in db [:party :selected-member] id)))
+
+(reg-event-db
+  ::set-current-player-id
+  (fn [db [_ id]]
+    (assoc-in db [:player :id] id)))
+
+(reg-event-db
+  ::set-as-party-leader
+  (fn [db]
+    (assoc-in db [:party :leader?] true)))
+
+(reg-event-db
+  ::set-party-request-countdown-interval-id
+  (fn [db [_ id]]
+    (assoc-in db [:party-request-modal :countdown-interval-id] id)))

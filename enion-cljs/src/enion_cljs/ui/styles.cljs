@@ -95,66 +95,6 @@
    :padding-left "4px"
    :user-select :none})
 
-(def party-member-hp-mp-height "12px")
-
-(defattrs party-list-container [minimap-open?]
-  {:position :sticky
-   :width "200px"
-   :height "100%"
-   :margin-left :auto
-   :z-index 3
-   :float :right
-   :margin-top (if minimap-open? "170px" "10px")})
-
-(defattrs party-action-button-container []
-  {:display :flex
-   :flex-direction :row
-   :justify-content :end})
-
-(defclass party-action-button []
-  {:composes [(button)]
-   :font-size "14px"
-   :opacity 0.75
-   :margin-bottom "5px"
-   :margin-right "10px"})
-
-(defattrs party-member-hp-mp-container [selected?]
-  {:composes [(hp-mp-container)]
-   :text-align :center
-   :border (when selected? "2px solid rgb(15 188 3)")
-   :width "145px"
-   :height "35px"
-   :margin-right "10px"
-   :pointer-events :all})
-
-(defattrs party-member-hp-bar []
-  {:composes [(hp-bar)]
-   :height party-member-hp-mp-height})
-
-(defattrs party-member-mp-bar []
-  {:composes [(party-member-hp-bar)]
-   :margin-top "4px"})
-
-(defattrs party-member-hp [health]
-  {:composes [(hp health)]
-   :height party-member-hp-mp-height})
-
-(defattrs party-member-mp [mana]
-  {:composes [(party-member-hp mana)]
-   :background "linear-gradient(0deg, #2a4fdf 0%, #1b27bd 49%, #2a4fdf 50%)"})
-
-(defattrs party-member-hp-hit [health]
-  {:composes [(hp-hit health)]
-   :height party-member-hp-mp-height})
-
-(defattrs party-member-mp-used [mana]
-  {:composes [(party-member-hp-hit mana)]
-   :background "#2a4fdf94"})
-
-(defattrs party-member-username []
-  {:color "white"
-   :font-size "13px"})
-
 (defattrs skill-bar []
   {:background-color "#10131ca3"
    :padding "2px"
@@ -446,3 +386,56 @@
   {:text-align :center
    :font-size "20px"
    :margin-top "10px"})
+
+(def party-member-hp-mp-height "12px")
+
+(defattrs party-list-container [minimap-open?]
+  {:position :sticky
+   :width "200px"
+   :height "100%"
+   :margin-left :auto
+   :z-index 3
+   :float :right
+   :margin-top (if minimap-open? "170px" "10px")})
+
+(defattrs party-action-button-container []
+  {:display :flex
+   :flex-direction :row
+   :justify-content :end})
+
+(defclass party-action-button []
+  {:composes [(button)]
+   :font-size "14px"
+   :opacity 0.75
+   :margin-bottom "5px"
+   :margin-right "10px"})
+
+(defclass party-member-hp-mp-container [selected?]
+  {:composes [(hp-mp-container)]
+   :text-align :center
+   :border (if selected? "2px solid rgb(15 188 3)" "2px solid transparent")
+   :width "145px"
+   :height "35px"
+   :margin-right "10px"
+   :pointer-events :all}
+  [:&:hover {:border "2px solid rgb(15 188 3)"}])
+
+(defattrs party-member-hp-bar []
+  {:composes [(hp-bar)]
+   :height party-member-hp-mp-height})
+
+(defattrs party-member-mp-bar []
+  {:composes [(party-member-hp-bar)]
+   :margin-top "4px"})
+
+(defattrs party-member-hp [health]
+  {:composes [(hp health)]
+   :height party-member-hp-mp-height})
+
+(defattrs party-member-hp-hit [health]
+  {:composes [(hp-hit health)]
+   :height party-member-hp-mp-height})
+
+(defattrs party-member-username []
+  {:color "white"
+   :font-size "13px"})

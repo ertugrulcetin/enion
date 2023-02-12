@@ -38,7 +38,8 @@
 
 (defmethod dispatch-pro-response :init [params]
   (fire :init (:init params))
-  (set! current-player-id (-> params :init :id)))
+  (set! current-player-id (-> params :init :id))
+  (fire :ui-set-current-player-id current-player-id))
 
 (defmethod dispatch-pro-response :player-join [params]
   (dlog "new join" (:player-join params))
@@ -72,7 +73,8 @@
             (let [player (if (= id current-player-id)
                            st/player
                            (st/get-other-player id))]
-              (assoc acc id {:username (j/get player :username)
+              (assoc acc id {:id id
+                             :username (j/get player :username)
                              :health (j/get player :health)
                              :total-health (j/get player :total-health)
                              :order (.indexOf party-member-ids* id)})))
@@ -83,26 +85,82 @@
           :let [template-entity (if (= id current-player-id)
                                   (j/get st/player :template-entity)
                                   (j/get (st/get-other-player id) :template-entity))
-                username-text-entity (pc/find-by-name template-entity "char_name")]
+                username-text-entity (some-> template-entity (pc/find-by-name "char_name"))]
           :when username-text-entity]
     (j/assoc-in! username-text-entity [:element :color] (if in-the-party?
                                                           st/username-party-color
                                                           st/username-color))))
 
-(defmethod party-response :joined-party [params]
+(defmethod party-response :accepted-party-request [params]
   (let [player-id (-> params :party :player-id)]
-    (if (empty? @party-member-ids)
-      (vswap! party-member-ids conj current-player-id player-id)
-      (vswap! party-member-ids conj player-id))
+    (when (empty? @party-member-ids)
+      (vswap! party-member-ids conj current-player-id))
+    (vswap! party-member-ids conj player-id)
+    (fire :ui-set-as-party-leader)
     (update-username-text-color @party-member-ids true)
+    (fire :ui-send-msg {:joined-party (st/get-username player-id)})
     (fire :register-party-members (register-party-members @party-member-ids))))
 
+(defmethod party-response :joined-party [params]
+  (let [player-id (-> params :party :player-id)]
+    (vswap! party-member-ids conj player-id)
+    (update-username-text-color @party-member-ids true)
+    (fire :ui-send-msg {:joined-party (st/get-username player-id)})
+    (fire :register-party-members (register-party-members @party-member-ids))))
+
+(def party-cancelled-msg {:party-cancelled true})
+
+(defn- cancel-party []
+  (update-username-text-color @party-member-ids false)
+  (vreset! party-member-ids [])
+  (fire :cancel-party)
+  (fire :ui-send-msg party-cancelled-msg))
+
+(defmethod party-response :exit-from-party [_]
+  (cancel-party))
+
+(defmethod party-response :remove-from-party [params]
+  (let [player-id (-> params :party :player-id)
+        party-cancelled? (-> params :party :party-cancelled?)
+        this-player? (= current-player-id player-id)]
+    (if (or this-player? party-cancelled?)
+      (cancel-party)
+      (do
+        (vswap! party-member-ids (fn [ids] (vec (remove #(= player-id %) ids))))
+        (update-username-text-color [player-id] false)
+        (fire :register-party-members (register-party-members @party-member-ids))
+        (fire :ui-send-msg {:member-removed-from-party (st/get-username player-id)})))))
+
+(defmethod party-response :party-cancelled [_]
+  (cancel-party))
+
+(defmethod party-response :member-exit-from-party [params]
+  (let [player-id (-> params :party :player-id)
+        username (-> params :party :username)]
+    (if (= 2 (count @party-member-ids))
+      (cancel-party)
+      (do
+        (vswap! party-member-ids (fn [ids] (vec (remove #(= player-id %) ids))))
+        (fire :register-party-members (register-party-members @party-member-ids))
+        (update-username-text-color [player-id] false)
+        (fire :ui-send-msg {:member-exit-from-party username})))))
+
 (let [no-selected-player-msg {:no-selected-player true}]
-  (on :add-to-party (fn []
-                      (if-let [selected-player-id (st/get-selected-player-id)]
-                        (dispatch-pro :party {:type :add-to-party
-                                              :selected-player-id (js/parseInt selected-player-id)})
-                        (fire :ui-send-msg no-selected-player-msg)))))
+  (on :add-to-party
+      (fn []
+        (if-let [selected-player-id (st/get-selected-player-id)]
+          (dispatch-pro :party {:type :add-to-party
+                                :selected-player-id (js/parseInt selected-player-id)})
+          (fire :ui-send-msg no-selected-player-msg)))))
+
+(on :exit-from-party
+    (fn []
+      (dispatch-pro :party {:type :exit-from-party})))
+
+(on :remove-from-party
+    (fn [selected-player-id]
+      (dispatch-pro :party {:type :remove-from-party
+                            :selected-player-id (js/parseInt selected-player-id)})))
 
 (defmethod party-response :add-to-party [params]
   (let [username (-> params :party :selected-player-id st/get-username)]
@@ -124,13 +182,8 @@
 (defmethod party-response :party-request-rejected [params]
   (fire :ui-send-msg {:party-request-rejected (-> params :party :player-id st/get-username)}))
 
-(defmethod party-response :party-cancelled [params]
-  (update-username-text-color @party-member-ids false)
-  (vreset! party-member-ids [])
-  (fire :cancel-party))
-
 (comment
-  (dispatch-pro :party {:type :remove-from-party
+  (dispatch-pro :party {:type :exit-from-party
                         :selected-player-id 10})
   )
 

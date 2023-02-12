@@ -173,7 +173,8 @@
           (pc/set-nova-circle-pos)
           (j/assoc-in! player [:skill->selected-player-id "attackSingle"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackSingle" true)
-          (skills.effects/apply-effect-fire-hands player))
+          (skills.effects/apply-effect-fire-hands player)
+          (st/look-at-selected-player))
 
         (teleport? e active-state selected-player-id)
         (do
@@ -191,7 +192,8 @@
         (skills/attack-r? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
-          (pc/set-anim-boolean model-entity "attackR" true))
+          (pc/set-anim-boolean model-entity "attackR" true)
+          (st/look-at-selected-player))
 
         (skills/fleet-foot? e)
         (dispatch-pro :skill {:skill "fleetFoot"})

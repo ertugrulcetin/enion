@@ -224,7 +224,8 @@
         (skills/attack-r? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
-          (pc/set-anim-boolean model-entity "attackR" true))
+          (pc/set-anim-boolean model-entity "attackR" true)
+          (st/look-at-selected-player))
 
         (phantom-vision? e)
         (dispatch-pro :skill {:skill "phantomVision"})

@@ -101,19 +101,22 @@
         (let [selected-player-id (get-selected-player-id-for-priest-skill selected-player-id)]
           (j/assoc-in! player [:skill->selected-player-id "heal"] selected-player-id)
           (pc/set-anim-boolean model-entity "heal" true)
-          (skills.effects/apply-effect-heal-particles player))
+          (skills.effects/apply-effect-heal-particles player)
+          (st/look-at-selected-player))
 
         (cure? e selected-player-id)
         (let [selected-player-id (get-selected-player-id-for-priest-skill selected-player-id)]
           (j/assoc-in! player [:skill->selected-player-id "cure"] selected-player-id)
           (pc/set-anim-boolean model-entity "cure" true)
-          (skills.effects/apply-effect-cure-particles player))
+          (skills.effects/apply-effect-cure-particles player)
+          (st/look-at-selected-player))
 
         (break-defense? e selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "breakDefense"] selected-player-id)
           (pc/set-anim-boolean model-entity "breakDefense" true)
-          (skills.effects/apply-effect-defense-break-particles player))
+          (skills.effects/apply-effect-defense-break-particles player)
+          (st/look-at-selected-player))
 
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
@@ -124,7 +127,8 @@
         (skills/attack-r? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
-          (pc/set-anim-boolean model-entity "attackR" true))
+          (pc/set-anim-boolean model-entity "attackR" true)
+          (st/look-at-selected-player))
 
         (skills/fleet-foot? e)
         (dispatch-pro :skill {:skill "fleetFoot"})

@@ -1,6 +1,7 @@
 (ns enion-cljs.ui.views
   (:require
     [applied-science.js-interop :as j]
+    [clojure.string :as str]
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on]]
     [enion-cljs.scene.entities.player :as player]
@@ -132,8 +133,12 @@
      [:div (styles/party-member-hp-hit health-perc)]
      [:div (styles/party-member-hp health-perc)]]))
 
-(defn- party-member-hp-mp-bars [username health total-health]
-  [:div (styles/party-member-hp-mp-container false)
+(defn- party-member-hp-mp-bars [id username health total-health]
+  [:div
+   {:class (styles/party-member-hp-mp-container (= id @(subscribe [::subs/selected-party-member])))
+    :on-click #(do
+                 (fire :select-party-member id)
+                 (dispatch [::events/select-party-member id]))}
    [party-member-hp-bar health total-health]
    [:span (styles/party-member-username) username]])
 
@@ -235,8 +240,6 @@
     (:hit message) "hit"
     (:bp message) "bp"
     (:skill message) "skill"
-    (:party-requested-user message) "skill"
-    (:party-request-rejected message) "skill"
     (:heal message) "hp-recover"
     (:hp message) "hp-recover"
     (:cure message) "hp-recover"
@@ -245,7 +248,8 @@
     (:too-far message) "skill-failed"
     (:not-enough-mana message) "skill-failed"
     (:party-request-failed message) "skill-failed"
-    (:no-selected-player message) "skill-failed"))
+    (:no-selected-player message) "skill-failed"
+    :else "skill"))
 
 (let [hp-message (-> "hpPotion" common.skills/skills :hp (str " HP recovered"))
       mp-message (-> "mpPotion" common.skills/skills :mp (str " MP recovered"))
@@ -267,7 +271,12 @@
       (:party-request-failed message) "Processing party request failed"
       (:no-selected-player message) "No player selected"
       (:party-requested-user message) (str "You invited " (:party-requested-user message) " to join your party")
-      (:party-request-rejected message) (str (:party-request-rejected message) " rejected your party request"))))
+      (:party-request-rejected message) (str (:party-request-rejected message) " rejected your party request")
+      (:joined-party message) (str (:joined-party message) " joined the party")
+      (:removed-from-party message) "You've been removed from the party"
+      (:member-removed-from-party message) (str (:member-removed-from-party message) " has been removed from the party")
+      (:party-cancelled message) "The party has been cancelled"
+      (:member-exit-from-party message) (str (:member-exit-from-party message) " exit from the party"))))
 
 (defn- info-message [message]
   [:<>
@@ -389,7 +398,8 @@
                                                       (if (> @countdown-seconds 0)
                                                         (swap! countdown-seconds dec)
                                                         (dispatch [::events/close-part-request-modal])))
-                                                    1000)))
+                                                    1000))
+                              (dispatch [::events/set-party-request-countdown-interval-id @interval-id]))
        :component-will-unmount #(js/clearInterval @interval-id)})))
 
 (comment
@@ -420,13 +430,31 @@
   (when @(subscribe [::subs/party-list-open?])
     [:div (styles/party-list-container @(subscribe [::subs/minimap-open?]))
      [:div (styles/party-action-button-container)
-      [:button {:class (styles/party-action-button)
-                :on-click #(fire :add-to-party)}
-       "Add to party"]]
+      (let [selected-party-member @(subscribe [::subs/selected-party-member])]
+        (cond
+          @(subscribe [::subs/party-leader-selected-himself?])
+          [:button {:class (styles/party-action-button)
+                    :on-click #(fire :exit-from-party)}
+           "Cancel party"]
+
+          @(subscribe [::subs/party-leader-selected-member?])
+          [:button {:class (styles/party-action-button)
+                    :on-click #(fire :remove-from-party selected-party-member)}
+           "Remove from party"]
+
+          @(subscribe [::subs/able-to-add-party-member?])
+          [:button {:class (styles/party-action-button)
+                    :on-click #(fire :add-to-party)}
+           "Add to party"]
+
+          @(subscribe [::subs/able-to-exit-from-party?])
+          [:button {:class (styles/party-action-button)
+                    :on-click #(fire :exit-from-party)}
+           "Exit from party"]))]
      [:div
-      (for [{:keys [username health total-health]} @(subscribe [::subs/party-members])]
-        ^{:key username}
-        [party-member-hp-mp-bars username health total-health])]]))
+      (for [{:keys [id username health total-health]} @(subscribe [::subs/party-members])]
+        ^{:key id}
+        [party-member-hp-mp-bars id username health total-health])]]))
 
 (defn- on-mouse-down [e]
   (when (= (j/get e :button) 0)
@@ -465,6 +493,8 @@
 
                                                      (= code "Escape")
                                                      (dispatch [::events/cancel-skill-move])))))
+       (on :ui-set-current-player-id #(dispatch [::events/set-current-player-id %]))
+       (on :ui-set-as-party-leader #(dispatch [::events/set-as-party-leader %]))
        (on :init-skills #(dispatch [::events/init-skills %]))
        (on :ui-send-msg #(dispatch [::events/add-message-to-info-box %]))
        (on :ui-selected-player #(dispatch [::events/set-selected-player %]))
@@ -476,7 +506,6 @@
        (on :ui-slow-down? #(dispatch-sync [::events/block-slow-down-skill %]))
        (on :ui-show-party-request-modal #(dispatch [::events/show-party-request-modal %]))
        (on :register-party-members #(dispatch [::events/register-party-members %]))
-       (on :add-party-member #(dispatch [::events/add-party-member %]))
        (on :update-party-member-healths #(dispatch [::events/update-party-member-healths %]))
        (on :cancel-party #(dispatch [::events/cancel-party])))
      :reagent-render

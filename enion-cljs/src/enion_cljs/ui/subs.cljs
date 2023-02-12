@@ -122,3 +122,39 @@
   ::party-request-modal
   (fn [db]
     (:party-request-modal db)))
+
+(reg-sub
+  ::selected-party-member
+  (fn [db]
+    (-> db :party :selected-member)))
+
+(reg-sub
+  ::party-leader?
+  (fn [db]
+    (-> db :party :leader?)))
+
+(reg-sub
+  ::able-to-add-party-member?
+  (fn [db]
+    (and (or (-> db :party :members nil?)
+             (-> db :party :leader?))
+         (< (-> db :party :members count) 5))))
+
+(reg-sub
+  ::able-to-exit-from-party?
+  (fn [db]
+    (boolean (and (-> db :party :members seq)
+                  (-> db :party :leader? not)))))
+
+(reg-sub
+  ::party-leader-selected-member?
+  (fn [db]
+    (boolean
+      (and (-> db :party :leader?)
+           (-> db :party :selected-member)))))
+
+(reg-sub
+  ::party-leader-selected-himself?
+  (fn [db]
+    (and (-> db :party :leader?)
+         (-> db :party :selected-member (= (-> db :player :id))))))
