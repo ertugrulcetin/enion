@@ -120,7 +120,6 @@
       (st/set-selected-player id))
     (st/cancel-selected-player)))
 
-;; TODO chat acikken de oluyor, fix it
 (defn- select-closest-enemy [e]
   (when (and (st/alive?) (= "KeyZ" (j/get-in e [:event :code])))
     (select-closest-enemy*)))

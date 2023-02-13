@@ -156,34 +156,59 @@
    [skill-bar]])
 
 (defn- chat-message [msg]
-  (let [party? (= :party @(subscribe [::subs/chat-type]))]
-    [:div (when party? (styles/chat-part-message-box))
-     [:strong (str (:from msg) ":")]
-     [:span (:text msg)]
-     [:br]]))
+  (let [party? (= :party @(subscribe [::subs/chat-type]))
+        killer (:killer msg)
+        killer-race (:killer-race msg)
+        killed (:killed msg)]
+    (if killer
+      [:div
+       [:strong
+        {:class (if (= "orc" killer-race) "orc-defeats" "human-defeats")}
+        (str killer " has defeated " killed "")]
+       [:br]]
+      [:div (when party? (styles/chat-part-message-box))
+       [:strong (str (:from msg) ":")]
+       [:span (:text msg)]
+       [:br]])))
+
+(defn scroll-to-bottom [e]
+  (j/assoc! e :scrollTop (j/get e :scrollHeight)))
 
 (defn- on-message-box-update [ref]
   (when-let [elem @ref]
     (let [gap (- (j/get elem :scrollHeight) (+ (j/get elem :scrollTop)
                                                (j/get elem :offsetHeight)))]
       (when (< gap 50)
-        (j/assoc! elem :scrollTop (j/get elem :scrollHeight))))))
+        (scroll-to-bottom elem)))))
 
-;; TODO add scroll
-;; TODO when on hover disalbe character zoom in/out
+;; TODO when on hover disable character zoom in/out
 (defn- chat-message-box []
   (let [ref (atom nil)]
     (r/create-class
-      {:component-did-update #(on-message-box-update ref)
+      {:component-did-mount (fn [] (some-> @ref scroll-to-bottom))
+       :component-did-update #(on-message-box-update ref)
        :reagent-render (fn []
                          [:div
-                          {:ref #(reset! ref %)
+                          {:ref #(some->> % (reset! ref))
                            :class (styles/message-box)}
                           (for [[idx msg] (map-indexed vector @(subscribe [::subs/chat-messages]))]
                             ^{:key idx}
                             [chat-message msg])])})))
 
-;; TODO add Player A has defeated Player B
+;; had to duplicate (chat-message-box) this because of the scroll to bottom - refactor at some point
+(defn- party-chat-message-box []
+  (let [ref (atom nil)]
+    (r/create-class
+      {:component-did-mount (fn [] (some-> @ref scroll-to-bottom))
+       :component-did-update #(on-message-box-update ref)
+       :reagent-render (fn []
+                         [:div
+                          {:ref #(some->> % (reset! ref))
+                           :class (styles/message-box)}
+                          (for [[idx msg] (map-indexed vector @(subscribe [::subs/chat-messages]))]
+                            ^{:key idx}
+                            [chat-message msg])])})))
+
 (defn- chat []
   (let [open? @(subscribe [::subs/box-open? :chat-box])
         input-active? @(subscribe [::subs/chat-input-active?])
@@ -199,7 +224,9 @@
       (if open? "Close" "Open")]
      (when open?
        [:div (styles/chat)
-        [chat-message-box]
+        (if (= chat-type :all)
+          [chat-message-box]
+          [party-chat-message-box])
         (when input-active?
           [:input
            {:ref #(some-> % .focus)
@@ -257,7 +284,6 @@
     (cond
       (:damage message) (str "You took " (:damage message) " damage from " (:from message))
       (:hit message) (str (:to message) " received " (:hit message) " damage")
-      (:bp message) (str "Earned " (:bp message) " battle points")
       (:skill message) (str "Using " (:skill message))
       (:skill-failed message) "Skill failed"
       (:too-far message) "Too far"

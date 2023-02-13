@@ -51,8 +51,12 @@
 
 (reg-event-db
   ::add-message-to-chat-all
-  (fn [db [_ {:keys [username msg]}]]
-    (update-in db [:chat-box :messages :all] conj {:from username :text msg})))
+  (fn [db [_ {:keys [username msg killer killer-race killed]}]]
+    (if killer
+      (update-in db [:chat-box :messages :all] conj {:killer killer
+                                                     :killer-race killer-race
+                                                     :killed killed})
+      (update-in db [:chat-box :messages :all] conj {:from username :text msg}))))
 
 (reg-event-db
   ::add-message-to-chat-party

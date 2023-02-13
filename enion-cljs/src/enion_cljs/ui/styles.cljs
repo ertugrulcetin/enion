@@ -194,7 +194,11 @@
   scroll-bar-thumb
   [:strong {:padding "2px"
             :background-color "#10131dcc"
-            :border-radius "3px"}]
+            :border-radius "3px"}
+   [:&.orc-defeats {:color "#ff0000ff"
+                    :padding "0px 2px 0px 2px"}]
+   [:&.human-defeats {:color "#2691b2ff"
+                      :padding "0px 2px 0px 2px"}]]
   [:span {:padding "2px"
           :margin-left "5px"
           :line-height "1.6rem"

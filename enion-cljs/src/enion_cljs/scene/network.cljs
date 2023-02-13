@@ -292,10 +292,28 @@
       (pc/setv temp-pos x y z)
       (j/call-in st/other-players [id :skills :throw-nova] temp-pos))))
 
+(defn- process-kills [kills]
+  (doseq [kill kills]
+    (let [killer-id (:killer-id kill)
+          killer-username (if (= killer-id current-player-id)
+                            (j/get st/player :username)
+                            (st/get-username killer-id))
+          killer-race (if (= killer-id current-player-id)
+                        (j/get st/player :race)
+                        (j/get (st/get-other-player killer-id) :race))
+          killed-id (:killed-id kill)
+          killed-username (if (= killed-id current-player-id)
+                            (j/get st/player :username)
+                            (st/get-username killed-id))]
+      (fire :add-global-message {:killer killer-username
+                                 :killer-race killer-race
+                                 :killed killed-username}))))
+
 (defmethod dispatch-pro-response :world-snapshot [params]
   (let [ws (:world-snapshot params)
         effects (:effects ws)
-        ws (dissoc ws :effects)
+        kills (:kills ws)
+        ws (dissoc ws :effects :kills)
         attack-ranges (get effects :attack-range)
         effects (dissoc effects :attack-range)]
     (set! world ws)
@@ -304,6 +322,7 @@
     (process-world-snapshot (dissoc ws current-player-id))
     (process-effects effects)
     (process-attack-ranges attack-ranges)
+    (process-kills kills)
     (when-let [ids (seq @party-member-ids)]
       (fire :update-party-member-healths (reduce (fn [acc id]
                                                    (assoc acc id (get-in ws [id :health]))) {} ids)))))
@@ -366,10 +385,18 @@
       (fire :ui-chat-error party-msg-error-msg))))
 
 (defmethod dispatch-pro-response :global-message [params]
-  (fire :add-global-message (:global-message params)))
+  (let [msg (:global-message params)
+        current-player? (= (:id msg) current-player-id)]
+    (fire :add-global-message (assoc msg :username (if current-player?
+                                                     (j/get st/player :username)
+                                                     (st/get-username (:id msg)))))))
 
 (defmethod dispatch-pro-response :party-message [params]
-  (fire :add-party-message (:party-message params)))
+  (let [msg (:party-message params)
+        current-player? (= (:id msg) current-player-id)]
+    (fire :add-party-message (assoc msg :username (if current-player?
+                                                    (j/get st/player :username)
+                                                    (st/get-username (:id msg)))))))
 
 (defmethod dispatch-pro-response :earned-bp [params]
   (fire :ui-send-msg {:bp (:earned-bp params)}))

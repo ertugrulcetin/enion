@@ -88,8 +88,10 @@
   (let [effects (->> effects-stream
                      (take-while-stream (comp not nil?))
                      create-effects->player-ids-mapping)
+        kills (take-while-stream (comp not nil?) killings-stream)
         w @world
-        w (if (empty? effects) w (assoc w :effects effects))]
+        w (if (empty? effects) w (assoc w :effects effects))
+        w (if (empty? kills) w (assoc w :kills kills))]
     (doseq [player-id (keys w)]
       (send! player-id :world-snapshot w))))
 
@@ -180,7 +182,7 @@
         (when (not (or (str/blank? msg)
                        (> (count msg) 80)))
           (doseq [id player-ids]
-            (send! id :global-message {:username (:username player)
+            (send! id :global-message {:id id
                                        :msg msg})))))))
 
 (reg-pro
@@ -198,7 +200,7 @@
                        (> (count msg) 80)
                        (nil? party-id)))
           (doseq [id (find-player-ids-by-party-id players* party-id)]
-            (send! id :party-message {:username (:username player)
+            (send! id :party-message {:id id
                                       :msg msg})))))))
 
 (defn- notify-players-for-new-join [id attrs]
@@ -226,7 +228,7 @@
           attrs {:id id
                  :username (str username "_" id)
                  ;; :race race
-                 :race "human" #_(if (odd? id) "human" "orc")
+                 :race "orc" #_(if (odd? id) "human" "orc")
                  :class class
                  :health health
                  :mana mana
@@ -896,7 +898,7 @@
   ;; move above to a function using defn
   (swap! world (fn [world]
                  (reduce (fn [world id]
-                           (assoc-in world [id :health] 1600))
+                           (assoc-in world [id :health] 20))
                    world
                    (keys @players))))
 

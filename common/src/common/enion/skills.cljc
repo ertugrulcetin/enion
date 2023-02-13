@@ -105,19 +105,18 @@
                    :name "Flame Strike"
                    :description (str "Long range fire-based attack that unleashes a "
                                      "devastating blast of flame on a single enemy")
-                   :required-mana 100
+                   :required-mana 150
                    :damage-fn (create-damage-fn 100 150)}
    "teleport" {:cooldown 1000
                :name "Teleport"
                :description (str "Powerful arcane ability that allows the mage to instantly transport a "
                                  "single party member to the same location as the mage")
-               :required-mana 50}
+               :required-mana 100}
    ;; Common
    "attackR" {:required-mana 25
               :cooldown 200
               :damage-fn (create-damage-fn 20 50)}
 
-   ;; TODO cooldown is different for asas, handle in the backend!
    "fleetFoot" {:cooldown 26500
                 :cooldown-asas 13500
                 :name "Fleet Foot"
