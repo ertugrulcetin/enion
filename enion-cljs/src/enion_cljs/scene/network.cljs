@@ -193,7 +193,8 @@
     (st/set-health health)
     (st/set-mana mana)
     (when (= 0 health)
-      (pc/set-anim-int (st/get-model-entity) "health" 0))))
+      (pc/set-anim-int (st/get-model-entity) "health" 0)
+      (fire :show-re-spawn-modal #(dispatch-pro :re-spawn)))))
 
 (let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange" "attackSingle"}
       temp-pos (pc/vec3)]
@@ -217,6 +218,7 @@
           (pc/set-anim-int (st/get-model-entity id) "health" 0)
           (st/disable-player-collision id))
         (do
+          (pc/set-anim-int (st/get-model-entity id) "health" health)
           ;; TODO remove 'constantly' for prod
           (when-let [tw (j/get-in st/other-players [id :tween :interpolation])]
             (j/call (tw) :stop))
@@ -400,6 +402,20 @@
 
 (defmethod dispatch-pro-response :earned-bp [params]
   (fire :ui-send-msg {:bp (:earned-bp params)}))
+
+(let [re-spawn-error-msg {:re-spawn-error "Re-spawn failed. Try again."}]
+  (defmethod dispatch-pro-response :re-spawn [params]
+    (if (-> params :re-spawn :error)
+      (fire :ui-send-msg re-spawn-error-msg)
+      (let [pos (-> params :re-spawn :pos)
+            health (-> params :re-spawn :health)
+            mana (-> params :re-spawn :mana)]
+        (st/move-player pos)
+        (fire :close-re-spawn-modal)
+        (fire :clear-all-cooldowns)
+        (st/set-mana mana)
+        (st/set-health health)
+        (pc/set-anim-int (st/get-model-entity) "health" 100)))))
 
 (comment
   (fire :start-ws)

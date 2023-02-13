@@ -8,6 +8,7 @@
     [enion-backend.layout :as layout]
     [enion-backend.middleware :as middleware]
     [enion-backend.teatime :as tea]
+    [enion-backend.utils :as utils]
     [manifold.deferred :as d]
     [manifold.stream :as s]
     [mount.core :as mount :refer [defstate]]
@@ -130,11 +131,6 @@
 (defn random-pos-for-human
   []
   [(- (+ 38 (rand 5.5))) 0.57 (+ 39 (rand 1.5))])
-
-(reg-pro
-  :spawn
-  (fn [_]
-    (random-pos-for-human)))
 
 (reg-pro
   :set-state
@@ -891,7 +887,81 @@
                     (add-effect :teleport selected-player-id)
                     {:skill skill})))))))
 
+(def re-spawn-failed {:error :re-spawn-failed})
+
+(defn- re-spawn-duration-finished? [player]
+  (> (- (now) (get-in player [:last-time :died])) common.skills/re-spawn-duration-in-milli-secs))
+
+(reg-pro
+  :re-spawn
+  (fn [{:keys [id]}]
+    (let [players* @players
+          w* @world]
+      (when-let [player (get players* id)]
+        (when-let [world-state (get w* id)]
+          (cond
+            (alive? world-state) re-spawn-failed
+            (not (re-spawn-duration-finished? player)) re-spawn-failed
+            :else (let [effect-tasks (->> player :effects vals (keep :task))
+                        new-pos (if (= "orc" (:race player)) (random-pos-for-orc) (random-pos-for-human))
+                        [x y z] new-pos]
+                    (doseq [t effect-tasks]
+                      (tea/cancel! t))
+                    (swap! players (fn [players]
+                                     (-> players
+                                         (utils/dissoc-in [id :effects])
+                                         (utils/dissoc-in [id :last-time :skill]))))
+                    (swap! world (fn [world]
+                                   (-> world
+                                       (assoc-in [id :health] (:health player))
+                                       (assoc-in [id :mana] (:mana player))
+                                       (assoc-in [id :st] "idle")
+                                       (assoc-in [id :px] x)
+                                       (assoc-in [id :py] y)
+                                       (assoc-in [id :pz] z))))
+                    {:pos new-pos
+                     :health (:health player)
+                     :mana (:mana player)})))))))
+
 (comment
+
+  ;; make all players die
+  ;; also set :last-time :died to now
+  (do
+
+    (swap! world (fn [world]
+                   (reduce (fn [world id]
+                             (-> world
+                               (assoc-in [id :health] 0)))
+                     world
+                     (keys @players))))
+
+    (swap! players (fn [players]
+                     (reduce
+                       (fn [players id]
+                         (assoc-in players [id :last-time :died] (now)))
+                       players
+                       (keys players))))
+    )
+
+  (do
+
+    (swap! world (fn [world]
+                   (reduce (fn [world id]
+                             (-> world
+                               (assoc-in [id :health] 0)))
+                     world
+                     [9])))
+
+    (swap! players (fn [players]
+                     (reduce
+                       (fn [players id]
+                         (assoc-in players [id :last-time :died] (now)))
+                       players
+                       [9])))
+    )
+
+  (clojure.pprint/pprint @players)
 
   (reset-states)
   ;; set everyones health to 1600 in world atom
@@ -1164,7 +1234,6 @@
 (defn home-routes
   []
   [""
-   {:middleware [middleware/wrap-csrf
-                 middleware/wrap-formats]}
+   {:middleware [middleware/wrap-formats]}
    ["/" {:get home-page}]
    ["/ws" {:get ws-handler}]])

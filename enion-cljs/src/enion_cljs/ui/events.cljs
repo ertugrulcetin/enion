@@ -284,3 +284,23 @@
   ::set-party-request-countdown-interval-id
   (fn [db [_ id]]
     (assoc-in db [:party-request-modal :countdown-interval-id] id)))
+
+(reg-event-db
+  ::show-re-spawn-modal
+  (fn [db [_ on-ok]]
+    (-> db
+        (assoc-in [:re-spawn :open?] true)
+        (assoc-in [:re-spawn :time] (js/Date.now))
+        (assoc-in [:re-spawn :on-ok] on-ok))))
+
+(reg-event-db
+  ::close-re-spawn-modal
+  (fn [db]
+    (assoc-in db [:re-spawn :open?] false)))
+
+(reg-event-fx
+  ::clear-all-cooldowns
+  (fn [{:keys [db]}]
+    (let [cooldowns (-> db :player :cooldown keys)]
+      {:dispatch-n (mapv (fn [skill]
+                           [::clear-cooldown skill]) cooldowns)})))

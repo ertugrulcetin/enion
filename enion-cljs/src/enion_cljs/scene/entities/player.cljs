@@ -287,9 +287,6 @@
     (fire :ui-player-set-total-health-and-mana {:health health
                                                 :mana mana})))
 
-(defn spawn [[x y z]]
-  (j/call-in (st/get-player-entity) [:rigidbody :teleport] x y z))
-
 (defn- add-skill-effects [template-entity]
   (let [effects (pc/clone (pc/find-by-name "effects"))]
     (pc/add-child template-entity effects)
@@ -329,9 +326,6 @@
                   (j/get temp-first-pos :z))))]
       (j/call tween-pos :start)
       nil))
-
-(defn move-player [x y z]
-  (j/call-in (st/get-player-entity) [:rigidbody :teleport] x y z))
 
 (comment
   (js/clearInterval 1319)

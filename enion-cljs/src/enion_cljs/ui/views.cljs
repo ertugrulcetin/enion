@@ -275,6 +275,7 @@
     (:not-enough-mana message) "skill-failed"
     (:party-request-failed message) "skill-failed"
     (:no-selected-player message) "skill-failed"
+    (:re-spawn-error message) "skill-failed"
     :else "skill"))
 
 (let [hp-message (-> "hpPotion" common.skills/skills :hp (str " HP recovered"))
@@ -302,7 +303,8 @@
       (:member-removed-from-party message) (str (:member-removed-from-party message) " has been removed from the party")
       (:party-cancelled message) "The party has been cancelled"
       (:member-exit-from-party message) (str (:member-exit-from-party message) " exit from the party")
-      (:bp message) (str "Earned " (:bp message) " Battle Points (BP)"))))
+      (:bp message) (str "Earned " (:bp message) " Battle Points (BP)")
+      (:re-spawn-error message) (:re-spawn-error message))))
 
 (defn- info-message [message]
   [:<>
@@ -454,6 +456,41 @@
                        (dispatch [::events/close-part-request-modal]))}
          "Reject"]]])))
 
+(defn- re-spawn-modal* [on-ok time]
+  (let [re-spawn-duration (+ common.skills/re-spawn-duration-in-milli-secs 1000)
+        countdown-seconds (r/atom (/ re-spawn-duration 1000))
+        interval-id (atom nil)]
+    (r/create-class
+      {:component-did-mount (fn []
+                              (let [interval-id* (js/setInterval
+                                                   (fn []
+                                                     (let [result (int (/ (- (+ time re-spawn-duration) (js/Date.now)) 1000))
+                                                           result (if (<= result 0) 0 result)]
+                                                       (reset! countdown-seconds result)))
+                                                   500)]
+                                (reset! interval-id interval-id*)))
+       :component-did-update (fn []
+                               (when (= 0 @countdown-seconds)
+                                 (js/clearInterval @interval-id)))
+       :reagent-render (fn []
+                         [:div (styles/re-spawn-modal)
+                          (if (> @countdown-seconds 0)
+                            [:p (str "You need to wait " (int @countdown-seconds) " seconds to re-spawn")]
+                            [:p "Press OK to return back to the re-spawn location"])
+                          [:div (styles/re-spawn-button-container)
+                           [:button
+                            {:disabled (> @countdown-seconds 0)
+                             :class (styles/re-spawn-button)
+                             :on-click #(do
+                                          (js/clearInterval @interval-id)
+                                          (on-ok))}
+                            "OK"]]])})))
+
+(defn re-spawn-modal []
+  (let [{:keys [open? on-ok time]} @(subscribe [::subs/re-spawn-modal])]
+    (when open?
+      [re-spawn-modal* on-ok time])))
+
 (defn- party-list []
   (when @(subscribe [::subs/party-list-open?])
     [:div (styles/party-list-container @(subscribe [::subs/minimap-open?]))
@@ -542,7 +579,10 @@
        (on :cancel-party #(dispatch [::events/cancel-party]))
        (on :add-global-message #(dispatch [::events/add-message-to-chat-all %]))
        (on :add-party-message #(dispatch [::events/add-message-to-chat-party %]))
-       (on :ui-chat-error #(dispatch [::events/add-chat-error-msg %])))
+       (on :ui-chat-error #(dispatch [::events/add-chat-error-msg %]))
+       (on :show-re-spawn-modal #(dispatch [::events/show-re-spawn-modal %]))
+       (on :close-re-spawn-modal #(dispatch [::events/close-re-spawn-modal %]))
+       (on :clear-all-cooldowns #(dispatch [::events/clear-all-cooldowns])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -553,6 +593,7 @@
         [chat]
         [party-request-modal]
         [info-box]
+        [re-spawn-modal]
         [actions-section]
         [temp-skill-img]
         [skill-description]])}))

@@ -9,6 +9,9 @@
 (def attack-single-distance-threshold 9)
 
 
+(def re-spawn-duration-in-milli-secs 5000)
+
+
 (defn rand-between
   [min max]
   (+ (Math/floor (* (Math/random) (+ (- max min) 1))) min))

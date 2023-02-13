@@ -158,3 +158,8 @@
   (fn [db]
     (and (-> db :party :leader?)
          (-> db :party :selected-member (= (-> db :player :id))))))
+
+(reg-sub
+  ::re-spawn-modal
+  (fn [db]
+    (:re-spawn db)))

@@ -175,25 +175,29 @@
 
 (let [prev-state (volatile! {})]
   (defn get-state []
-    (let [entity (get-player-entity)
-          pos (pc/get-pos entity)
-          model-entity (get-model-entity)
-          eul (pc/get-loc-euler model-entity)
-          state {:px (j/get pos :x)
-                 :py (j/get pos :y)
-                 :pz (j/get pos :z)
-                 :ex (j/get eul :x)
-                 :ey (j/get eul :y)
-                 :ez (j/get eul :z)
-                 :st (pc/get-anim-state model-entity)}
-          result (second (data/diff @prev-state state))]
-      (vreset! prev-state state)
-      result)))
+    (when (alive?)
+      (let [entity (get-player-entity)
+            pos (pc/get-pos entity)
+            model-entity (get-model-entity)
+            eul (pc/get-loc-euler model-entity)
+            state {:px (j/get pos :x)
+                   :py (j/get pos :y)
+                   :pz (j/get pos :z)
+                   :ex (j/get eul :x)
+                   :ey (j/get eul :y)
+                   :ez (j/get eul :z)
+                   :st (pc/get-anim-state model-entity)}
+            result (second (data/diff @prev-state state))]
+        (vreset! prev-state state)
+        result))))
 
-(defn move-player [player entity x y z]
-  (if (j/get player :enemy?)
-    (j/call-in entity [:rigidbody :teleport] x y z)
-    (pc/set-pos entity x y z)))
+(defn move-player
+  ([[x y z]]
+   (j/call-in (get-player-entity) [:rigidbody :teleport] x y z))
+  ([player entity x y z]
+   (if (j/get player :enemy?)
+     (j/call-in entity [:rigidbody :teleport] x y z)
+     (pc/set-pos entity x y z))))
 
 (defn rotate-player [player-id x y z]
   (when-let [entity (get-model-entity player-id)]

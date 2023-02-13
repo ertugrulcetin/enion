@@ -397,6 +397,23 @@
    :font-size "20px"
    :margin-top "10px"})
 
+(defattrs re-spawn-modal []
+  {:composes [(party-request-modal)]
+   :width "30%"
+   :text-align :center})
+
+(defattrs re-spawn-button-container []
+  {:display :flex
+   :justify-content :center
+   :margin-top "20px"})
+
+(defclass re-spawn-button []
+  {:composes [(party-request-accept-button)]}
+  [:&:disabled {:opacity 0.5
+                :cursor :not-allowed
+                :color "grey !important"
+                :border "2px solid grey"}])
+
 (def party-member-hp-mp-height "12px")
 
 (defattrs party-list-container [minimap-open?]
