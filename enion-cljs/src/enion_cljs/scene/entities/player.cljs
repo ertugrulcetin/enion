@@ -96,6 +96,18 @@
 (defn get-state []
   (pc/get-anim-state (st/get-model-entity)))
 
+(let [temp #js {}]
+  (on :state-for-minimap
+      (fn []
+        (when (st/get-player-entity)
+          (let [state (get-state)
+                pos (get-position)]
+            (j/assoc! temp
+                      :anim-state state
+                      :x (j/get pos :x)
+                      :z (j/get pos :z))
+            (fire :state-for-minimap-response temp))))))
+
 (defn- has-phantom-vision? []
   (j/get player :phantom-vision?))
 

@@ -1021,12 +1021,10 @@
 (defn blocked-party-requests? [other-player]
   (:party-requests-blocked? other-player))
 
-(def party-request-duration 11000)
-
 (defn- asked-to-join-too-often? [id selected-player-id]
   (let [last-time (get-in @players [id :last-time :add-to-party-request selected-player-id])]
     (and (not (nil? last-time))
-         (<= (- (now) last-time) party-request-duration))))
+         (<= (- (now) last-time) common.skills/party-request-duration-in-milli-secs))))
 
 (defmethod process-party-request :add-to-party [{:keys [id ping] {:keys [selected-player-id]} :data}]
   (let [players* @players]
@@ -1123,7 +1121,7 @@
 
 (defn- accepts-or-rejects-party-request-on-time? [other-player id]
   (let [last-time (get-in other-player [:last-time :add-to-party-request id])]
-    (and last-time (<= (- (now) last-time) party-request-duration))))
+    (and last-time (<= (- (now) last-time) common.skills/party-request-duration-in-milli-secs))))
 
 (defmethod process-party-request :accept-party-request [{:keys [id ping] {:keys [requested-player-id]} :data}]
   (let [players* @players]

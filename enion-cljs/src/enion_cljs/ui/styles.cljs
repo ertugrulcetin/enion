@@ -368,7 +368,8 @@
    :padding "20px"
    :border "1px solid black"
    :z-index 1
-   :font-size "20px"})
+   :font-size "20px"
+   :text-align :center})
 
 (defattrs party-request-buttons-container []
   {:display :flex
@@ -399,8 +400,7 @@
 
 (defattrs re-spawn-modal []
   {:composes [(party-request-modal)]
-   :width "30%"
-   :text-align :center})
+   :width "30%"})
 
 (defattrs re-spawn-button-container []
   {:display :flex

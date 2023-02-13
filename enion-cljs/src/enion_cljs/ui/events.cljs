@@ -240,6 +240,7 @@
   (fn [{:keys [db]} [_ {:keys [username on-accept on-reject]}]]
     {:db (assoc db :party-request-modal {:open? true
                                          :username username
+                                         :time (js/Date.now)
                                          :on-accept on-accept
                                          :on-reject on-reject})
      ::clear-interval (-> db :party-request-modal :countdown-interval-id)}))
@@ -261,7 +262,7 @@
     (dissoc db :party)))
 
 (reg-event-db
-  ::close-part-request-modal
+  ::close-party-request-modal
   (fn [db]
     (assoc-in db [:party-request-modal :open?] false)))
 
@@ -281,22 +282,16 @@
     (assoc-in db [:party :leader?] true)))
 
 (reg-event-db
-  ::set-party-request-countdown-interval-id
-  (fn [db [_ id]]
-    (assoc-in db [:party-request-modal :countdown-interval-id] id)))
-
-(reg-event-db
   ::show-re-spawn-modal
   (fn [db [_ on-ok]]
-    (-> db
-        (assoc-in [:re-spawn :open?] true)
-        (assoc-in [:re-spawn :time] (js/Date.now))
-        (assoc-in [:re-spawn :on-ok] on-ok))))
+    (assoc db :re-spawn-modal {:open? true
+                               :time (js/Date.now)
+                               :on-ok on-ok})))
 
 (reg-event-db
   ::close-re-spawn-modal
   (fn [db]
-    (assoc-in db [:re-spawn :open?] false)))
+    (assoc-in db [:re-spawn-modal :open?] false)))
 
 (reg-event-fx
   ::clear-all-cooldowns

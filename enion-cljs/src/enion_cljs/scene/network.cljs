@@ -170,14 +170,11 @@
   (let [party-member-ids* (-> params :party :party-members-ids vec)]
     (vreset! party-member-ids party-member-ids*)
     (update-username-text-color party-member-ids* true)
-    (fire :register-party-members (register-party-members party-member-ids*))))
+    (fire :register-party-members (register-party-members party-member-ids*))
+    (fire :close-party-request-modal)))
 
-(let [d #js []]
-  (j/call d :push 1)
-  (j/call d :push 2)
-  d)
-
-(defmethod party-response :reject-party-request [params])
+(defmethod party-response :reject-party-request [params]
+  (fire :close-party-request-modal))
 
 (defmethod party-response :party-request-rejected [params]
   (fire :ui-send-msg {:party-request-rejected (-> params :party :player-id st/get-username)}))

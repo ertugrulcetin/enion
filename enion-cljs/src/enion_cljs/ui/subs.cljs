@@ -162,4 +162,4 @@
 (reg-sub
   ::re-spawn-modal
   (fn [db]
-    (:re-spawn db)))
+    (:re-spawn-modal db)))

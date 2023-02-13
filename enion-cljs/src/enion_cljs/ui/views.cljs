@@ -4,7 +4,6 @@
     [clojure.string :as str]
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on]]
-    [enion-cljs.scene.entities.player :as player]
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
@@ -348,8 +347,9 @@
       [:div (styles/hp-hit health)]
       [:div (styles/hp health)]]]))
 
-(def x (r/atom 0))
-(def y (r/atom 0))
+(defonce x (r/atom 0))
+(defonce z (r/atom 0))
+(defonce anim-state (atom "idle"))
 
 ;; Math formula of map
 ;; scale = Map zoom size (#holder) / terrain size (100) ratio
@@ -364,7 +364,7 @@
   [:div
    {:class (styles/holder)
     :style {:left (str (- @x) "px")
-            :top (str (- @y) "px")}}
+            :top (str (- @z) "px")}}
    [:img
     {:class (styles/minimap-img)
      :src "img/minimap.png"}]])
@@ -373,13 +373,17 @@
   (let [interval-id (atom nil)]
     (r/create-class
       {:component-did-mount (fn []
+                              (on :state-for-minimap-response
+                                  (fn [state]
+                                    (reset! anim-state (j/get state :anim-state))
+                                    (reset! x (+ (* (j/get state :x) 5) 175))
+                                    (reset! z (+ (* (j/get state :z) 5) 175))))
                               (reset! interval-id (js/setInterval
                                                     (fn []
-                                                      ;; TODO enable here
-                                                      #_(when-not (= "idle" (player/get-state))
-                                                          (let [pos (player/get-position)]
-                                                            (reset! x (+ (* (j/get pos :x) 5) 175))
-                                                            (reset! y (+ (* (j/get pos :z) 5) 175)))))
+                                                      (when-not (= "idle" @anim-state)
+                                                        (reset! x (+ (* @x 5) 175))
+                                                        (reset! z (+ (* @z 5) 175)))
+                                                      (fire :state-for-minimap))
                                                     250)))
        :component-will-unmount (fn []
                                  (when-let [id @interval-id]
@@ -414,47 +418,40 @@
             (js/clearTimeout @esc-key-pressed-timeout-id))))))
 
 ;; TODO component starts to countdown when the tab is focused, so it should be started when the action is taken
-;; so store the request time and countdown based on that
-(defn countdown []
-  (let [countdown-seconds (r/atom 10)
+(defn- party-request-modal* [username on-accept on-reject time]
+  (let [party-request-duration (- common.skills/party-request-duration-in-milli-secs 1000)
+        countdown-seconds (r/atom (/ party-request-duration 1000))
         interval-id (atom nil)]
     (r/create-class
-      {:reagent-render (fn []
-                         [:div (styles/party-request-count-down)
-                          [:p (str "Seconds remaining: " @countdown-seconds)]])
-       :component-did-mount (fn []
-                              (reset! interval-id (js/setInterval
-                                                    (fn []
-                                                      (if (> @countdown-seconds 0)
-                                                        (swap! countdown-seconds dec)
-                                                        (dispatch [::events/close-part-request-modal])))
-                                                    1000))
-                              (dispatch [::events/set-party-request-countdown-interval-id @interval-id]))
-       :component-will-unmount #(js/clearInterval @interval-id)})))
-
-(comment
-  (on-esc-pressed-for-1-5-seconds (fn []
-                                    (println "heyy"))))
+      {:component-did-mount (fn []
+                              (let [interval-id* (js/setInterval
+                                                   (fn []
+                                                     (let [result (int (/ (- (+ time party-request-duration) (js/Date.now)) 1000))
+                                                           result (if (<= result 0) 0 result)]
+                                                       (reset! countdown-seconds result)))
+                                                   500)]
+                                (reset! interval-id interval-id*)))
+       :component-did-update (fn []
+                               (when (= 0 @countdown-seconds)
+                                 (some-> @interval-id js/clearInterval)
+                                 (dispatch [::events/close-party-request-modal])))
+       :reagent-render (fn []
+                         [:div (styles/party-request-modal)
+                          [:p (str "Do you want to join " username "'s party?")] [:p (str "Seconds remaining: " @countdown-seconds)]
+                          [:div (styles/party-request-buttons-container)
+                           [:button
+                            {:class (styles/party-request-accept-button)
+                             :on-click on-accept}
+                            "Accept"]
+                           [:button
+                            {:class (styles/party-request-reject-button)
+                             :on-click on-reject}
+                            "Reject"]]])})))
 
 (defn party-request-modal []
-  (let [{:keys [open? username on-accept on-reject]} @(subscribe [::subs/party-request-modal])]
+  (let [{:keys [open? username on-accept on-reject time]} @(subscribe [::subs/party-request-modal])]
     (when open?
-      [:div (styles/party-request-modal)
-       [:p (str "Do you want to join " username "'s party?")]
-       [countdown]
-       [:div (styles/party-request-buttons-container)
-        [:button
-         {:class (styles/party-request-accept-button)
-          :on-click #(do
-                       (on-accept)
-                       (dispatch [::events/close-part-request-modal]))}
-         "Accept"]
-        [:button
-         {:class (styles/party-request-reject-button)
-          :on-click #(do
-                       (on-reject)
-                       (dispatch [::events/close-part-request-modal]))}
-         "Reject"]]])))
+      [party-request-modal* username on-accept on-reject time])))
 
 (defn- re-spawn-modal* [on-ok time]
   (let [re-spawn-duration (+ common.skills/re-spawn-duration-in-milli-secs 1000)
@@ -471,7 +468,7 @@
                                 (reset! interval-id interval-id*)))
        :component-did-update (fn []
                                (when (= 0 @countdown-seconds)
-                                 (js/clearInterval @interval-id)))
+                                 (some-> @interval-id js/clearInterval)))
        :reagent-render (fn []
                          [:div (styles/re-spawn-modal)
                           (if (> @countdown-seconds 0)
@@ -582,6 +579,7 @@
        (on :ui-chat-error #(dispatch [::events/add-chat-error-msg %]))
        (on :show-re-spawn-modal #(dispatch [::events/show-re-spawn-modal %]))
        (on :close-re-spawn-modal #(dispatch [::events/close-re-spawn-modal %]))
+       (on :close-party-request-modal #(dispatch [::events/close-party-request-modal]))
        (on :clear-all-cooldowns #(dispatch [::events/clear-all-cooldowns])))
      :reagent-render
      (fn []
