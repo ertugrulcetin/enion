@@ -183,20 +183,21 @@
           (str enemy-id))))))
 
 (defn- set-target-position [e]
-  (let [result (pc/raycast-rigid-body e entity.camera/entity)
-        hit-entity-name (j/get-in result [:entity :name])]
-    (when (= "terrain" hit-entity-name)
-      (let [x (j/get-in result [:point :x])
-            y (j/get-in result [:point :y])
-            z (j/get-in result [:point :z])
-            model-entity (st/get-model-entity)
-            char-pos (pc/get-pos model-entity)]
-        (when (and (not (skills/char-cant-run?)) (st/alive?))
-          (pc/look-at model-entity x (j/get char-pos :y) z true))
-        (j/assoc! player :target-pos (pc/setv (j/get player :target-pos) x y z)
-                  :target-pos-available? true)
-        (pc/set-locater-target x z)
-        (st/process-running)))))
+  (when (st/alive?)
+    (let [result (pc/raycast-rigid-body e entity.camera/entity)
+          hit-entity-name (j/get-in result [:entity :name])]
+      (when (= "terrain" hit-entity-name)
+        (let [x (j/get-in result [:point :x])
+              y (j/get-in result [:point :y])
+              z (j/get-in result [:point :z])
+              model-entity (st/get-model-entity)
+              char-pos (pc/get-pos model-entity)]
+          (when (not (skills/char-cant-run?))
+            (pc/look-at model-entity x (j/get char-pos :y) z true))
+          (j/assoc! player :target-pos (pc/setv (j/get player :target-pos) x y z)
+                    :target-pos-available? true)
+          (pc/set-locater-target x z)
+          (st/process-running))))))
 
 (defn- select-player-or-set-target [e]
   (if-let [ally-id (get-selected-ally-id e)]
@@ -466,10 +467,10 @@
     (when (> (j/get player :sound-run-elapsed-time) (if (j/get player :fleet-foot?) 0.3 0.4))
       (if (j/get player :sound-run-1?)
         (do
-          (j/call-in (st/get-player-entity) [:c :sound :slots "run_1" :play])
+          (st/play-sound "run_1")
           (j/assoc! player :sound-run-1? false))
         (do
-          (j/call-in (st/get-player-entity) [:c :sound :slots "run_2" :play])
+          (st/play-sound "run_2")
           (j/assoc! player :sound-run-1? true)))
       (j/assoc! player :sound-run-elapsed-time 0))
     (j/update! player :sound-run-elapsed-time + dt)))

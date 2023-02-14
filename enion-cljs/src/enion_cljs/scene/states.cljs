@@ -131,10 +131,18 @@
     (js/console.error "Player could not get created!")))
 
 (defn disable-player-collision [player-id]
-  (j/assoc-in! (get-other-player-entity player-id) [:collision :enabled] false))
+  (let [player (get-other-player player-id)
+        player-entity (j/get player :entity)
+        enemy? (j/get player :enemy?)]
+    (when enemy?
+      (j/assoc-in! player-entity [:collision :enabled] false))))
 
 (defn enable-player-collision [player-id]
-  (j/assoc-in! (get-other-player-entity player-id) [:collision :enabled] true))
+  (let [player (get-other-player player-id)
+        player-entity (j/get player :entity)
+        enemy? (j/get player :enemy?)]
+    (when enemy?
+      (j/assoc-in! player-entity [:collision :enabled] true))))
 
 ;; TODO use kezban lib for nested when-lets
 (defn set-health
@@ -283,3 +291,9 @@
           x (j/get selected-player-pos :x)
           z (j/get selected-player-pos :z)]
       (pc/look-at model-entity x (j/get char-pos :y) z true))))
+
+(defn play-sound [track]
+  (j/call-in (get-player-entity) [:c :sound :slots track :play]))
+
+(defn stop-sound [track]
+  (j/call-in (get-player-entity) [:c :sound :slots track :stop]))

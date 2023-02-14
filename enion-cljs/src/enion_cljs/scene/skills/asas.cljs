@@ -12,7 +12,6 @@
   (:require-macros
     [enion-cljs.scene.macros :as m]))
 
-;; TODO define combo rand ranges in a var
 (def events
   (concat
     skills/common-states
@@ -32,8 +31,6 @@
 
 (def last-one-hand-combo (volatile! (js/Date.now)))
 
-;; TODO hide olurken gelip birisi vurunca appear olunmali, appear hide asamasini iptal etmeli
-;; su an hide olurken ortasinda appear gelince hide devam ediyor...
 (defn create-hide-fn []
   (let [{:keys [race class model-entity]} (j/lookup player)
         initial-opacity #js {:opacity 1}
@@ -142,7 +139,8 @@
 (defmethod skills/skill-response "phantomVision" [_]
   (fire :ui-cooldown "phantomVision")
   (skills.effects/apply-effect-phantom-vision player)
-  (skills/enable-phantom-vision))
+  (skills/enable-phantom-vision)
+  (st/play-sound "pv-sw"))
 
 (defmethod skills/skill-response "hide" [_]
   (fire :ui-cooldown "hide")
@@ -176,12 +174,19 @@
     (skills/close-for-attack? selected-player-id)))
 
 (def phantom-vision-required-mana (-> common.skills/skills (get "phantomVision") :required-mana))
+(def hide-required-mana (-> common.skills/skills (get "hide") :required-mana))
 
 (defn- phantom-vision? [e]
   (and
     (skills/skill-pressed? e "phantomVision")
     (st/cooldown-ready? "phantomVision")
     (st/enough-mana? phantom-vision-required-mana)))
+
+(defn- hide? [e active-state]
+  (and (skills/idle-run-states active-state)
+       (skills/skill-pressed? e "hide")
+       (st/cooldown-ready? "hide")
+       (st/enough-mana? hide-required-mana)))
 
 (defn process-skills [e]
   (when (and (not (-> e .-event .-repeat)) (st/alive?))
@@ -205,7 +210,8 @@
           (println "dagger combo...!")
           (pc/set-anim-boolean model-entity "attackR" false)
           (pc/set-anim-boolean model-entity "attackDagger" true)
-          (vreset! last-one-hand-combo (js/Date.now)))
+          (vreset! last-one-hand-combo (js/Date.now))
+          (st/play-sound "attackDagger"))
 
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
@@ -216,10 +222,13 @@
         (attack-dagger? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackDagger"] selected-player-id)
-          (pc/set-anim-boolean (st/get-model-entity) "attackDagger" true))
+          (pc/set-anim-boolean (st/get-model-entity) "attackDagger" true)
+          (st/play-sound "attackDagger"))
 
-        (and (skills/idle-run-states active-state) (skills/skill-pressed? e "hide"))
-        (pc/set-anim-boolean model-entity "hide" true)
+        (hide? e active-state)
+        (do
+          (pc/set-anim-boolean model-entity "hide" true)
+          (st/play-sound "hide"))
 
         (skills/attack-r? e active-state selected-player-id)
         (do

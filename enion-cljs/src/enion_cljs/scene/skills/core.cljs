@@ -39,6 +39,7 @@
            (pc/update-anim-speed (get-model-entity) "run" 1.5)))}
    {:anim-state "jump" :event "onJumpEnd" :end? true}
    {:anim-state "jump" :event "onJumpStart" :f (fn [player-entity _]
+                                                 (st/play-sound "jump")
                                                  (pc/apply-impulse player-entity 0 200 0))}])
 
 (def fleet-food-required-mana (-> common.skills/skills (get "fleetFoot") :required-mana))
@@ -58,7 +59,8 @@
 (defn cancel-skill [anim-state]
   (let [model-entity (get-model-entity)]
     (pc/set-anim-boolean model-entity anim-state false)
-    (pc/set-anim-boolean model-entity "run" true)))
+    (pc/set-anim-boolean model-entity "run" true)
+    (st/stop-sound anim-state)))
 
 (defn skill-pressed? [e skill]
   (= (key->skill (j/get e :key)) skill))
@@ -137,20 +139,31 @@
   (defmethod skill-response "hpPotion" [_]
     (fire :ui-cooldown "hpPotion")
     (fire :ui-send-msg hp-recover)
-    (skills.effects/apply-effect-hp-potion player)))
+    (skills.effects/apply-effect-hp-potion player)
+    (st/play-sound "potion")))
 
 (let [mp-recover {:mp true}]
   (defmethod skill-response "mpPotion" [_]
     (fire :ui-cooldown "mpPotion")
     (fire :ui-send-msg mp-recover)
-    (skills.effects/apply-effect-mp-potion player)))
+    (skills.effects/apply-effect-mp-potion player)
+    (st/play-sound "potion")))
 
 (defmethod skill-response "fleetFoot" [_]
   (fire :ui-cooldown "fleetFoot")
   (skills.effects/apply-effect-fleet-foot player)
   (j/assoc! player
             :fleet-foot? true
-            :speed (if (st/asas?) 850 700)))
+            :speed (if (st/asas?) 850 700))
+  (st/play-sound "fleetFoot"))
+
+(defmethod skill-response "attackR" [params]
+  (fire :ui-cooldown "attackR")
+  (let [selected-player-id (-> params :skill :selected-player-id)
+        damage (-> params :skill :damage)]
+    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+                        :hit damage})
+    (st/play-sound "attackR")))
 
 (defn register-skill-events [events]
   (let [player-entity (get-player-entity)
@@ -265,6 +278,9 @@
 (defmethod net/dispatch-pro-response :phantom-vision-finished [_]
   (dlog "phantom vision finished")
   (j/assoc! st/player :phantom-vision? false))
+
+(defmethod net/dispatch-pro-response :shield-wall-finished [_]
+  (dlog "shield wall finished"))
 
 (let [heal-msg {:heal true}]
   (defmethod net/dispatch-pro-response :got-heal [_]

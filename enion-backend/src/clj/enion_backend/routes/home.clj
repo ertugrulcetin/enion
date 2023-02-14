@@ -224,7 +224,7 @@
           attrs {:id id
                  :username (str username "_" id)
                  ;; :race race
-                 :race "orc" #_(if (odd? id) "human" "orc")
+                 :race (if (odd? id) "human" "orc")
                  :class class
                  :health health
                  :mana mana
@@ -809,6 +809,7 @@
                                                         (has-break-defense? enemy-id))
                                                 health-after-damage (- (:health enemy-world-state) damage)
                                                 health-after-damage (Math/max ^long health-after-damage 0)]
+                                            (make-asas-appear-if-hidden enemy-id)
                                             (swap! world assoc-in [enemy-id :health] health-after-damage)
                                             (process-if-death id enemy-id health-after-damage players*)
                                             (send! enemy-id :got-attack-range {:damage damage
@@ -844,6 +845,7 @@
                                 (has-break-defense? selected-player-id))
                         health-after-damage (- (:health other-player-world-state) damage)
                         health-after-damage (Math/max ^long health-after-damage 0)]
+                    (make-asas-appear-if-hidden selected-player-id)
                     (process-if-death id selected-player-id health-after-damage players*)
                     (swap! world assoc-in [selected-player-id :health] health-after-damage)
                     (send! selected-player-id :got-attack-single {:damage damage
@@ -944,22 +946,6 @@
                        (keys players))))
     )
 
-  (do
-
-    (swap! world (fn [world]
-                   (reduce (fn [world id]
-                             (-> world
-                               (assoc-in [id :health] 0)))
-                     world
-                     [9])))
-
-    (swap! players (fn [players]
-                     (reduce
-                       (fn [players id]
-                         (assoc-in players [id :last-time :died] (now)))
-                       players
-                       [9])))
-    )
 
   (clojure.pprint/pprint @players)
 

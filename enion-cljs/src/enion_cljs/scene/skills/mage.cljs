@@ -110,7 +110,8 @@
       ((j/get-in player [:skills :throw-nova]) temp-pos)
       (doseq [enemy damaged-enemies]
         (fire :ui-send-msg {:to (j/get (st/get-other-player (:id enemy)) :username)
-                            :hit (:damage enemy)})))))
+                            :hit (:damage enemy)}))
+      (st/play-sound "attackRange"))))
 
 (defmethod skills/skill-response "attackSingle" [params]
   (fire :ui-cooldown "attackSingle")
@@ -170,14 +171,16 @@
           (j/assoc-in! player [:skill->selected-player-id "attackSingle"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackSingle" true)
           (skills.effects/apply-effect-fire-hands player)
-          (st/look-at-selected-player))
+          (st/look-at-selected-player)
+          (st/play-sound "attackSingle"))
 
         (teleport? e active-state selected-player-id)
         (do
           (j/assoc! player :positioning-nova? false)
           (pc/set-nova-circle-pos)
           (j/assoc-in! player [:skill->selected-player-id "teleport"] selected-player-id)
-          (pc/set-anim-boolean model-entity "teleport" true))
+          (pc/set-anim-boolean model-entity "teleport" true)
+          (st/play-sound "teleport"))
 
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)

@@ -49,16 +49,10 @@
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
                         :hit damage})))
 
-(defmethod skills/skill-response "attackR" [params]
-  (fire :ui-cooldown "attackR")
-  (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)]
-    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
-                        :hit damage})))
-
 (defmethod skills/skill-response "shieldWall" [_]
   (fire :ui-cooldown "shieldWall")
-  (skills.effects/apply-effect-shield-wall player))
+  (skills.effects/apply-effect-shield-wall player)
+  (st/play-sound "pv-sw"))
 
 (defn- one-hand-combo? [e active-state selected-player-id]
   (and (= active-state "attackR")
@@ -123,7 +117,8 @@
           (j/assoc-in! player [:skill->selected-player-id "attackOneHand"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackR" false)
           (pc/set-anim-boolean model-entity "attackOneHand" true)
-          (vreset! last-one-hand-combo (js/Date.now)))
+          (vreset! last-one-hand-combo (js/Date.now))
+          (st/play-sound "attackOneHand"))
 
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
@@ -134,12 +129,14 @@
         (attack-one-hand? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackOneHand"] selected-player-id)
-          (pc/set-anim-boolean (st/get-model-entity) "attackOneHand" true))
+          (pc/set-anim-boolean (st/get-model-entity) "attackOneHand" true)
+          (st/play-sound "attackOneHand"))
 
         (attack-slow-down? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackSlowDown"] selected-player-id)
-          (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true))
+          (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true)
+          (st/play-sound "attackSlowDown"))
 
         (skills/attack-r? e active-state selected-player-id)
         (do
