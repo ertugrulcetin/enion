@@ -38,16 +38,20 @@
              (init-fn this)
              (init-ui)
              #_(init {:id 1
-                    :username "NeaTBuSTeR"
-                    :race "orc"
-                    :class "warrior"
-                    :health 1000
-                    :mana 1000}))
+                      :username "NeaTBuSTeR"
+                      :race "orc"
+                      :class "warrior"
+                      :health 1000
+                      :mana 1000}))
      :post-init (fn []
                   ;;TODO window.Terrain/Water/Wave acik onlari da null'a setle
                   (j/assoc-in! pc/app [:graphicsDevice :maxPixelRatio] 0.75)
                   (when dev?
                     (simulation/init))
                   (when-not dev?
-                    (j/assoc! js/window :pc nil))
+                    (let [fill-mode-none (j/get-in js/window [:pc :FILLMODE_NONE])
+                          fill-mode-aspect (j/get-in js/window [:pc :FILLMODE_KEEP_ASPECT])]
+                      (j/assoc! js/window :pc nil)
+                      (j/assoc-in! js/window [:pc :FILLMODE_NONE] fill-mode-none)
+                      (j/assoc-in! js/window [:pc :FILLMODE_KEEP_ASPECT] fill-mode-aspect)))
                   (fire :start-ws))}))

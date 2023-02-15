@@ -37,7 +37,6 @@
 (defmulti dispatch-pro-response ffirst)
 
 (defmethod dispatch-pro-response :init [params]
-  (js/console.log params)
   (if-let [error (-> params :init :error)]
     (case error
       :invalid-username (fire :ui-init-modal-error

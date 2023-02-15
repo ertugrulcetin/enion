@@ -130,14 +130,15 @@
 (defn get-guid [entity]
   (j/call entity :getGuid))
 
-(defn create-script [script-name {:keys [attrs init update post-init post-update]}]
-  (let [script (j/call js/pc :createScript (csk/->camelCaseString script-name))]
-    (doseq [[k v] attrs]
-      (j/call-in script [:attributes :add] (name k) (clj->js v)))
-    (some->> init (j/assoc-in! script [:prototype :initialize]))
-    (some->> update (j/assoc-in! script [:prototype :update]))
-    (some->> post-init (j/assoc-in! script [:prototype :postInitialize]))
-    (some->> post-update (j/assoc-in! script [:prototype :postUpdate]))))
+(let [create-script* (j/get js/pc :createScript)]
+  (defn create-script [script-name {:keys [attrs init update post-init post-update]}]
+    (let [script (create-script* (csk/->camelCaseString script-name))]
+      (doseq [[k v] attrs]
+        (j/call-in script [:attributes :add] (name k) (clj->js v)))
+      (some->> init (j/assoc-in! script [:prototype :initialize]))
+      (some->> update (j/assoc-in! script [:prototype :update]))
+      (some->> post-init (j/assoc-in! script [:prototype :postInitialize]))
+      (some->> post-update (j/assoc-in! script [:prototype :postUpdate])))))
 
 (defn pressed? [key]
   (j/call-in app [:keyboard :isPressed] (key key->code)))

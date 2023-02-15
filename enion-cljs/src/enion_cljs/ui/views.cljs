@@ -637,16 +637,17 @@
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
-        (when @(subscribe [::subs/init-modal-open?])
-          [init-modal])
-        [selected-player]
-        (when @(subscribe [::subs/minimap-open?])
-          [minimap])
-        [party-list]
-        [chat]
-        [party-request-modal]
-        [info-box]
-        [re-spawn-modal]
-        [actions-section]
-        [temp-skill-img]
-        [skill-description]])}))
+        (if @(subscribe [::subs/init-modal-open?])
+          [init-modal]
+          [:<>
+           [selected-player]
+           (when @(subscribe [::subs/minimap-open?])
+             [minimap])
+           [party-list]
+           [chat]
+           [party-request-modal]
+           [info-box]
+           [re-spawn-modal]
+           [actions-section]
+           [temp-skill-img]
+           [skill-description]])])}))
