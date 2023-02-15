@@ -5,6 +5,7 @@
     [clojure.string :as str]
     [clojure.tools.logging :as log]
     [common.enion.skills :as common.skills]
+    [enion-backend.async :refer [dispatch reg-pro]]
     [enion-backend.layout :as layout]
     [enion-backend.middleware :as middleware]
     [enion-backend.teatime :as tea]
@@ -14,7 +15,6 @@
     [mount.core :as mount :refer [defstate]]
     [msgpack.clojure-extensions]
     [msgpack.core :as msg]
-    [procedure.async :refer [dispatch reg-pro]]
     [ring.util.http-response :as response]
     [ring.util.response])
   (:import

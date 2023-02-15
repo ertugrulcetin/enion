@@ -47,7 +47,7 @@
 
   :profiles
   {:uberjar {:omit-source true
-             :aot :all
+             :aot [enion-backend.core]
              :uberjar-name "enion-backend.jar"
              :source-paths ["env/prod/clj"]
              :resource-paths ["env/prod/resources"]}
