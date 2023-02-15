@@ -1,23 +1,32 @@
-name: Fly Deploy
+name: Deploy to Fly.io
+
 on:
-push:
-branches:
-  - main
+  push:
+    branches:
+      - master
+
 env:
-FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  FLY_APP_NAME: enion
+
 jobs:
-deploy:
-name: Deploy app
-runs-on: ubuntu-latest
-steps:
-  - uses: actions/checkout@v3
-  - uses: superfly/flyctl-actions/setup-flyctl@master
-  - run:  |
-       cd enion-cljs
-       npm install
-       npm run release
-       cp -r resources ../enion-backend
-       cd ../enion-backend
-       lein uberjar
-       flyctl deploy --remote-only
-       
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+        with:
+          version: latest
+
+      - name: Deploy to Fly.io
+        run: |
+          cd enion-cljs
+          npm install
+          npm run release
+          cp -r resources ../enion-backend
+          cd ../enion-backend
+          lein uberjar
+          flyctl deploy --remote-only   
