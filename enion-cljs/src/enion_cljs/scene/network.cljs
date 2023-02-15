@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.network
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [fire on dlog]]
+    [enion-cljs.common :refer [fire on dlog ws-url]]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.effects :as effects]
     [enion-cljs.scene.states :as st]
@@ -362,7 +362,7 @@
 
 (on :start-ws
     (fn []
-      (connect {:url "ws://localhost:3000/ws"
+      (connect {:url ws-url
                 :on-message (fn [event]
                               (dispatch-pro-response (msg/unpack (j/get event :data))))
                 :on-open (fn []

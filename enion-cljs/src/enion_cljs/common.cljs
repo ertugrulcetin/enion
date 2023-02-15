@@ -9,6 +9,8 @@
 
 (defonce global-on-listeners (atom []))
 
+(goog-define ws-url "ws://localhost:3000/ws")
+
 (def dev?
   ^boolean goog.DEBUG)
 

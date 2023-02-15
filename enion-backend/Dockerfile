@@ -1,6 +1,6 @@
-FROM openjdk:8-alpine
+FROM clojure:openjdk-13-lein-2.9.1 AS lein
 
-COPY target/uberjar/enion-backend.jar /enion-backend/app.jar
+COPY target/default+uberjar/enion-backend.jar /enion-backend/app.jar
 
 EXPOSE 3000
 

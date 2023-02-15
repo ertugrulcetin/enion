@@ -73,7 +73,7 @@
 
 (defn home-page
   [request]
-  (layout/render request "home.html" {:docs (-> "docs/docs.md" io/resource slurp)}))
+  (layout/render request "index.html"))
 
 (defn- send!
   [player-id pro-id result]
