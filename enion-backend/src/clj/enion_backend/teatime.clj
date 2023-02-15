@@ -120,7 +120,7 @@
 
 (def thread-count
   "Number of threads in the threadpool"
-  (Math/max (/ (.availableProcessors (Runtime/getRuntime)) 2) 1))
+  1 #_(Math/max (/ (.availableProcessors (Runtime/getRuntime)) 2) 1))
 
 (def park-interval-micros
   "Time we might sleep when nothing is scheduled, in micros."

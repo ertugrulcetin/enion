@@ -6,4 +6,4 @@ cp -r resources ../enion-backend
 cd ../enion-backend
 lein clean
 lein uberjar
-fly deploy
+fly deploy --local-only
