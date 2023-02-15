@@ -81,9 +81,10 @@
        (fn []
          (let [id (js/setTimeout
                     (fn []
-                      (dispatch-sync [::events/set-cooldown-timeout-id nil skill]))
+                      (dispatch-sync [::events/clear-cooldown skill]))
                     cooldown-secs)]
            (dispatch-sync [::events/set-cooldown-timeout-id id skill])))
+       :component-will-unmount #(dispatch-sync [::events/clear-cooldown skill])
        :reagent-render
        (fn []
          [:div (styles/cooldown (/ cooldown-secs 1000))])})))
@@ -163,7 +164,7 @@
       [:div
        [:strong
         {:class (if (= "orc" killer-race) "orc-defeats" "human-defeats")}
-        (str killer " has defeated " killed "")]
+        (str killer " defeated " killed "")]
        [:br]]
       [:div (when party? (styles/chat-part-message-box))
        [:strong (str (:from msg) ":")]
@@ -518,6 +519,56 @@
         ^{:key id}
         [party-member-hp-mp-bars id username health total-health])]]))
 
+(defn init-modal []
+  (let [username (r/atom nil)
+        race (r/atom nil)
+        class (r/atom nil)]
+    (fn []
+      [:div (styles/init-modal)
+       [:input {:ref #(some-> % .focus)
+                :on-change #(reset! username (-> % .-target .-value))
+                :placeholder "Enter your username"
+                :class (styles/init-modal-username-input)}]
+       [:p "Select race"]
+       [:div (styles/init-modal-race-container)
+        [:button
+         {:class (styles/init-modal-orc-button (= "orc" @race))
+          :on-click #(reset! race "orc")}
+         "Orc"]
+        [:button
+         {:class (styles/init-modal-human-button (= "human" @race))
+          :on-click #(reset! race "human")}
+         "Human"]]
+       [:p "Select class"]
+       [:div (styles/init-modal-class-container)
+        [:button
+         {:class (styles/init-modal-button @race (= "warrior" @class))
+          :on-click #(reset! class "warrior")}
+         "Warrior"]
+        [:button
+         {:class (styles/init-modal-button @race (= "priest" @class))
+          :on-click #(reset! class "priest")}
+         "Priest"]
+        [:button
+         {:class (styles/init-modal-button @race (= "mage" @class))
+          :on-click #(reset! class "mage")}
+         "Mage"]
+        [:button
+         {:class (styles/init-modal-button @race (= "asas" @class))
+          :on-click #(reset! class "asas")}
+         "Assassin"]]
+       [:br]
+       [:hr (styles/init-modal-hr)]
+       (when-let [err @(subscribe [::subs/init-modal-error])]
+         [:p (styles/init-modal-error) err])
+       [:button
+        {:class (styles/init-modal-enter-button)
+         :disabled @(subscribe [::subs/init-modal-loading?])
+         :on-click #(dispatch [::events/init-game @username @race @class])}
+        (if @(subscribe [::subs/init-modal-loading?])
+          "Loading..."
+          "Enter")]])))
+
 (defn- on-mouse-down [e]
   (when (= (j/get e :button) 0)
     (if (> js/window.innerWidth 1440)
@@ -568,7 +619,7 @@
        (on :ui-player-mana #(dispatch [::events/set-mana %]))
        (on :ui-player-set-total-health-and-mana #(dispatch [::events/set-total-health-and-mana %]))
        (on :ui-cooldown #(dispatch-sync [::events/cooldown %]))
-       (on :ui-cancel-skill #(dispatch-sync [::events/cancel-skill %]))
+       (on :ui-cancel-skill #(dispatch-sync [::events/clear-cooldown %]))
        (on :ui-slow-down? #(dispatch-sync [::events/block-slow-down-skill %]))
        (on :ui-show-party-request-modal #(dispatch [::events/show-party-request-modal %]))
        (on :register-party-members #(dispatch [::events/register-party-members %]))
@@ -580,10 +631,14 @@
        (on :show-re-spawn-modal #(dispatch [::events/show-re-spawn-modal %]))
        (on :close-re-spawn-modal #(dispatch [::events/close-re-spawn-modal %]))
        (on :close-party-request-modal #(dispatch [::events/close-party-request-modal]))
-       (on :clear-all-cooldowns #(dispatch [::events/clear-all-cooldowns])))
+       (on :clear-all-cooldowns #(dispatch [::events/clear-all-cooldowns]))
+       (on :close-init-modal #(dispatch [::events/close-init-modal]))
+       (on :ui-init-modal-error #(dispatch [::events/set-init-modal-error %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
+        (when @(subscribe [::subs/init-modal-open?])
+          [init-modal])
         [selected-player]
         (when @(subscribe [::subs/minimap-open?])
           [minimap])

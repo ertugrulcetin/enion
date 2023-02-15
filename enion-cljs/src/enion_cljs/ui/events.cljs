@@ -169,16 +169,19 @@
 (reg-event-fx
   ::clear-cooldown
   (fn [{:keys [db]} [_ skill]]
-    {:db (assoc-in db [:player :cooldown skill :in-progress?] false)
-     ::fire [:cooldown-ready? {:ready? true
-                               :skill skill}]}))
+    (let [timeout-id (-> db :player :cooldown (get skill) :timeout-id)]
+      {:db (-> db
+               (assoc-in [:player :cooldown skill :in-progress?] false)
+               (assoc-in [:player :cooldown skill :timeout-id] nil))
+       ::fire [:cooldown-ready? {:ready? true
+                                 :skill skill}]
+       :fx [(when timeout-id
+              [::clear-timeout timeout-id])]})))
 
-(reg-event-fx
+(reg-event-db
   ::set-cooldown-timeout-id
-  (fn [{:keys [db]} [_ id skill]]
-    {:db (assoc-in db [:player :cooldown skill :timeout-id] id)
-     :fx [(when (nil? id)
-            [:dispatch [::clear-cooldown skill]])]}))
+  (fn [db [_ id skill]]
+    (assoc-in db [:player :cooldown skill :timeout-id] id)))
 
 ;; TODO add throttle to it
 (reg-event-db
@@ -198,14 +201,6 @@
       (-> db
           (assoc :selected-player nil)
           (assoc-in [:party :selected-member] nil)))))
-
-(reg-event-fx
-  ::cancel-skill
-  (fn [{:keys [db]} [_ skill]]
-    (let [timeout-id (-> db :player :cooldown (get skill) :timeout-id)]
-      {:dispatch [::clear-cooldown skill]
-       :fx [(when timeout-id
-              [::clear-timeout timeout-id])]})))
 
 (reg-event-db
   ::set-total-health-and-mana
@@ -299,3 +294,27 @@
     (let [cooldowns (-> db :player :cooldown keys)]
       {:dispatch-n (mapv (fn [skill]
                            [::clear-cooldown skill]) cooldowns)})))
+
+(reg-event-fx
+  ::init-game
+  (fn [{:keys [db]} [_ username race class]]
+    {:db (-> db
+             (assoc-in [:init-modal :error] nil)
+             (assoc-in [:init-modal :loading?] true))
+     :fx [[::fire [:init-game {:username username
+                               :race race
+                               :class class}]]]}))
+
+(reg-event-db
+  ::close-init-modal
+  (fn [db]
+    (-> db
+        (assoc-in [:init-modal :loading?] false)
+        (assoc-in [:init-modal :open?] false))))
+
+(reg-event-db
+  ::set-init-modal-error
+  (fn [db [_ error]]
+    (-> db
+        (assoc-in [:init-modal :loading?] false)
+        (assoc-in [:init-modal :error] error))))

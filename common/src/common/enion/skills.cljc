@@ -138,3 +138,9 @@
                :description "Restores 360 MP"
                :mp 360}})
 
+
+(defn username?
+  [username]
+  (and (string? username)
+       (not (empty? username))
+       (re-find #"^[a-zA-Z0-9_]{2,20}$" username)))

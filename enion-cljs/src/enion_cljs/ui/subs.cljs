@@ -163,3 +163,18 @@
   ::re-spawn-modal
   (fn [db]
     (:re-spawn-modal db)))
+
+(reg-sub
+  ::init-modal-open?
+  (fn [db]
+    (-> db :init-modal :open?)))
+
+(reg-sub
+  ::init-modal-error
+  (fn [db]
+    (-> db :init-modal :error)))
+
+(reg-sub
+  ::init-modal-loading?
+  (fn [db]
+    (-> db :init-modal :loading?)))

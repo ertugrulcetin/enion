@@ -212,26 +212,43 @@
 (defn- prob? [prob]
   (< (rand) prob))
 
+(def race-set #{"orc" "human"})
+(def class-set #{"warrior" "mage" "asas" "priest"})
+
+(defn- get-usernames []
+  (->> @players
+       vals
+       (keep :username)
+       (map str/lower-case)
+       set))
+
 (reg-pro
   :init
   (fn [{id :id {:keys [username race class]} :data}]
-    (println "Player joining...")
-    (let [pos (if (= "orc" race)
-                (random-pos-for-orc)
-                (random-pos-for-human))
-          health (get-in common.skills/classes [class :health])
-          mana (get-in common.skills/classes [class :mana])
-          attrs {:id id
-                 :username (str username "_" id)
-                 ;; :race race
-                 :race (if (odd? id) "human" "orc")
-                 :class class
-                 :health health
-                 :mana mana
-                 :pos pos}]
-      (swap! players update id merge attrs)
-      (notify-players-for-new-join id attrs)
-      attrs)))
+    (cond
+      (not (common.skills/username? username)) {:error :invalid-username}
+      ((get-usernames) (str/lower-case username)) {:error :username-taken}
+      (not (race-set race)) {:error :invalid-race}
+      (not (class-set class)) {:error :invalid-class}
+      :else (do
+              (println "Player joining...")
+              (let [pos (if (= "orc" race)
+                          (random-pos-for-orc)
+                          (random-pos-for-human))
+                    health (get-in common.skills/classes [class :health])
+                    mana (get-in common.skills/classes [class :mana])
+                    attrs {:id id
+                           ;; :username (str username "_" id)
+                           :username username
+                           ;; :race (if (odd? id) "human" "orc")
+                           :race race
+                           :class class
+                           :health health
+                           :mana mana
+                           :pos pos}]
+                (swap! players update id merge attrs)
+                (notify-players-for-new-join id attrs)
+                attrs)))))
 
 (reg-pro
   :connect-to-world-state

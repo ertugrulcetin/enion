@@ -37,9 +37,20 @@
 (defmulti dispatch-pro-response ffirst)
 
 (defmethod dispatch-pro-response :init [params]
-  (fire :init (:init params))
-  (set! current-player-id (-> params :init :id))
-  (fire :ui-set-current-player-id current-player-id))
+  (js/console.log params)
+  (if-let [error (-> params :init :error)]
+    (case error
+      :invalid-username (fire :ui-init-modal-error
+                              (str "Username must be between 2 and 20 characters long and can only contain "
+                                   "letters, numbers, and underscores."))
+      :username-taken (fire :ui-init-modal-error "Username is already taken.")
+      :invalid-race (fire :ui-init-modal-error "Race is not selected or invalid.")
+      :invalid-class (fire :ui-init-modal-error "Class is not selected or invalid."))
+    (do
+      (fire :close-init-modal)
+      (fire :init (:init params))
+      (set! current-player-id (-> params :init :id))
+      (fire :ui-set-current-player-id current-player-id))))
 
 (defmethod dispatch-pro-response :player-join [params]
   (dlog "new join" (:player-join params))
@@ -357,10 +368,7 @@
                               (dispatch-pro-response (msg/unpack (j/get event :data))))
                 :on-open (fn []
                            (println "WS connection established.")
-                           (reset! open? true)
-                           (dispatch-pro :init {:username "NeaTBuSTeR"
-                                                :race "orc"
-                                                :class "asas"}))
+                           (reset! open? true))
                 :on-close (fn []
                             (println "WS connection closed.")
                             (reset! open? false))
@@ -368,6 +376,7 @@
                             (println "WS error occurred!")
                             (reset! open? false))})))
 
+(on :init-game #(dispatch-pro :init %))
 (on :connect-to-world-state #(dispatch-pro :connect-to-world-state))
 (on :send-global-message #(dispatch-pro :send-global-message {:msg %}))
 (on :send-party-message #(dispatch-pro :send-party-message {:msg %}))

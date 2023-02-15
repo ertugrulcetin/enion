@@ -162,7 +162,10 @@
                     (fn [e]
                       (when (st/chat-closed?)
                         (process-esc e)
-                        (process-skills e)
+                        (when (and (not (j/get-in e [:event :metaKey]))
+                                   (not (j/get-in e [:event :ctrlKey]))
+                                   (not (j/get-in e [:event :altKey])))
+                          (process-skills e))
                         (select-closest-enemy e)
                         (look-at-selected-player e))))
     (pc/on-keyboard :EVENT_KEYUP

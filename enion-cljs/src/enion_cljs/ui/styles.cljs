@@ -184,7 +184,7 @@
 
 (defclass message-box []
   {:width "100%"
-   :height "120px"
+   :height "140px"
    :line-height "1.65em"
    ;; For Firefox
    :overflow-y :auto
@@ -432,7 +432,7 @@
 
 (defclass party-action-button []
   {:composes [(button)]
-   :font-size "14px"
+   :font-size "16px"
    :opacity 0.75
    :margin-bottom "5px"
    :margin-right "10px"})
@@ -466,3 +466,82 @@
 (defattrs party-member-username []
   {:color "white"
    :font-size "13px"})
+
+(defattrs init-modal []
+  {:composes [(party-request-modal)]
+   :width "40%"})
+
+(defclass init-modal-username-input []
+  {:color "white"
+   :width "300px"
+   :height "40px"
+   :font-family "Comic Papyrus"
+   :border-radius "5px"
+   :border "1px solid black"
+   :background-color "#10131dcc"
+   :outline :none
+   :padding "5px"
+   :font-size "20px"
+   :text-align :center})
+
+(defattrs init-modal-race-container []
+  {:display :flex
+   :justify-content :center
+   :gap "10px"
+   :margin-top "20px"})
+
+(defattrs init-modal-class-container []
+  {:composes [(init-modal-race-container)]})
+
+(defclass init-modal-button [race selected?]
+  {:composes [(re-spawn-button)]}
+  [:&:disabled {:opacity 0.5
+                :cursor :not-allowed
+                :color "grey !important"
+                :border "2px solid grey"}]
+  (case race
+    "orc" (list
+            [:&:hover {:color "#ff0000ff !important"
+                       :border "2px solid #ff0000ff"}]
+            (when selected?
+              [:& {:color "#ff0000ff !important"
+                   :border "2px solid #ff0000ff"}]))
+    "human" (list
+              [:&:hover {:color "#2691b2ff !important"
+                         :border "2px solid #2691b2ff"}]
+              (when selected?
+                [:& {:color "#2691b2ff !important"
+                     :border "2px solid #2691b2ff"}]))
+    (list
+      [:& {:color "white"}]
+      [:&:hover {:color "white !important"
+                 :border "2px solid white"}])))
+
+(defclass init-modal-orc-button [selected?]
+  {:composes [(init-modal-button nil nil)]}
+  [:&:hover {:color "#ff0000ff !important"
+             :border "2px solid #ff0000ff"}]
+  (when selected?
+    [:& {:color "#ff0000ff !important"
+         :border "2px solid #ff0000ff"}]))
+
+(defclass init-modal-human-button [selected?]
+  {:composes [(init-modal-button nil nil)]}
+  [:&:hover {:color "#2691b2ff !important"
+             :border "2px solid #2691b2ff"}]
+  (when selected?
+    [:& {:color "#2691b2ff !important"
+         :border "2px solid #2691b2ff"}]))
+
+(defclass init-modal-enter-button []
+  {:composes [(init-modal-button nil nil)]
+   :margin-top "20px"
+   :font-size "20px"}
+  [:&:hover {:color "#ffc301c8 !important"
+             :border "2px solid #ffc301c8"}])
+
+(defattrs init-modal-hr []
+  {:border-color "grey"})
+
+(defattrs init-modal-error []
+  {:color "red"})
