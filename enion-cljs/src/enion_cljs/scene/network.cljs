@@ -430,17 +430,4 @@
   (send-states-to-server)
   (cancel-sending-states-to-server)
 
-
-  (connect {:url "ws://localhost:3000/ws"
-            :on-message (fn [event]
-                          (dispatch-pro-response (msg/unpack (j/get event :data))))
-            :on-open (fn []
-                       (println "WS connection established.")
-                       (reset! open? true))
-            :on-close (fn []
-                        (println "WS connection closed.")
-                        (reset! open? false))
-            :on-error (fn []
-                        (println "WS error occurred!")
-                        (reset! open? false))})
   )
