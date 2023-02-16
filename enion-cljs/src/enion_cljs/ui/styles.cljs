@@ -501,11 +501,11 @@
                 :border "2px solid grey"}]
   (case race
     "orc" (list
-            [:&:hover {:color "#ff0000ff !important"
-                       :border "2px solid #ff0000ff"}]
+            [:&:hover {:color "rgb(15 188 3) !important"
+                       :border "2px solid rgb(15 188 3)"}]
             (when selected?
-              [:& {:color "#ff0000ff !important"
-                   :border "2px solid #ff0000ff"}]))
+              [:& {:color "rgb(15 188 3) !important"
+                   :border "2px solid rgb(15 188 3)"}]))
     "human" (list
               [:&:hover {:color "#2691b2ff !important"
                          :border "2px solid #2691b2ff"}]
@@ -519,11 +519,11 @@
 
 (defclass init-modal-orc-button [selected?]
   {:composes [(init-modal-button nil nil)]}
-  [:&:hover {:color "#ff0000ff !important"
-             :border "2px solid #ff0000ff"}]
+  [:&:hover {:color "rgb(15 188 3) !important"
+             :border "2px solid rgb(15 188 3)"}]
   (when selected?
-    [:& {:color "#ff0000ff !important"
-         :border "2px solid #ff0000ff"}]))
+    [:& {:color "rgb(15 188 3) !important"
+         :border "2px solid rgb(15 188 3)"}]))
 
 (defclass init-modal-human-button [selected?]
   {:composes [(init-modal-button nil nil)]}
