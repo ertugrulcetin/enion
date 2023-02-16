@@ -129,11 +129,11 @@
                 :required-mana 50
                 :effect-duration 25000
                 :effect-duration-asas 12000}
-   "hpPotion" {:cooldown 1500
+   "hpPotion" {:cooldown 2000
                :name "HP Potion"
                :description "Restores 240 HP"
                :hp 240}
-   "mpPotion" {:cooldown 1500
+   "mpPotion" {:cooldown 2000
                :name "MP Potion"
                :description "Restores 360 MP"
                :mp 360}})

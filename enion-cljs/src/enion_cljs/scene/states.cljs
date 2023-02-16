@@ -51,8 +51,11 @@
 (defn get-other-player-entity [id]
   (j/get-in other-players [id :entity]))
 
-(defn get-username [player-id]
-  (-> player-id get-other-player (j/get :username)))
+(defn get-username
+  ([]
+   (j/get player :username))
+  ([player-id]
+   (-> player-id get-other-player (j/get :username))))
 
 (defn destroy-player [player-id]
   (when-let [entity (get-other-player-entity player-id)]

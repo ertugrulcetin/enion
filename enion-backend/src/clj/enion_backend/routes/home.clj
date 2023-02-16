@@ -32,7 +32,7 @@
    4 20
    5 15})
 
-(def max-number-of-players 50)
+(def max-number-of-players 40)
 (def max-number-of-same-race-players (/ max-number-of-players 2))
 
 (def send-snapshot-count 20)
@@ -139,6 +139,33 @@
     (swap! world update id merge data)
     nil))
 
+(defn- get-orcs [players]
+  (filter (fn [[_ p]] (= "orc" (:race p))) players))
+
+(defn- get-humans [players]
+  (filter (fn [[_ p]] (= "human" (:race p))) players))
+
+(reg-pro
+  :get-server-stats
+  (fn [_]
+    (let [players @players]
+      (let [orcs (count (get-orcs players))
+            humans (count (get-humans players))]
+        {:number-of-players (+ orcs humans)
+         :orcs orcs
+         :humans humans
+         :max-number-of-same-race-players max-number-of-same-race-players
+         :max-number-of-players max-number-of-players}))))
+
+(reg-pro
+  :get-score-board
+  (fn [_]
+    (let [players @players
+          orcs (map (fn [[_ p]] (assoc p :bp (or (:bp p) 0))) (get-orcs players))
+          humans (map (fn [[_ p]] (assoc p :bp (or (:bp p) 0))) (get-humans players))]
+      (when-let [players* (seq (concat orcs humans))]
+        (map #(select-keys % [:id :race :class :bp]) players*)))))
+
 (defn- find-player-ids-by-race [players race]
   (->> players
        (filter
@@ -177,9 +204,9 @@
         :else
         (when (not (or (str/blank? msg)
                        (> (count msg) 80)))
-          (doseq [id player-ids]
-            (send! id :global-message {:id id
-                                       :msg msg})))))))
+          (doseq [id* player-ids]
+            (send! id* :global-message {:id id
+                                        :msg msg})))))))
 
 (reg-pro
   :send-party-message
@@ -222,10 +249,25 @@
        (map str/lower-case)
        set))
 
+(defn- human-race-full? []
+  (= max-number-of-same-race-players (count (filter (fn [[_ p]] (= "human" (:race p))) @players))))
+
+(defn- orc-race-full? []
+  (= max-number-of-same-race-players (count (filter (fn [[_ p]] (= "orc" (:race p))) @players))))
+
+(defn- full? []
+  (let [players @players
+        orcs (count (filter (fn [[_ p]] (= "orc" (:race p))) players))
+        humans (count (filter (fn [[_ p]] (= "human" (:race p))) players))]
+    (= max-number-of-players (+ orcs humans))))
+
 (reg-pro
   :init
   (fn [{id :id {:keys [username race class]} :data}]
     (cond
+      (full?) {:error :server-full}
+      (and (= race "human") (human-race-full?)) {:error :human-race-full}
+      (and (= race "orc") (orc-race-full?)) {:error :orc-race-full}
       (not (common.skills/username? username)) {:error :invalid-username}
       ((get-usernames) (str/lower-case username)) {:error :username-taken}
       (not (race-set race)) {:error :invalid-race}
@@ -337,7 +379,7 @@
     (<= (distance x x1 y y1 z z1) threshold)))
 
 (defn- close-for-attack? [player-world-state other-player-world-state]
-  (close-distance? player-world-state other-player-world-state (+ common.skills/close-attack-distance-threshold 0.25)))
+  (close-distance? player-world-state other-player-world-state (+ common.skills/close-attack-distance-threshold 0.4)))
 
 (defn- close-for-priest-skills? [player-world-state other-player-world-state]
   (close-distance? player-world-state other-player-world-state (+ common.skills/priest-skills-distance-threshold 0.5)))
@@ -948,6 +990,10 @@
   ;; also set :last-time :died to now
   (do
 
+    ;;close all connections, fetch :socket attribute and call s/close!
+    (doseq [id (keys @players)]
+      (s/close! (:socket (get @players id))))
+
     (swap! world (fn [world]
                    (reduce (fn [world id]
                              (-> world
@@ -1198,7 +1244,11 @@
         (fn [socket]
           (let [player-id (swap! id-generator inc)]
             (alter-meta! socket assoc :id player-id)
-            (swap! players assoc-in [player-id :socket] socket)
+            (swap! players (fn [players]
+                             (-> players
+                                 (assoc-in [player-id :id] player-id)
+                                 (assoc-in [player-id :socket] socket)
+                                 (assoc-in [player-id :time] (now)))))
             (s/on-closed socket
                          (fn []
                            (remove-from-party {:id player-id

@@ -43,13 +43,16 @@
                               (str "Username must be between 2 and 20 characters long and can only contain "
                                    "letters, numbers, and underscores."))
       :username-taken (fire :ui-init-modal-error "Username is already taken.")
-      :invalid-race (fire :ui-init-modal-error "Race is not selected or invalid.")
-      :invalid-class (fire :ui-init-modal-error "Class is not selected or invalid."))
+      :invalid-race (fire :ui-init-modal-error "Race is not selected.")
+      :invalid-class (fire :ui-init-modal-error "Class is not selected.")
+      :server-full (fire :ui-init-modal-error "Server is full. Please wait a bit and try again.")
+      :orc-race-full (fire :ui-init-modal-error "Orc race is full. Please wait a bit and try again.")
+      :human-race-full (fire :ui-init-modal-error "Human race is full. Please wait a bit and try again."))
     (do
       (fire :close-init-modal)
       (fire :init (:init params))
       (set! current-player-id (-> params :init :id))
-      (fire :ui-set-current-player-id current-player-id))))
+      (fire :ui-set-current-player [current-player-id (-> params :init :username)]))))
 
 (defmethod dispatch-pro-response :player-join [params]
   (dlog "new join" (:player-join params))
@@ -360,6 +363,13 @@
     (when (seq players)
       (fire :create-players players))))
 
+(defn- on-ws-open []
+  (dispatch-pro :get-server-stats))
+
+(defn- on-ws-close []
+  (fire :ui-init-modal-error "Connection closed! Please refresh the page.")
+  (fire :ui-set-connection-lost))
+
 (on :start-ws
     (fn []
       (connect {:url ws-url
@@ -367,10 +377,16 @@
                               (dispatch-pro-response (msg/unpack (j/get event :data))))
                 :on-open (fn []
                            (println "WS connection established.")
-                           (reset! open? true))
+                           (j/assoc! st/settings :ws-connected? true)
+                           (reset! open? true)
+                           (on-ws-open))
                 :on-close (fn []
+                            (j/assoc! st/settings
+                                      :ws-connected? false
+                                      :ws-closed? false)
                             (println "WS connection closed.")
-                            (reset! open? false))
+                            (reset! open? false)
+                            (on-ws-close))
                 :on-error (fn []
                             (println "WS error occurred!")
                             (reset! open? false))})))
@@ -379,6 +395,21 @@
 (on :connect-to-world-state #(dispatch-pro :connect-to-world-state))
 (on :send-global-message #(dispatch-pro :send-global-message {:msg %}))
 (on :send-party-message #(dispatch-pro :send-party-message {:msg %}))
+(on :get-server-stats #(dispatch-pro :get-server-stats))
+(on :get-score-board #(dispatch-pro :get-score-board))
+
+(defmethod dispatch-pro-response :get-server-stats [params]
+  (fire :ui-set-server-stats (:get-server-stats params)))
+
+(defmethod dispatch-pro-response :get-score-board [params]
+  (let [players (:get-score-board params)
+        players (map
+                  (fn [p]
+                    (assoc p :username (if (= current-player-id (:id p))
+                                         (st/get-username)
+                                         (st/get-username (:id p)))))
+                  players)]
+    (fire :ui-set-score-board players)))
 
 (let [global-msg-error-msg {:type :all
                             :msg "Too many messages sent. Try again after 1 sec."}]

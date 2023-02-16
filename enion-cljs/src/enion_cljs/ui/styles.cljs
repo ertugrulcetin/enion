@@ -6,6 +6,9 @@
     "enion-cljs-ui-styles-cooldown-property"
     "@property --cooldown {\n  syntax: \"<percentage>\";\n  inherits: false;\n  initial-value: 0%;\n}")
 
+(def orc-color "rgb(15 188 3)")
+(def human-color "#2691b2ff")
+
 (defglobal defaults
   [:body
    {:height "100%"
@@ -467,6 +470,45 @@
   {:color "white"
    :font-size "13px"})
 
+(def score-table-padding "0.75em 2.75em")
+
+(defattrs score-modal []
+  {:composes [(party-request-modal)]
+   :max-height "65%"
+   :width "60%"
+   :z-index 20
+   :font-size "16px"
+   :overflow-y :auto
+   :pointer-events :all
+   :user-select :none}
+  scroll-bar
+  scroll-bar-thumb
+  [:table
+   {:border-collapse :collapse
+    :width "100%"}]
+  [:th
+   {:border "1px solid #888"}]
+  [:td
+   {:border "1px solid #888"}])
+
+(defattrs connection-lost-modal []
+  {:composes [(party-request-modal)]
+   :width "40%"
+   :z-index 999
+   :pointer-events :all
+   :user-select :none})
+
+(defclass connection-lost-button []
+  {:composes [(button)]
+   :font-size "18px"
+   :padding "5px"})
+
+(defattrs score-modal-orc-color []
+  {:color orc-color})
+
+(defattrs score-modal-human-color []
+  {:color human-color})
+
 (defattrs init-modal []
   {:composes [(party-request-modal)]
    :width "40%"})
@@ -545,3 +587,25 @@
 
 (defattrs init-modal-error []
   {:color "red"})
+
+(defattrs server-stats-container []
+  {:display "flex"
+   :justify-content "center"})
+
+(defattrs server-stats-table []
+  {:border-collapse "collapse"
+   :margin-top "10px"})
+
+(defattrs server-stats-orc-cell []
+  {:padding-right "30px"
+   :color "rgb(15 188 3)"})
+
+(defattrs server-stats-human-cell []
+  {:padding-right "30px"
+   :color "#2691b2ff"})
+
+(defattrs server-stats-total-cell []
+  {:color "#ffc301c8"})
+
+(defattrs server-stats-refresh-message []
+  {:font-size "15px"})

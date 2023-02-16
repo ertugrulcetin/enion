@@ -267,9 +267,11 @@
     (assoc-in db [:party :selected-member] id)))
 
 (reg-event-db
-  ::set-current-player-id
-  (fn [db [_ id]]
-    (assoc-in db [:player :id] id)))
+  ::set-current-player
+  (fn [db [_ [id username]]]
+    (-> db
+        (assoc-in [:player :id] id)
+        (assoc-in [:player :username] username))))
 
 (reg-event-db
   ::set-as-party-leader
@@ -318,3 +320,38 @@
     (-> db
         (assoc-in [:init-modal :loading?] false)
         (assoc-in [:init-modal :error] error))))
+
+(reg-event-fx
+  ::get-server-stats
+  (fn [_]
+    {::fire [:get-server-stats]}))
+
+(reg-event-fx
+  ::set-server-stats
+  (fn [{:keys [db]} [_ stats]]
+    (cond-> {:db (assoc db :server-stats stats)}
+      (:request-server-stats? db) (assoc :dispatch-later [{:ms 2000
+                                                           :dispatch [::get-server-stats]}]))))
+
+(reg-event-db
+  ::cancel-request-server-stats
+  (fn [db]
+    (assoc db :request-server-stats? false)))
+
+(reg-event-fx
+  ::toggle-score-board
+  (fn [{:keys [db]}]
+    (let [open? (-> db :score-board :open? not)]
+      {:db (assoc-in db [:score-board :open?] open?)
+       :fx [(when open?
+              [::fire [:get-score-board]])]})))
+
+(reg-event-db
+  ::set-score-board
+  (fn [db [_ players]]
+    (assoc-in db [:score-board :players] players)))
+
+(reg-event-db
+  ::set-connection-lost
+  (fn [db]
+    (assoc db :connection-lost? true)))

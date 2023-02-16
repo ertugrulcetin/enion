@@ -489,6 +489,67 @@
     (when open?
       [re-spawn-modal* on-ok time])))
 
+(defn- display-class [class]
+  (case class
+    "warrior" "Warrior"
+    "priest" "Priest"
+    "asas" "Assassin"
+    "mage" "Mage"))
+
+(defn- orc-row [orc]
+  [:<>
+   [:td (styles/score-modal-orc-color) (:username orc)]
+   [:td (styles/score-modal-orc-color) (display-class (:class orc))]
+   [:td (styles/score-modal-orc-color) (:bp orc)]])
+
+(defn- human-row [human]
+  [:<>
+   [:td (styles/score-modal-human-color) (:username human)]
+   [:td (styles/score-modal-human-color) (display-class (:class human))]
+   [:td (styles/score-modal-human-color) (:bp human)]])
+
+(defn- orc-human-row [orc human]
+  [:tr
+   (if orc [orc-row orc] [:<> [:td] [:td] [:td]])
+   (if human [human-row human] [:<> [:td] [:td] [:td]])])
+
+(defn- score-modal []
+  [:div (styles/score-modal)
+   [:div
+    {:style {:display "flex"
+             :justify-content "center"}}
+    [:table
+     [:thead
+      [:tr
+       [:th
+        {:colSpan "3"
+         :style {:color styles/orc-color}}
+        "Orcs"]
+       [:th {:colSpan "3"
+             :style {:color styles/human-color}} "Humans"]]
+      [:tr
+       [:th (styles/score-modal-orc-color) "Player"]
+       [:th (styles/score-modal-orc-color) "Class"]
+       [:th (styles/score-modal-orc-color) "Battle Point"]
+       [:th (styles/score-modal-human-color) "Player"]
+       [:th (styles/score-modal-human-color) "Class"]
+       [:th (styles/score-modal-human-color) "Battle Point"]]]
+     [:tbody
+      (let [players @(subscribe [::subs/score-board])
+            orcs (sort-by :bp > (filter #(= "orc" (:race %)) players))
+            humans (sort-by :bp > (filter #(= "human" (:race %)) players))
+            orcs-count (count orcs)
+            humans-count (count humans)
+            same-count? (= orcs-count humans-count)
+            orcs-greater? (> orcs-count humans-count)
+            result (cond
+                     same-count? (interleave orcs humans)
+                     orcs-greater? (interleave orcs (concat humans (repeat (- orcs-count humans-count) nil)))
+                     :else (interleave (concat orcs (repeat (- humans-count orcs-count) nil)) humans))]
+        (for [[orc human] (partition-all 2 result)]
+          ^{:key (str (:id orc) "-" (:id human))}
+          [orc-human-row orc human]))]]]])
+
 (defn- party-list []
   (when @(subscribe [::subs/party-list-open?])
     [:div (styles/party-list-container @(subscribe [::subs/minimap-open?]))
@@ -519,55 +580,101 @@
         ^{:key id}
         [party-member-hp-mp-bars id username health total-health])]]))
 
+(defn server-stats []
+  (r/create-class
+    {:component-will-unmount #(dispatch [::events/cancel-request-server-stats])
+     :reagent-render
+     (fn []
+       (let [{:keys [number-of-players
+                     max-number-of-players
+                     max-number-of-same-race-players
+                     humans
+                     orcs] :as server-stats} @(subscribe [::subs/server-stats])]
+         [:<>
+          [:span "Number of players"]
+          [:br]
+          [:span (styles/server-stats-refresh-message) "(Refreshes every 2 seconds)"]
+          [:div (styles/server-stats-container)
+           [:table (styles/server-stats-table)
+            [:thead
+             [:tr
+              [:th (styles/server-stats-orc-cell) "Orcs"]
+              [:th (styles/server-stats-human-cell) "Humans"]
+              [:th (styles/server-stats-total-cell) "Total"]]]
+            [:tbody
+             [:tr
+              [:td (styles/server-stats-orc-cell)
+               (if server-stats (str orcs "/" max-number-of-same-race-players) "~/~")]
+              [:td (styles/server-stats-human-cell)
+               (if server-stats (str humans "/" max-number-of-same-race-players) "~/~")]
+              [:td (styles/server-stats-total-cell)
+               (if server-stats (str number-of-players "/" max-number-of-players) "~/~")]]]]]]))}))
+
+(defn- username-input [username]
+  [:input
+   {:ref #(some-> % .focus)
+    :on-change #(reset! username (-> % .-target .-value))
+    :placeholder "Enter your username"
+    :class (styles/init-modal-username-input)}])
+
+(defn- select-race [race]
+  [:p "Select race"]
+  [:div (styles/init-modal-race-container)
+   [:button
+    {:class (styles/init-modal-orc-button (= "orc" @race))
+     :on-click #(reset! race "orc")}
+    "Orc"]
+   [:button
+    {:class (styles/init-modal-human-button (= "human" @race))
+     :on-click #(reset! race "human")}
+    "Human"]])
+
+(defn- select-class [class race]
+  [:<>
+   [:p "Select class"]
+   [:div (styles/init-modal-class-container)
+    [:button
+     {:class (styles/init-modal-button @race (= "warrior" @class))
+      :on-click #(reset! class "warrior")}
+     "Warrior"]
+    [:button
+     {:class (styles/init-modal-button @race (= "priest" @class))
+      :on-click #(reset! class "priest")}
+     "Priest"]
+    [:button
+     {:class (styles/init-modal-button @race (= "mage" @class))
+      :on-click #(reset! class "mage")}
+     "Mage"]
+    [:button
+     {:class (styles/init-modal-button @race (= "asas" @class))
+      :on-click #(reset! class "asas")}
+     "Assassin"]]])
+
+(defn- enter [username race class]
+  [:button
+   {:class (styles/init-modal-enter-button)
+    :disabled @(subscribe [::subs/init-modal-loading?])
+    :on-click #(dispatch [::events/init-game @username @race @class])}
+   (if @(subscribe [::subs/init-modal-loading?])
+     "Loading..."
+     "Enter")])
+
 (defn init-modal []
   (let [username (r/atom nil)
         race (r/atom nil)
         class (r/atom nil)]
     (fn []
       [:div (styles/init-modal)
-       [:input {:ref #(some-> % .focus)
-                :on-change #(reset! username (-> % .-target .-value))
-                :placeholder "Enter your username"
-                :class (styles/init-modal-username-input)}]
-       [:p "Select race"]
-       [:div (styles/init-modal-race-container)
-        [:button
-         {:class (styles/init-modal-orc-button (= "orc" @race))
-          :on-click #(reset! race "orc")}
-         "Orc"]
-        [:button
-         {:class (styles/init-modal-human-button (= "human" @race))
-          :on-click #(reset! race "human")}
-         "Human"]]
-       [:p "Select class"]
-       [:div (styles/init-modal-class-container)
-        [:button
-         {:class (styles/init-modal-button @race (= "warrior" @class))
-          :on-click #(reset! class "warrior")}
-         "Warrior"]
-        [:button
-         {:class (styles/init-modal-button @race (= "priest" @class))
-          :on-click #(reset! class "priest")}
-         "Priest"]
-        [:button
-         {:class (styles/init-modal-button @race (= "mage" @class))
-          :on-click #(reset! class "mage")}
-         "Mage"]
-        [:button
-         {:class (styles/init-modal-button @race (= "asas" @class))
-          :on-click #(reset! class "asas")}
-         "Assassin"]]
+       [username-input username]
+       [select-race race]
+       [select-class class race]
        [:br]
+       [:hr (styles/init-modal-hr)]
+       [server-stats]
        [:hr (styles/init-modal-hr)]
        (when-let [err @(subscribe [::subs/init-modal-error])]
          [:p (styles/init-modal-error) err])
-       [:button
-        {:class (styles/init-modal-enter-button)
-         :disabled @(subscribe [::subs/init-modal-loading?])
-         :on-click #(dispatch [::events/init-game @username @race @class])}
-        (if @(subscribe [::subs/init-modal-loading?])
-          "Loading..."
-          "Enter")]])))
+       [enter username race class]])))
 
 (defn- on-mouse-down [e]
   (when (= (j/get e :button) 0)
@@ -580,6 +687,14 @@
     (if (> js/window.innerWidth 1440)
       (j/assoc-in! js/document [:body :style :cursor] "url(img/cursor_64.png) 23 23, auto")
       (j/assoc-in! js/document [:body :style :cursor] "url(img/cursor_48.png) 17 17, auto"))))
+
+(defn- connection-lost-modal []
+  [:div (styles/connection-lost-modal)
+   [:p "Connection lost! Please refresh the page."]
+   [:button
+    {:class (styles/connection-lost-button)
+     :on-click #(js/window.location.reload)}
+    "Refresh"]])
 
 ;; TODO when game is ready then show HUD
 (defn main-panel []
@@ -600,6 +715,11 @@
                                                        (.preventDefault e)
                                                        (dispatch [::events/send-message]))
 
+                                                     (= code "Tab")
+                                                     (do
+                                                       (.preventDefault e)
+                                                       (dispatch [::events/toggle-score-board]))
+
                                                      (= code "KeyM")
                                                      (dispatch [::events/toggle-minimap])
 
@@ -610,7 +730,7 @@
                                                      (do
                                                        (dispatch [::events/cancel-skill-move])
                                                        (dispatch [::events/close-chat]))))))
-       (on :ui-set-current-player-id #(dispatch [::events/set-current-player-id %]))
+       (on :ui-set-current-player #(dispatch [::events/set-current-player %]))
        (on :ui-set-as-party-leader #(dispatch [::events/set-as-party-leader %]))
        (on :init-skills #(dispatch [::events/init-skills %]))
        (on :ui-send-msg #(dispatch [::events/add-message-to-info-box %]))
@@ -633,13 +753,18 @@
        (on :close-party-request-modal #(dispatch [::events/close-party-request-modal]))
        (on :clear-all-cooldowns #(dispatch [::events/clear-all-cooldowns]))
        (on :close-init-modal #(dispatch [::events/close-init-modal]))
-       (on :ui-init-modal-error #(dispatch [::events/set-init-modal-error %])))
+       (on :ui-init-modal-error #(dispatch [::events/set-init-modal-error %]))
+       (on :ui-set-server-stats #(dispatch [::events/set-server-stats %]))
+       (on :ui-set-score-board #(dispatch [::events/set-score-board %]))
+       (on :ui-set-connection-lost #(dispatch [::events/set-connection-lost])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
         (if @(subscribe [::subs/init-modal-open?])
           [init-modal]
           [:<>
+           (when @(subscribe [::subs/connection-lost?])
+             [connection-lost-modal])
            [selected-player]
            (when @(subscribe [::subs/minimap-open?])
              [minimap])
@@ -647,6 +772,8 @@
            [chat]
            [party-request-modal]
            [info-box]
+           (when @(subscribe [::subs/score-board-open?])
+             [score-modal])
            [re-spawn-modal]
            [actions-section]
            [temp-skill-img]

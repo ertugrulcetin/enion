@@ -4,6 +4,11 @@
     [re-frame.core :refer [reg-sub]]))
 
 (reg-sub
+  ::current-player-id
+  (fn [db]
+    (-> db :player :id)))
+
+(reg-sub
   ::box-open?
   (fn [db [_ type]]
     (-> db type :open?)))
@@ -178,3 +183,23 @@
   ::init-modal-loading?
   (fn [db]
     (-> db :init-modal :loading?)))
+
+(reg-sub
+  ::server-stats
+  (fn [db]
+    (:server-stats db)))
+
+(reg-sub
+  ::score-board-open?
+  (fn [db]
+    (-> db :score-board :open?)))
+
+(reg-sub
+  ::score-board
+  (fn [db]
+    (-> db :score-board :players)))
+
+(reg-sub
+  ::connection-lost?
+  (fn [db]
+    (:connection-lost? db)))
