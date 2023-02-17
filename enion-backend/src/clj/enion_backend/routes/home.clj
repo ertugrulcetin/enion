@@ -1280,7 +1280,9 @@
                                                          (s/put! socket (msg/pack (hash-map id result)))))}))
                 (catch Exception e
                   (log/error e))))
-            socket)))))
+            socket))))
+  ;; Routing lib expects some sort of HTTP response, so just give it `nil`
+  nil)
 
 (defn home-routes
   []
