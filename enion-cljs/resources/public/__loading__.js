@@ -12,7 +12,9 @@ pc.script.createLoadingScreen(function (app) {
         splash.style.display = 'none';
 
         var logo = document.createElement('img');
-        logo.src = ASSET_PREFIX + 'logo.png';
+         if(ASSET_PREFIX){
+          logo.src = ASSET_PREFIX + 'logo.png';
+         }
         splash.appendChild(logo);
         logo.onload = function () {
             splash.style.display = 'block';
