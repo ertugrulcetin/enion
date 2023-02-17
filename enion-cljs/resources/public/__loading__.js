@@ -12,9 +12,11 @@ pc.script.createLoadingScreen(function (app) {
         splash.style.display = 'none';
 
         var logo = document.createElement('img');
-         if(ASSET_PREFIX){
-          logo.src = ASSET_PREFIX + 'logo.png';
-         }
+        if(window.ASSET_PREFIX === ''){
+         logo.src = window.ASSET_PREFIX + 'logo.png';
+        }else{
+         logo.src = 'https://playcanvas.com/static-assets/images/play_text_252_white.png';
+        }
         splash.appendChild(logo);
         logo.onload = function () {
             splash.style.display = 'block';

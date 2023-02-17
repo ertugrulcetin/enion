@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.poki
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :as common :refer [dev?]]))
+    [enion-cljs.common :refer [dev?]]))
 
 (defn init []
   (when (j/get js/window :PokiSDK)
@@ -28,4 +28,5 @@
         (.then #(gameplay-start)))))
 
 (comment
-  (init))
+  (init)
+  )
