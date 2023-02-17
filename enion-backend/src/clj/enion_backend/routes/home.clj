@@ -269,7 +269,8 @@
       (and (= race "human") (human-race-full?)) {:error :human-race-full}
       (and (= race "orc") (orc-race-full?)) {:error :orc-race-full}
       (not (common.skills/username? username)) {:error :invalid-username}
-      ((get-usernames) (str/lower-case username)) {:error :username-taken}
+      (or ((get-usernames) (str/lower-case username))
+          (= "system" (str/lower-case username))) {:error :username-taken}
       (not (race-set race)) {:error :invalid-race}
       (not (class-set class)) {:error :invalid-class}
       :else (do

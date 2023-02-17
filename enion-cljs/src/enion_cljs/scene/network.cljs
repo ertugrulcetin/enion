@@ -208,7 +208,7 @@
       (pc/set-anim-int (st/get-model-entity) "health" 0)
       (fire :show-re-spawn-modal #(dispatch-pro :re-spawn))
       (poki/gameplay-stop)
-      (poki/commercial-break))))
+      (js/setTimeout poki/commercial-break 2000))))
 
 (let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange" "attackSingle"}
       temp-pos (pc/vec3)]

@@ -167,8 +167,11 @@
         (str killer " defeated " killed "")]
        [:br]]
       [:div (when party? (styles/chat-part-message-box))
-       [:strong (str (:from msg) ":")]
-       [:span (:text msg)]
+       (if (= "System" (:from msg))
+         [:strong (:text msg)]
+         [:<>
+          [:strong (str (:from msg) ":")]
+          [:span (:text msg)]])
        [:br]])))
 
 (defn scroll-to-bottom [e]

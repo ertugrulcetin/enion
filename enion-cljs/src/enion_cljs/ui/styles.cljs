@@ -13,7 +13,8 @@
   [:body
    {:height "100%"
     :width "100%"
-    :background-color :white}])
+    :background-color :white
+    :letter-spacing "1px"}])
 
 (defattrs ui-panel []
   {:position :absolute
