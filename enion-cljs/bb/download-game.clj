@@ -113,13 +113,13 @@
 body {
     margin: 0;
     background-color: white;
-    font-family: Comic Papyrus, arial, sans-serif;
+    font-family: IMMORTAL, arial, sans-serif;
     overflow: hidden;
 }
 
 @font-face {
-    font-family: 'Comic Papyrus';
-    src: url('Comic Papyrus.ttf') format('truetype');
+    font-family: 'IMMORTAL';
+    src: url('IMMORTAL.ttf') format('truetype');
 }
 
 #app {
