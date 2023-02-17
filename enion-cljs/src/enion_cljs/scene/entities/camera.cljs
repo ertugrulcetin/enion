@@ -11,7 +11,7 @@
                          :mouse-speed 1.4
                          :page-x nil
                          :right-click? false
-                         :rotation-speed 50
+                         :rotation-speed 100
                          :target-angle (pc/vec3)
                          :wheel-clicked? false
                          :wheel-x 0

@@ -33,7 +33,7 @@
 (defclass button []
   {:outline :none
    :font-size "16px"
-   :font-family "Comic Papyrus"
+   :font-family "IMMORTAL"
    :background-color "#10131dcc"
    :border "2px solid #10131dcc"
    :border-radius "5px"
@@ -157,7 +157,7 @@
   {:width "100%"
    :border-radius "5px"
    :text-align :left
-   :font-size "13px"
+   :font-size "15px"
    :font-weight "bold"
    :color "white"
    :margin-right "10px"
@@ -233,7 +233,7 @@
    :color :white
    :font-weight :bold
    :font-size "14px"
-   :font-family "Comic Papyrus"
+   :font-family "IMMORTAL"
    :border "2px solid #10131dcc"
    :border-radius "2px"})
 
@@ -452,11 +452,8 @@
 
 (defattrs party-member-hp-bar []
   {:composes [(hp-bar)]
-   :height party-member-hp-mp-height})
-
-(defattrs party-member-mp-bar []
-  {:composes [(party-member-hp-bar)]
-   :margin-top "4px"})
+   :height party-member-hp-mp-height
+   :margin-bottom "3px"})
 
 (defattrs party-member-hp [health]
   {:composes [(hp health)]
@@ -468,7 +465,7 @@
 
 (defattrs party-member-username []
   {:color "white"
-   :font-size "13px"})
+   :margin-top "3px"})
 
 (def score-table-padding "0.75em 2.75em")
 
@@ -517,7 +514,7 @@
   {:color "white"
    :width "300px"
    :height "40px"
-   :font-family "Comic Papyrus"
+   :font-family "IMMORTAL"
    :border-radius "5px"
    :border "1px solid black"
    :background-color "#10131dcc"
