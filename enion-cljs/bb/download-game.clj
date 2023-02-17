@@ -76,6 +76,7 @@
 (tasks/shell {:dir project-dir} (str "unzip -o " project-unzip-dir))
 
 (tasks/shell {:dir project-resources} (str "rm public.zip"))
+(tasks/shell {:dir project-dir} (str "cp logo2.png logo.png"))
 (tasks/shell {:dir project-dir} (str "rm playcanvas-stable.min.js"))
 (tasks/shell {:dir project-dir} (str "touch " vendor-dir "/all.js"))
 

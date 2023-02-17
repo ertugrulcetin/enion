@@ -262,7 +262,10 @@
               (j/call tween-interpolation :start)
               (j/assoc-in! st/other-players [id :tween :interpolation] (constantly tween-interpolation))))
           (st/rotate-player id (:ex new-state) (:ey new-state) (:ez new-state))
-          (st/set-anim-state id new-anim-state)
+          (if (and prev-pos (j/call prev-pos :equals pos) (= "run" new-anim-state))
+            (st/set-anim-state id "idle")
+            (st/set-anim-state id new-anim-state))
+
           (when (and (skills-effects-before-response new-anim-state)
                      (not= (j/get-in st/other-players [id :prev-state]) new-anim-state))
             (case new-anim-state

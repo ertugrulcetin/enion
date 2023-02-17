@@ -35,7 +35,7 @@ pc.script.createLoadingScreen(function (app) {
 
     var setProgress = function (value) {
         var bar = document.getElementById('progress-bar');
-        if (bar) {
+        if(bar) {
             value = Math.min(1, Math.max(0, value));
             bar.style.width = value * 100 + '%';
         }
@@ -46,7 +46,7 @@ pc.script.createLoadingScreen(function (app) {
             'body {',
             '    background-color: #283538;',
             '}',
-
+            '',
             '#application-splash-wrapper {',
             '    position: absolute;',
             '    top: 0;',
@@ -55,37 +55,37 @@ pc.script.createLoadingScreen(function (app) {
             '    width: 100%;',
             '    background-color: #283538;',
             '}',
-
+            '',
             '#application-splash {',
             '    position: absolute;',
-            '    top: calc(50% - 28px);',
-            '    width: 264px;',
-            '    left: calc(50% - 132px);',
+            '    top: calc(50% - 184px);',
+            '    width: 512px;',
+            '    left: calc(50% - 256px);',
             '}',
-
+            '',
             '#application-splash img {',
             '    width: 100%;',
             '}',
-
+            '',
             '#progress-bar-container {',
             '    margin: 20px auto 0 auto;',
             '    height: 2px;',
             '    width: 100%;',
             '    background-color: #1d292c;',
             '}',
-
+            '',
             '#progress-bar {',
             '    width: 0%;',
             '    height: 100%;',
             '    background-color: #f60;',
             '}',
+            '',
             '@media (max-width: 480px) {',
             '    #application-splash {',
             '        width: 170px;',
             '        left: calc(50% - 85px);',
             '    }',
             '}'
-
         ].join('\n');
 
         var style = document.createElement('style');
@@ -99,9 +99,7 @@ pc.script.createLoadingScreen(function (app) {
         document.head.appendChild(style);
     };
 
-
     createCss();
-
     showSplash();
 
     app.on('preload:end', function () {
