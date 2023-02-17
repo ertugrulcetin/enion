@@ -3,6 +3,7 @@
     [applied-science.js-interop :as j]
     [enion-cljs.common :refer [fire on dlog ws-url]]
     [enion-cljs.scene.pc :as pc]
+    [enion-cljs.scene.poki :as poki]
     [enion-cljs.scene.skills.effects :as effects]
     [enion-cljs.scene.states :as st]
     [msgpack-cljs.core :as msg]))
@@ -52,7 +53,8 @@
       (fire :close-init-modal)
       (fire :init (:init params))
       (set! current-player-id (-> params :init :id))
-      (fire :ui-set-current-player [current-player-id (-> params :init :username)]))))
+      (fire :ui-set-current-player [current-player-id (-> params :init :username)])
+      (poki/gameplay-start))))
 
 (defmethod dispatch-pro-response :player-join [params]
   (dlog "new join" (:player-join params))
@@ -204,7 +206,9 @@
     (st/set-mana mana)
     (when (= 0 health)
       (pc/set-anim-int (st/get-model-entity) "health" 0)
-      (fire :show-re-spawn-modal #(dispatch-pro :re-spawn)))))
+      (fire :show-re-spawn-modal #(dispatch-pro :re-spawn))
+      (poki/gameplay-stop)
+      (poki/commercial-break))))
 
 (let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange" "attackSingle"}
       temp-pos (pc/vec3)]

@@ -986,14 +986,12 @@
 
 (comment
 
-  ;; make all players die
-  ;; also set :last-time :died to now
-  (do
 
     ;;close all connections, fetch :socket attribute and call s/close!
     (doseq [id (keys @players)]
       (s/close! (:socket (get @players id))))
 
+  (do
     (swap! world (fn [world]
                    (reduce (fn [world id]
                              (-> world
@@ -1006,8 +1004,7 @@
                        (fn [players id]
                          (assoc-in players [id :last-time :died] (now)))
                        players
-                       (keys players))))
-    )
+                       (keys players)))))
 
 
   (clojure.pprint/pprint @players)

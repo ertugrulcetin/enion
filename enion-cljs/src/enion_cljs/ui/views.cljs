@@ -663,18 +663,21 @@
   (let [username (r/atom nil)
         race (r/atom nil)
         class (r/atom nil)]
-    (fn []
-      [:div (styles/init-modal)
-       [username-input username]
-       [select-race race]
-       [select-class class race]
-       [:br]
-       [:hr (styles/init-modal-hr)]
-       [server-stats]
-       [:hr (styles/init-modal-hr)]
-       (when-let [err @(subscribe [::subs/init-modal-error])]
-         [:p (styles/init-modal-error) err])
-       [enter username race class]])))
+    (r/create-class
+      {:component-did-mount #(dispatch [::events/notify-ui-is-ready])
+       :reagent-render
+       (fn []
+         [:div (styles/init-modal)
+          [username-input username]
+          [select-race race]
+          [select-class class race]
+          [:br]
+          [:hr (styles/init-modal-hr)]
+          [server-stats]
+          [:hr (styles/init-modal-hr)]
+          (when-let [err @(subscribe [::subs/init-modal-error])]
+            [:p (styles/init-modal-error) err])
+          [enter username race class]])})))
 
 (defn- on-mouse-down [e]
   (when (= (j/get e :button) 0)

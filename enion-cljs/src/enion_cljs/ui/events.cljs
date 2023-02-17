@@ -355,3 +355,8 @@
   ::set-connection-lost
   (fn [db]
     (assoc db :connection-lost? true)))
+
+(reg-event-fx
+  ::notify-ui-is-ready
+  (fn []
+    {::fire [:notify-ui-is-ready]}))

@@ -16,7 +16,7 @@
 (def project-dir (str project-resources "/public"))
 (def project-unzip-dir (str project-dir ".zip"))
 (def vendor-dir "/Users/ertugrulcetin/IdeaProjects/enion/enion-cljs/src/enion_cljs/vendor")
-(def sleep-timeout 1000)
+(def sleep-timeout 5000)
 
 (def asset-id 118396797)
 (def empty-app-js-file-path "/Users/ertugrulcetin/IdeaProjects/enion/enion-cljs/app.js")
@@ -84,6 +84,8 @@
 
 (with-open [w (io/writer index-html-path)]
   (->  index-html
+       (str/replace  #"<title>enion</title>" "<title>Enion Online</title>")
+       (str/replace  #"</head>" "<script src=\"https://game-cdn.poki.com/scripts/v2/poki-sdk.js\"></script>\n</head>")
        (str/replace  #"<script src=\"playcanvas-stable.min.js\"></script>" "")
        (str/replace  #"<script src=\"__settings__.js\"></script>" "")
        (str/replace  #"<script src=\"__modules__.js\"></script>" "")

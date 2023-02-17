@@ -5,8 +5,9 @@
    ["/enion_cljs/vendor/tween" :as tw]
    [enion-cljs.scene.lod-manager]
    [applied-science.js-interop :as j]
-   [enion-cljs.common :as common :refer [dev? fire]]
+   [enion-cljs.common :as common :refer [dev? fire on]]
    [enion-cljs.scene.pc :as pc]
+   [enion-cljs.scene.poki :as poki]
    [enion-cljs.scene.simulation :as simulation])
   (:require-macros
    [enion-cljs.scene.macros :refer [fnt]]))
@@ -29,6 +30,10 @@
 (defn- map-pc-vars []
   (set! pc/linear js/pc.Linear)
   (set! pc/expo-in js/pc.ExponentialIn))
+
+(on :notify-ui-is-ready
+  (fn []
+    (poki/game-loading-finished)))
 
 ;;TODO when unfocus - another tab etc, then show count down from 5 seconds and block everything...
 (defn init [init-ui]
@@ -54,4 +59,5 @@
                       (j/assoc! js/window :pc nil)
                       (j/assoc-in! js/window [:pc :FILLMODE_NONE] fill-mode-none)
                       (j/assoc-in! js/window [:pc :FILLMODE_KEEP_ASPECT] fill-mode-aspect)))
-                  (fire :start-ws))}))
+                  (fire :start-ws)
+                  (poki/init))}))
