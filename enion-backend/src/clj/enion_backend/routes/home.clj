@@ -1247,13 +1247,14 @@
   (-> (http/websocket-connection req)
       (d/chain
         (fn [socket]
-          (let [player-id (swap! id-generator inc)]
+          (let [now* (now)
+                player-id (swap! id-generator inc)]
             (alter-meta! socket assoc :id player-id)
             (swap! players (fn [players]
                              (-> players
                                  (assoc-in [player-id :id] player-id)
                                  (assoc-in [player-id :socket] socket)
-                                 (assoc-in [player-id :time] (now)))))
+                                 (assoc-in [player-id :time] now*))))
             (s/on-closed socket
                          (fn []
                            (remove-from-party {:id player-id
