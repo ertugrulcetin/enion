@@ -15,7 +15,7 @@
    :ping? true
    :minimap? true
    :camera-rotation-speed 10
-   :edge-scroll-speed 50
+   :edge-scroll-speed 100
    :graphics-quality 0.75})
 
 (reg-event-fx

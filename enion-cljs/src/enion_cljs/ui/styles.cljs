@@ -137,6 +137,19 @@
    :z-index 10
    :font-weight :bold})
 
+(defclass skill-description []
+  {:background "black"
+   :color "#c2c2c2"
+   :max-width "350px"
+   :border "2px solid #10131dcc"
+   :border-radius "5px"
+   :padding "10px"})
+
+(defclass temp-skill-order-description []
+  {:composes [(skill-description)]
+   :pointer-events :none
+   :z-index 16})
+
 (defclass chat-wrapper []
   {:position :absolute
    :width "30%"

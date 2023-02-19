@@ -36,15 +36,22 @@
 
 (defn temp-skill-img []
   (when-let [skill-move @(subscribe [::subs/skill-move])]
-    [:div
-     {:style {:position :absolute
-              :top @mouse-y
-              :left @mouse-x
-              :z-index 15
-              :pointer-events :none}}
-     [:img
-      {:class (styles/skill-img false false)
-       :src (skill->img (:skill skill-move))}]]))
+    [:<>
+     [:span
+      {:style {:position :absolute
+               :top (- @mouse-y 65)
+               :left @mouse-x}
+       :class (styles/temp-skill-order-description)}
+      "You're updating skill order. Use keyboard to apply skills."]
+     [:div
+      {:style {:position :absolute
+               :top @mouse-y
+               :left @mouse-x
+               :z-index 15
+               :pointer-events :none}}
+      [:img
+       {:class (styles/skill-img false false)
+        :src (skill->img (:skill skill-move))}]]]))
 
 (defn skill-description []
   (let [offset-width (r/atom 0)
@@ -64,12 +71,7 @@
                      (reset! offset-width ow))
                    (when-let [oh (j/get % :offsetHeight)]
                      (reset! offset-height oh)))
-           :style {:background "black"
-                   :color "#c2c2c2"
-                   :max-width "350px"
-                   :border "2px solid #10131dcc"
-                   :border-radius "5px"
-                   :padding "10px"}}
+           :class (styles/skill-description)}
           [:span
            {:style {:font-size "14px"}}
            skill-description]]]))))
