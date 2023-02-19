@@ -583,6 +583,89 @@
         ^{:key id}
         [party-member-hp-mp-bars id username health total-health])]]))
 
+(defn- settings-button []
+  (let [open? @(subscribe [::subs/settings-modal-open?])]
+    [:button
+     {:class (styles/settings-button)
+      :on-click (if open?
+                  #(dispatch [::events/close-settings-modal])
+                  #(dispatch [::events/open-settings-modal]))}
+     "Settings"]))
+
+(defn- settings-modal []
+  (let [{:keys [sound? camera-rotation-speed edge-scroll-speed graphics-quality]} @(subscribe [::subs/settings])]
+    [:div (styles/settings-modal)
+     [:div
+      {:style {:display :flex
+               :flex-direction :column
+               :align-items :center}}
+      [:strong "Sound"]
+      [:label.switch
+       [:input {:style {:outline :none}
+                :type "checkbox"
+                :checked sound?
+                :on-change #(dispatch-sync [::events/update-settings :sound? (not sound?)])}]
+       [:span.slider.round]]]
+
+     [:hr (styles/init-modal-hr)]
+
+     [:div
+      {:style {:display :flex
+               :flex-direction :column
+               :margin-top "25px"}}
+      [:strong "Camera Rotation Speed"]
+      [:span {:style {:font-size "15px"}}
+       "(Allows to rotate the camera by right-clicking and dragging the mouse)"]
+      [:input
+       {:style {:outline :none}
+        :type "range"
+        :min "1"
+        :max "30"
+        :step "0.5"
+        :value camera-rotation-speed
+        :on-change #(dispatch-sync [::events/update-settings :camera-rotation-speed (-> % .-target .-value)])}]
+      [:span {:style {:font-size "25px"}} (str camera-rotation-speed "/30")]]
+
+     [:hr (styles/init-modal-hr)]
+
+     [:div
+      {:style {:display :flex
+               :flex-direction :column
+               :margin-top "25px"}}
+      [:strong "Edge Scrolling Speed"]
+      [:span {:style {:font-size "15px"}}
+       "(Allows to move the camera by moving the mouse to the edges of the screen)"]
+      [:input {:style {:outline :none}
+               :type "range"
+               :min "1"
+               :max "200"
+               :value edge-scroll-speed
+               :on-change #(dispatch-sync [::events/update-settings :edge-scroll-speed (-> % .-target .-value)])}]
+      [:span {:style {:font-size "25px"}} (str edge-scroll-speed "/200")]]
+
+     [:hr (styles/init-modal-hr)]
+
+     [:div
+      {:style {:display :flex
+               :flex-direction :column
+               :margin-top "25px"}}
+      [:strong "Graphics Quality"]
+      (when (> graphics-quality 75)
+        [:span {:style {:font-size "15px"}}
+         "(If you make it higher, you might encounter performance issues)"])
+      [:input {:style {:outline :none}
+               :type "range"
+               :min "50"
+               :max "100"
+               :value graphics-quality
+               :on-change #(dispatch-sync [::events/update-settings :graphics-quality (-> % .-target .-value (/ 100))])}]
+      [:span {:style {:font-size "25px"}} (str graphics-quality "/100")]]
+
+     [:button
+      {:class (styles/settings-exit-button)
+       :on-click #(dispatch [::events/close-settings-modal])}
+      "Exit"]]))
+
 (defn server-stats []
   (r/create-class
     {:component-will-unmount #(dispatch [::events/cancel-request-server-stats])
@@ -735,7 +818,8 @@
                                                      (= code "Escape")
                                                      (do
                                                        (dispatch [::events/cancel-skill-move])
-                                                       (dispatch [::events/close-chat]))))))
+                                                       (dispatch [::events/close-chat])
+                                                       (dispatch [::events/close-settings-modal]))))))
        (on :ui-set-current-player #(dispatch [::events/set-current-player %]))
        (on :ui-set-as-party-leader #(dispatch [::events/set-as-party-leader %]))
        (on :init-skills #(dispatch [::events/init-skills %]))
@@ -762,15 +846,20 @@
        (on :ui-init-modal-error #(dispatch [::events/set-init-modal-error %]))
        (on :ui-set-server-stats #(dispatch [::events/set-server-stats %]))
        (on :ui-set-score-board #(dispatch [::events/set-score-board %]))
-       (on :ui-set-connection-lost #(dispatch [::events/set-connection-lost])))
+       (on :ui-set-connection-lost #(dispatch [::events/set-connection-lost]))
+       (on :ui-player-ready #(dispatch [::events/update-settings])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
+
         (if @(subscribe [::subs/init-modal-open?])
           [init-modal]
           [:<>
            (when @(subscribe [::subs/connection-lost?])
              [connection-lost-modal])
+           [settings-button]
+           (when @(subscribe [::subs/settings-modal-open?])
+             [settings-modal])
            [selected-player]
            (when @(subscribe [::subs/minimap-open?])
              [minimap])

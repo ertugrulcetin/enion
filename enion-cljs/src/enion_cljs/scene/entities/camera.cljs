@@ -8,10 +8,10 @@
 (defonce state (clj->js {:eulers (pc/vec3)
                          :mouse-edge-range 5
                          :mouse-over? false
-                         :mouse-speed 1.4
+                         :camera-rotation-speed 10
+                         :edge-scroll-speed 100
                          :page-x nil
                          :right-click? false
-                         :rotation-speed 100
                          :target-angle (pc/vec3)
                          :wheel-clicked? false
                          :wheel-x 0
@@ -19,13 +19,18 @@
                          :time-since-last-shake 0
                          :last-shake-time nil}))
 
+(comment
+  (j/assoc! state :camera-rotation-speed 10)
+  (j/assoc! state :edge-scroll-speed 100)
+  )
+
 (defonce entity nil)
 
 (defn- mouse-move [e]
   (j/assoc! state :page-x (j/get e :x))
   (when (j/get state :right-click?)
-    (j/update-in! state [:eulers :x] - (mod (/ (* (j/get state :mouse-speed) (j/get e :dx)) 60) 360))
-    (j/update-in! state [:eulers :y] + (mod (/ (* (j/get state :mouse-speed) (j/get e :dy)) 60) 360))))
+    (j/update-in! state [:eulers :x] - (mod (/ (* (j/get state :camera-rotation-speed) (j/get e :dx)) 60) 360))
+    (j/update-in! state [:eulers :y] + (mod (/ (* (j/get state :camera-rotation-speed) (j/get e :dy)) 60) 360))))
 
 (defn- mouse-wheel [e]
   (let [ray-end (j/get state :ray-end)
@@ -148,12 +153,12 @@
                (not (j/get state :right-click?))
                page-x
                (<= page-x (j/get state :mouse-edge-range)))
-      (j/update! eulers :x + (* dt (j/get state :rotation-speed))))
+      (j/update! eulers :x + (* dt (j/get state :edge-scroll-speed))))
     (when (and (j/get state :mouse-over?)
                (not (j/get state :right-click?))
                page-x
                (>= page-x (- js/window.innerWidth (j/get state :mouse-edge-range))))
-      (j/update! eulers :x - (* dt (j/get state :rotation-speed))))
+      (j/update! eulers :x - (* dt (j/get state :edge-scroll-speed))))
     (when (j/get state :wheel-clicked?)
       (if (>= (j/get state :wheel-x) 180)
         (do

@@ -1,17 +1,64 @@
 (ns enion-cljs.ui.events
   (:require
     [applied-science.js-interop :as j]
+    [cljs.reader :as reader]
     [clojure.string :as str]
     [enion-cljs.common :as common :refer [fire]]
     [enion-cljs.ui.db :as db]
-    [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx]]))
+    [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx reg-cofx inject-cofx]]))
 
 (defonce throttle-timeouts (atom {}))
 
-(reg-event-db
+(def default-settings
+  {:sound? true
+   :camera-rotation-speed 10
+   :edge-scroll-speed 50
+   :graphics-quality 0.75})
+
+(reg-event-fx
   ::initialize-db
-  (fn [_ _]
-    db/default-db))
+  [(inject-cofx ::settings)]
+  (fn [{:keys [settings]} _]
+    {:db (assoc db/default-db :settings settings)}))
+
+(reg-fx
+  ::set-to-ls
+  (fn [[k v]]
+    (when-let [ls (j/get js/window :localStorage)]
+      (.setItem ls k v))))
+
+(reg-cofx
+  ::settings
+  (fn [cofx _]
+    (try
+      (if-let [ls (j/get js/window :localStorage)]
+        (assoc cofx :settings (let [settings (j/call ls :getItem "settings")]
+                                (if (str/blank? settings)
+                                  default-settings
+                                  (reader/read-string settings))))
+        (assoc cofx :settings default-settings))
+      (catch js/Error _
+        (assoc cofx :settings default-settings)))))
+
+(reg-event-fx
+  ::update-settings
+  (fn [{:keys [db]} [_ k v]]
+    (if (nil? k)
+      {::fire [:settings-updated (:settings db)]}
+      (let [db (assoc-in db [:settings k] v)]
+        {:db db
+         ::set-to-ls ["settings" (pr-str (:settings db))]
+         ::fire [:settings-updated (:settings db)]}))))
+
+(reg-event-db
+  ::open-settings-modal
+  (fn [db _]
+    (assoc-in db [:settings-modal :open?] true)))
+
+(reg-event-db
+  ::close-settings-modal
+  (fn [db _]
+    (assoc-in db [:settings-modal :open?] false)))
 
 (reg-fx
   ::dispatch-throttle

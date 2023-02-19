@@ -14,6 +14,17 @@
     (-> db type :open?)))
 
 (reg-sub
+  ::settings
+  (fn [db]
+    (update (:settings db) :graphics-quality (fn [gq]
+                                               (int (* gq 100))))))
+
+(reg-sub
+  ::settings-modal-open?
+  (fn [db]
+    (-> db :settings-modal :open?)))
+
+(reg-sub
   ::info-box-messages
   (fn [db]
     (-> db :info-box :messages seq)))

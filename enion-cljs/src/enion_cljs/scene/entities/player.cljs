@@ -565,9 +565,19 @@
                                     (j/assoc! (st/get-player-entity) :name (str (random-uuid))))
                                   (fire :start-lod-manager))}))
 
-(on :init (fn [player-data]
-            (init player-data)
-            (fire :connect-to-world-state)))
+(on :init
+    (fn [player-data]
+      (init player-data)
+      (fire :connect-to-world-state)))
+
+(on :settings-updated
+    (fn [settings]
+      (doseq [[k v] settings]
+        (case k
+          :sound? (some-> (j/assoc-in! (st/get-player-entity) [:c :sound :volume] (if v 1 0)))
+          :camera-rotation-speed (j/assoc! entity.camera/state :camera-rotation-speed v)
+          :edge-scroll-speed (j/assoc! entity.camera/state :edge-scroll-speed v)
+          :graphics-quality (j/assoc-in! pc/app [:graphicsDevice :maxPixelRatio] v)))))
 
 (when dev?
   (on :re-init (fn []

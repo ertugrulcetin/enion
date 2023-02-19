@@ -436,7 +436,7 @@
 
 (defclass party-action-button []
   {:composes [(button)]
-   :font-size "16px"
+   :font-size "18px"
    :opacity 0.75
    :margin-bottom "5px"
    :margin-right "10px"})
@@ -495,6 +495,29 @@
    :z-index 999
    :pointer-events :all
    :user-select :none})
+
+(defattrs settings-modal []
+  {:composes [(party-request-modal)]
+   :pointer-events :all
+   :user-select :none
+   :width "45%"
+   :z-index 30})
+
+(defclass settings-exit-button []
+  {:composes [(button)]
+   :margin-top "20px"
+   :font-size "30px"
+   :width "120px"}
+  [:&:hover {:border "2px solid #2196F3"}])
+
+(defclass settings-button []
+  {:composes [(button)]
+   :position :absolute
+   :right "170px"
+   :top "10px"
+   :font-size "18px"
+   :opacity 0.75
+   :z-index 5})
 
 (defclass connection-lost-button []
   {:composes [(button)]
@@ -607,3 +630,4 @@
 
 (defattrs server-stats-refresh-message []
   {:font-size "15px"})
+

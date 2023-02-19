@@ -361,7 +361,8 @@
 (defmethod dispatch-pro-response :connect-to-world-state [params]
   (when (:connect-to-world-state params)
     (send-states-to-server)
-    (dispatch-pro :request-all-players)))
+    (dispatch-pro :request-all-players)
+    (fire :ui-player-ready)))
 
 (defmethod dispatch-pro-response :request-all-players [params]
   (let [players (:request-all-players params)
