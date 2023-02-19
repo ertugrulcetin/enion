@@ -53,6 +53,7 @@ canvas:focus {
   initial-value: 0%;
 }
 
+
 .switch {
   position: relative;
   display: inline-block;
@@ -80,7 +81,7 @@ canvas:focus {
 
 .slider:before {
   position: absolute;
-  content: "";
+  content: " ";
   height: 26px;
   width: 26px;
   left: 4px;
@@ -112,3 +113,4 @@ input:checked + .slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
+
