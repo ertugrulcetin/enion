@@ -361,7 +361,8 @@
 
 (defn- create-ping-interval []
   (js/setInterval
-    #(when (and (j/get st/settings :ping?) (utils/tab-visible?))
+    ;; TODO online counter icin surekli atma, birileri girip cikinca at
+    #(when (utils/tab-visible?)
        (dispatch-pro :ping))
     1000))
 

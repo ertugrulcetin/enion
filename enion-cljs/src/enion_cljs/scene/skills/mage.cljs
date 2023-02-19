@@ -136,7 +136,7 @@
        (st/alive? selected-player-id)
        (st/cooldown-ready? "attackSingle")
        (st/enemy-selected? selected-player-id)
-       (st/enough-mana? attack-range-required-mana)
+       (st/enough-mana? attack-single-required-mana)
        (close-for-attack-single? selected-player-id)))
 
 ;; TODO check if selected ally in the same party

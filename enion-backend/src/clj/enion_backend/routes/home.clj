@@ -1018,6 +1018,12 @@
 
   (clojure.pprint/pprint @players)
 
+  (swap! world (fn [world]
+                 (reduce (fn [world id]
+                           (assoc-in world [id :mana] 200))
+                   world
+                   (keys @players))))
+
   (reset-states)
   ;; set everyones health to 1600 in world atom
   ;; move above to a function using defn
