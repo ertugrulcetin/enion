@@ -33,6 +33,10 @@
 (def username-party-color (pc/color 2 2 0))
 (def username-enemy-color (pc/color 2 0 0))
 
+(on :tab-hidden
+    (fn [hidden?]
+      (j/assoc! settings :tab-hidden hidden?)))
+
 (defn get-player-id []
   (j/get player :id))
 

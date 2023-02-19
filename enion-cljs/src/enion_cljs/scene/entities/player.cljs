@@ -577,7 +577,12 @@
           :sound? (some-> (j/assoc-in! (st/get-player-entity) [:c :sound :volume] (if v 1 0)))
           :camera-rotation-speed (j/assoc! entity.camera/state :camera-rotation-speed v)
           :edge-scroll-speed (j/assoc! entity.camera/state :edge-scroll-speed v)
-          :graphics-quality (j/assoc-in! pc/app [:graphicsDevice :maxPixelRatio] v)))))
+          :graphics-quality (j/assoc-in! pc/app [:graphicsDevice :maxPixelRatio] v)
+          :fps? (if v
+                  (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :show])
+                  (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :hide]))
+          :ping? (j/assoc! st/settings :ping? v)
+          nil))))
 
 (when dev?
   (on :re-init (fn []

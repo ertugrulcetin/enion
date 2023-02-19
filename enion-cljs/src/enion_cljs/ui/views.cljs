@@ -554,34 +554,33 @@
           [orc-human-row orc human]))]]]])
 
 (defn- party-list []
-  (when @(subscribe [::subs/party-list-open?])
-    [:div (styles/party-list-container @(subscribe [::subs/minimap-open?]))
-     [:div (styles/party-action-button-container)
-      (let [selected-party-member @(subscribe [::subs/selected-party-member])]
-        (cond
-          @(subscribe [::subs/party-leader-selected-himself?])
-          [:button {:class (styles/party-action-button)
-                    :on-click #(fire :exit-from-party)}
-           "Cancel party"]
+  [:div (styles/party-list-container @(subscribe [::subs/minimap?]))
+   [:div (styles/party-action-button-container)
+    (let [selected-party-member @(subscribe [::subs/selected-party-member])]
+      (cond
+        @(subscribe [::subs/party-leader-selected-himself?])
+        [:button {:class (styles/party-action-button)
+                  :on-click #(fire :exit-from-party)}
+         "Cancel party"]
 
-          @(subscribe [::subs/party-leader-selected-member?])
-          [:button {:class (styles/party-action-button)
-                    :on-click #(fire :remove-from-party selected-party-member)}
-           "Remove from party"]
+        @(subscribe [::subs/party-leader-selected-member?])
+        [:button {:class (styles/party-action-button)
+                  :on-click #(fire :remove-from-party selected-party-member)}
+         "Remove from party"]
 
-          @(subscribe [::subs/able-to-add-party-member?])
-          [:button {:class (styles/party-action-button)
-                    :on-click #(fire :add-to-party)}
-           "Add to party"]
+        @(subscribe [::subs/able-to-add-party-member?])
+        [:button {:class (styles/party-action-button)
+                  :on-click #(fire :add-to-party)}
+         "Add to party"]
 
-          @(subscribe [::subs/able-to-exit-from-party?])
-          [:button {:class (styles/party-action-button)
-                    :on-click #(fire :exit-from-party)}
-           "Exit from party"]))]
-     [:div
-      (for [{:keys [id username health total-health]} @(subscribe [::subs/party-members])]
-        ^{:key id}
-        [party-member-hp-mp-bars id username health total-health])]]))
+        @(subscribe [::subs/able-to-exit-from-party?])
+        [:button {:class (styles/party-action-button)
+                  :on-click #(fire :exit-from-party)}
+         "Exit from party"]))]
+   [:div
+    (for [{:keys [id username health total-health]} @(subscribe [::subs/party-members])]
+      ^{:key id}
+      [party-member-hp-mp-bars id username health total-health])]])
 
 (defn- settings-button []
   (let [open? @(subscribe [::subs/settings-modal-open?])]
@@ -592,20 +591,73 @@
                   #(dispatch [::events/open-settings-modal]))}
      "Settings"]))
 
+(defn- ping-counter []
+  (let [fps? (:fps? @(subscribe [::subs/settings]))
+        ping @(subscribe [::subs/ping])]
+    [:button
+     {:class (styles/ping-counter fps? ping)}
+     (str "Ping: " (or ping "-"))]))
+
 (defn- settings-modal []
-  (let [{:keys [sound? camera-rotation-speed edge-scroll-speed graphics-quality]} @(subscribe [::subs/settings])]
+  (let [{:keys [sound?
+                fps?
+                ping?
+                minimap?
+                camera-rotation-speed
+                edge-scroll-speed
+                graphics-quality]} @(subscribe [::subs/settings])]
     [:div (styles/settings-modal)
      [:div
       {:style {:display :flex
-               :flex-direction :column
-               :align-items :center}}
-      [:strong "Sound"]
-      [:label.switch
-       [:input {:style {:outline :none}
-                :type "checkbox"
-                :checked sound?
-                :on-change #(dispatch-sync [::events/update-settings :sound? (not sound?)])}]
-       [:span.slider.round]]]
+               :flex-direction :row
+               :justify-content :center
+               :gap "50px"}}
+      [:div
+       {:style {:display :flex
+                :flex-direction :column
+                :align-items :center}}
+       [:strong "Sound"]
+       [:label.switch
+        [:input {:style {:outline :none}
+                 :type "checkbox"
+                 :checked sound?
+                 :on-change #(dispatch-sync [::events/update-settings :sound? (not sound?)])}]
+        [:span.slider.round]]]
+      [:div
+       {:style {:display :flex
+                :flex-direction :column
+                :align-items :center}}
+       [:strong "FPS"]
+       [:label.switch
+        [:input {:style {:outline :none}
+                 :type "checkbox"
+                 :checked fps?
+                 :on-change #(dispatch-sync [::events/update-settings :fps? (not fps?)])}]
+        [:span.slider.round]]]
+
+      [:div
+       {:style {:display :flex
+                :flex-direction :column
+                :align-items :center}}
+       [:strong "Ping"]
+       [:label.switch
+        [:input {:style {:outline :none}
+                 :type "checkbox"
+                 :checked ping?
+                 :on-change #(dispatch-sync [::events/update-settings :ping? (not ping?)])}]
+        [:span.slider.round]]]
+
+      [:div
+       {:style {:display :flex
+                :flex-direction :column
+                :align-items :center}}
+       [:strong "Minimap"]
+       [:label.switch
+        [:input {:style {:outline :none}
+                 :type "checkbox"
+                 :checked minimap?
+                 :on-change #(dispatch-sync [::events/update-settings :minimap? (not minimap?)])}]
+        [:span.slider.round]]]]
 
      [:hr (styles/init-modal-hr)]
 
@@ -809,12 +861,6 @@
                                                        (.preventDefault e)
                                                        (dispatch [::events/toggle-score-board]))
 
-                                                     (= code "KeyM")
-                                                     (dispatch [::events/toggle-minimap])
-
-                                                     (= code "KeyP")
-                                                     (dispatch [::events/toggle-party-list])
-
                                                      (= code "Escape")
                                                      (do
                                                        (dispatch [::events/cancel-skill-move])
@@ -847,7 +893,8 @@
        (on :ui-set-server-stats #(dispatch [::events/set-server-stats %]))
        (on :ui-set-score-board #(dispatch [::events/set-score-board %]))
        (on :ui-set-connection-lost #(dispatch [::events/set-connection-lost]))
-       (on :ui-player-ready #(dispatch [::events/update-settings])))
+       (on :ui-player-ready #(dispatch [::events/update-settings]))
+       (on :ui-update-ping #(dispatch [::events/update-ping %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -857,11 +904,13 @@
           [:<>
            (when @(subscribe [::subs/connection-lost?])
              [connection-lost-modal])
+           (when @(subscribe [::subs/ping?])
+             [ping-counter])
            [settings-button]
            (when @(subscribe [::subs/settings-modal-open?])
              [settings-modal])
            [selected-player]
-           (when @(subscribe [::subs/minimap-open?])
+           (when @(subscribe [::subs/minimap?])
              [minimap])
            [party-list]
            [chat]

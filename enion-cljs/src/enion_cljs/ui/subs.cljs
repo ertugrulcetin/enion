@@ -25,6 +25,11 @@
     (-> db :settings-modal :open?)))
 
 (reg-sub
+  ::ping?
+  (fn [db]
+    (-> db :settings :ping?)))
+
+(reg-sub
   ::info-box-messages
   (fn [db]
     (-> db :info-box :messages seq)))
@@ -52,14 +57,9 @@
     (-> db :chat-box :type)))
 
 (reg-sub
-  ::minimap-open?
+  ::minimap?
   (fn [db]
-    (:minimap-open? db)))
-
-(reg-sub
-  ::party-list-open?
-  (fn [db]
-    (:party-list-open? db)))
+    (-> db :settings :minimap?)))
 
 (reg-sub
   ::skills
@@ -214,3 +214,8 @@
   ::connection-lost?
   (fn [db]
     (:connection-lost? db)))
+
+(reg-sub
+  ::ping
+  (fn [db]
+    (:ping db)))

@@ -11,6 +11,9 @@
 
 (def default-settings
   {:sound? true
+   :fps? true
+   :ping? true
+   :minimap? true
    :camera-rotation-speed 10
    :edge-scroll-speed 50
    :graphics-quality 0.75})
@@ -49,6 +52,11 @@
         {:db db
          ::set-to-ls ["settings" (pr-str (:settings db))]
          ::fire [:settings-updated (:settings db)]}))))
+
+(reg-event-db
+  ::update-ping
+  (fn [db [_ ping]]
+    (assoc db :ping ping)))
 
 (reg-event-db
   ::open-settings-modal
@@ -161,20 +169,6 @@
                             [::fire [:chat-open? false]]]}
           (not input-open?) {:db (assoc-in db [:chat-box :active-input?] true)
                              :fx [[::fire [:chat-open? true]]]})))))
-
-(reg-event-db
-  ::toggle-minimap
-  (fn [db]
-    (if (-> db :chat-box :active-input?)
-      db
-      (update db :minimap-open? not))))
-
-(reg-event-db
-  ::toggle-party-list
-  (fn [db]
-    (if (-> db :chat-box :active-input?)
-      db
-      (update db :party-list-open? not))))
 
 (reg-event-db
   ::init-skills

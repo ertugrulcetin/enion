@@ -6,6 +6,7 @@
     [enion-cljs.scene.poki :as poki]
     [enion-cljs.scene.skills.effects :as effects]
     [enion-cljs.scene.states :as st]
+    [enion-cljs.scene.utils :as utils]
     [msgpack-cljs.core :as msg]))
 
 (defonce socket (atom nil))
@@ -358,11 +359,21 @@
   (some-> @send-state-interval-id js/clearInterval)
   (reset! send-state-interval-id nil))
 
+(defn- create-ping-interval []
+  (js/setInterval
+    #(when (and (j/get st/settings :ping?) (utils/tab-visible?))
+       (dispatch-pro :ping))
+    1000))
+
+(defmethod dispatch-pro-response :ping [params]
+  (fire :ui-update-ping (:ping params)))
+
 (defmethod dispatch-pro-response :connect-to-world-state [params]
   (when (:connect-to-world-state params)
     (send-states-to-server)
     (dispatch-pro :request-all-players)
-    (fire :ui-player-ready)))
+    (fire :ui-player-ready)
+    (create-ping-interval)))
 
 (defmethod dispatch-pro-response :request-all-players [params]
   (let [players (:request-all-players params)

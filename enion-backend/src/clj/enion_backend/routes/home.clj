@@ -49,6 +49,9 @@
 (defonce effects-stream (s/stream))
 (defonce killings-stream (s/stream))
 
+(defn- now []
+  (.toEpochMilli (Instant/now)))
+
 (defn- add-effect [effect data]
   (s/put! effects-stream {:effect effect
                           :data data}))
@@ -134,10 +137,17 @@
 
 (reg-pro
   :set-state
-  (fn [{:keys [id data]}]
+  (fn [{:keys [id ping data]}]
     ;; TODO gets the data right away, need to select keys...to prevent hacks
     (swap! world update id merge data)
+    (swap! players assoc-in [id :last-time :set-state] (now))
     nil))
+
+(reg-pro
+  :ping
+  (fn [{:keys [id ping]}]
+    (swap! players assoc-in [id :ping] ping)
+    ping))
 
 (defn- get-orcs [players]
   (filter (fn [[_ p]] (= "orc" (:race p))) players))
@@ -179,9 +189,6 @@
          (fn [[_ v]]
            (= party-id (:party-id v))))
        (map first)))
-
-(defn now []
-  (.toEpochMilli (Instant/now)))
 
 (def message-sent-too-often-msg {:error :message-sent-too-often})
 

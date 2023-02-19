@@ -519,6 +519,19 @@
    :opacity 0.75
    :z-index 5})
 
+(defclass ping-counter [fps? ping]
+  {:composes [(settings-button)]
+   :left "5px"
+   :width "110px"
+   :top (if fps? "50px" "10px")
+   :opacity 1
+   :color (cond
+            (<= ping 80) "green"
+            (<= ping 150) "yellow"
+            (<= ping 200) "orange"
+            :else "red")}
+  [:&:hover {:border "2px solid #10131dcc"}])
+
 (defclass connection-lost-button []
   {:composes [(button)]
    :font-size "18px"

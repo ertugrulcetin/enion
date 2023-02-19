@@ -35,6 +35,16 @@
   (fn []
     (poki/game-loading-finished)))
 
+(defn visibility-props []
+  (cond
+    (some? js/document.hidden) {:hidden "hidden"
+                                :visibility-change "visibilitychange"}
+    (some? js/document.msHidden) {:hidden "msHidden"
+                                  :visibility-change "msvisibilitychange"}
+    (some? js/document.webkitHidden) {:hidden "webkitHidden"
+                                      :visibility-change "webkitvisibilitychange"}
+    :else (js/console.warn "visibility prop not found in visibility-props fn")))
+
 ;;TODO when unfocus - another tab etc, then show count down from 5 seconds and block everything...
 (defn init [init-ui]
   (pc/create-script :app
@@ -50,7 +60,6 @@
                       :mana 1000}))
      :post-init (fn []
                   ;;TODO window.Terrain/Water/Wave acik onlari da null'a setle
-                  (j/assoc-in! pc/app [:graphicsDevice :maxPixelRatio] 0.75)
                   (when dev?
                     (simulation/init))
                   (when-not dev?
@@ -60,4 +69,7 @@
                       (j/assoc-in! js/window [:pc :FILLMODE_NONE] fill-mode-none)
                       (j/assoc-in! js/window [:pc :FILLMODE_KEEP_ASPECT] fill-mode-aspect)))
                   (fire :start-ws)
-                  (poki/init))}))
+                  (poki/init)
+                  (let [{:keys [hidden visibility-change]} (visibility-props)]
+                    (when hidden
+                     (js/document.addEventListener visibility-change #(fire :tab-hidden (not (j/get js/document hidden)))))))}))

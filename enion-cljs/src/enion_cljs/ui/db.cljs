@@ -16,9 +16,7 @@
               :open? true
               :active-input? false
               :type :all}
-   :minimap-open? true
    :init-modal {:open? true}
-   :party-list-open? true
    :request-server-stats? true
    :score-board {:open? false}
    :connection-lost? false
