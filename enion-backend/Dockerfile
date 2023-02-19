@@ -4,7 +4,6 @@ COPY target/default+uberjar/enion-backend.jar /enion-backend/app.jar
 
 EXPOSE 8080
 
-CMD ["java", "-jar", "/enion-backend/app.jar"]
 ENTRYPOINT exec java -server \
                      -Xms2g -Xmx2g \
                      -XX:+UseG1GC \
