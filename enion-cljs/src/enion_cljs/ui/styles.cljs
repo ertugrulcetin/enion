@@ -545,6 +545,15 @@
             :else "red")}
   [:&:hover {:border "2px solid #10131dcc"}])
 
+(defclass online-counter [ping? fps?]
+  {:composes [(ping-counter nil nil)]
+   :color "grey"
+   :top (cond
+          (and ping? fps?) "80px"
+          (and ping? (not fps?)) "40px"
+          (and (not ping?) fps?) "50px")}
+  [:&:hover {:border "2px solid #10131dcc"}])
+
 (defclass connection-lost-button []
   {:composes [(button)]
    :font-size "18px"

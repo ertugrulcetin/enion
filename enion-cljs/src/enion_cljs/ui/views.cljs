@@ -600,6 +600,15 @@
      {:class (styles/ping-counter fps? ping)}
      (str "Ping: " (or ping "-"))]))
 
+(defn- online-counter []
+  (let [settings @(subscribe [::subs/settings])
+        ping? (:ping? settings)
+        fps? (:fps? settings)
+        online @(subscribe [::subs/online])]
+    [:button
+     {:class (styles/online-counter ping? fps?)}
+     (str "Online: " (or online "-"))]))
+
 (defn- settings-modal []
   (let [{:keys [sound?
                 fps?
@@ -908,6 +917,7 @@
              [connection-lost-modal])
            (when @(subscribe [::subs/ping?])
              [ping-counter])
+           [online-counter]
            [settings-button]
            (when @(subscribe [::subs/settings-modal-open?])
              [settings-modal])

@@ -219,3 +219,8 @@
   ::ping
   (fn [db]
     (:ping db)))
+
+(reg-sub
+  ::online
+  (fn [db]
+    (:online db)))

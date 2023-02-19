@@ -55,8 +55,11 @@
 
 (reg-event-db
   ::update-ping
-  (fn [db [_ ping]]
-    (assoc db :ping ping)))
+  (fn [db [_ data]]
+    (let [ping (:ping data)
+          online (:online data)]
+      (assoc db :ping ping
+             :online online))))
 
 (reg-event-db
   ::open-settings-modal

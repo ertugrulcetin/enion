@@ -147,7 +147,8 @@
   :ping
   (fn [{:keys [id ping]}]
     (swap! players assoc-in [id :ping] ping)
-    ping))
+    {:ping ping
+     :online (count @world)}))
 
 (defn- get-orcs [players]
   (filter (fn [[_ p]] (= "orc" (:race p))) players))
