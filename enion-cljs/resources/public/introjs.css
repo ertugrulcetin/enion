@@ -1,0 +1,4 @@
+.customTooltip * {
+  pointer-events: all;
+  user-select: none;
+}

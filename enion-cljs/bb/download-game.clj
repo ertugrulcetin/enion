@@ -84,16 +84,22 @@
 (def index-html (slurp index-html-path))
 
 (with-open [w (io/writer index-html-path)]
-  (->  index-html
-       (str/replace  #"<title>enion</title>" "<title>Enion Online</title>")
-       (str/replace  #"</head>" "<script src=\"https://game-cdn.poki.com/scripts/v2/poki-sdk.js\"></script>\n</head>")
-       (str/replace  #"<script src=\"playcanvas-stable.min.js\"></script>" "")
-       (str/replace  #"<script src=\"__settings__.js\"></script>" "")
-       (str/replace  #"<script src=\"__modules__.js\"></script>" "")
-       (str/replace  #"<script src=\"__start__.js\"></script>" "")
-       (str/replace  #"<script src=\"__loading__.js\"></script>" "")
-       (str/replace  #"<body>" "<body>\n   <script src=\"js/compiled/app.js\"></script>")
-       (#(.write w %))))
+  (-> index-html
+      (str/replace #"<title>enion</title>" "<title>Enion Online</title>")
+      (str/replace #"</head>" "<script src=\"https://game-cdn.poki.com/scripts/v2/poki-sdk.js\"></script>\n</head>")
+      (str/replace #"<script src=\"playcanvas-stable.min.js\"></script>" "")
+      (str/replace #"<script src=\"__settings__.js\"></script>" "")
+      (str/replace #"<script src=\"__modules__.js\"></script>" "")
+      (str/replace #"<script src=\"__start__.js\"></script>" "")
+      (str/replace #"<script src=\"__loading__.js\"></script>" "")
+      (str/replace #"<body>" "<body>\n   <script src=\"js/compiled/app.js\"></script>")
+      (str/replace #"<link rel=\"stylesheet\" type=\"text/css\" href=\"styles.css\">"
+                   "<link rel=\"stylesheet\" type=\"text/css\" href=\"styles.css\">\n
+<link rel=\"stylesheet\" type=\"text/css\" href=\"https://cdnjs.cloudflare.com/ajax/libs/intro.js/6.0.0/introjs.min.css\">\n
+<link rel=\"stylesheet\" type=\"text/css\" href=\"introjs.css\">")
+      (str/replace #"</body>"
+                   "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/intro.js/6.0.0/intro.min.js\"></script>\n</body>")
+      (#(.write w %))))
 
 (with-open [w (io/writer (str vendor-dir "/all.js"))]
   (let [settings (slurp (str project-dir "/__settings__.js"))

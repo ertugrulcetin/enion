@@ -16,7 +16,8 @@
    :minimap? true
    :camera-rotation-speed 10
    :edge-scroll-speed 100
-   :graphics-quality 0.75})
+   :graphics-quality 0.75
+   :show-tutorial? true})
 
 (reg-event-fx
   ::initialize-db

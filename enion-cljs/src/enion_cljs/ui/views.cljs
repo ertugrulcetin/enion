@@ -5,6 +5,7 @@
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on]]
     [enion-cljs.ui.events :as events]
+    [enion-cljs.ui.intro :as intro]
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
     [re-frame.core :refer [subscribe dispatch dispatch-sync]]
@@ -586,7 +587,7 @@
 
 (defn- settings-button []
   (let [open? @(subscribe [::subs/settings-modal-open?])]
-    [:button
+    [:button#settings-button
      {:class (styles/settings-button)
       :on-click (if open?
                   #(dispatch [::events/close-settings-modal])
@@ -608,6 +609,10 @@
     [:button
      {:class (styles/online-counter ping? fps?)}
      (str "Online: " (or online "-"))]))
+
+(defn- temp-container-for-fps-ping-online []
+  [:div#temp-container-for-fps-ping-online
+   (styles/temp-container-for-fps-ping-online)])
 
 (defn- settings-modal []
   (let [{:keys [sound?
@@ -767,16 +772,17 @@
     :class (styles/init-modal-username-input)}])
 
 (defn- select-race [race]
-  [:p "Select race"]
-  [:div (styles/init-modal-race-container)
-   [:button
-    {:class (styles/init-modal-orc-button (= "orc" @race))
-     :on-click #(reset! race "orc")}
-    "Orc"]
-   [:button
-    {:class (styles/init-modal-human-button (= "human" @race))
-     :on-click #(reset! race "human")}
-    "Human"]])
+  [:<>
+   [:p "Select race"]
+   [:div (styles/init-modal-race-container)
+    [:button
+     {:class (styles/init-modal-orc-button (= "orc" @race))
+      :on-click #(reset! race "orc")}
+     "Orc"]
+    [:button
+     {:class (styles/init-modal-human-button (= "human" @race))
+      :on-click #(reset! race "human")}
+     "Human"]]])
 
 (defn- select-class [class race]
   [:<>
@@ -816,7 +822,7 @@
       {:component-did-mount #(dispatch [::events/notify-ui-is-ready])
        :reagent-render
        (fn []
-         [:div (styles/init-modal)
+         [:div (assoc (styles/init-modal) :data-title "Welcome!" :data-intro "Hello World! 👋")
           [username-input username]
           [select-race race]
           [select-class class race]
@@ -913,6 +919,7 @@
         (if @(subscribe [::subs/init-modal-open?])
           [init-modal]
           [:<>
+           [temp-container-for-fps-ping-online]
            (when @(subscribe [::subs/connection-lost?])
              [connection-lost-modal])
            (when @(subscribe [::subs/ping?])

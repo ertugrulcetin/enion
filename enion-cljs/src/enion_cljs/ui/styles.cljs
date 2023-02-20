@@ -436,7 +436,7 @@
 (defattrs party-list-container [minimap-open?]
   {:position :sticky
    :width "200px"
-   :height "100%"
+   :height "70%"
    :margin-left :auto
    :z-index 3
    :float :right
@@ -544,6 +544,12 @@
             (<= ping 200) "orange"
             :else "red")}
   [:&:hover {:border "2px solid #10131dcc"}])
+
+(defattrs temp-container-for-fps-ping-online []
+  {:position :absolute
+   :top "10px"
+   :width "130px"
+   :height "100px"})
 
 (defclass online-counter [ping? fps?]
   {:composes [(ping-counter nil nil)]

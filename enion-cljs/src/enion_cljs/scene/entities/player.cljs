@@ -582,6 +582,7 @@
                   (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :show])
                   (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :hide]))
           :ping? (j/assoc! st/settings :ping? v)
+          :show-tutorial? (when (or (= "true" v) (true? v)) (fire :ui-show-tutorial))
           nil))))
 
 (when dev?
