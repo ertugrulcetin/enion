@@ -256,10 +256,21 @@
   (j/call-in entity [:collision :on] "collisionstart" collision-start)
   (j/call-in entity [:collision :on] "collisionend" collision-end))
 
+(defonce template-entity-map
+  (delay
+    {"orc_warrior" (pc/find-by-name "orc_warrior")
+     "orc_mage" (pc/find-by-name "orc_mage")
+     "orc_priest" (pc/find-by-name "orc_priest")
+     "orc_asas" (pc/find-by-name "orc_asas")
+     "human_warrior" (pc/find-by-name "human_warrior")
+     "human_mage" (pc/find-by-name "human_mage")
+     "human_priest" (pc/find-by-name "human_priest")
+     "human_asas" (pc/find-by-name "human_asas")}))
+
 (defn- create-model-and-template-entity [{:keys [id entity race class other-player?]}]
   (let [template-entity-name (str race "_" class)
         model-entity-name (str race "_" class "_model")
-        character-template-entity (pc/clone (pc/find-by-name template-entity-name))
+        character-template-entity (pc/clone (get @template-entity-map template-entity-name))
         _ (j/assoc! character-template-entity :name (str template-entity-name "_" id))
         character-model-entity (pc/find-by-name character-template-entity model-entity-name)]
     (j/assoc! character-template-entity :enabled true)
