@@ -9,9 +9,9 @@
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.views :as views]
     [re-frame.core :as re-frame]
-    [reagent.dom :as rdom]))
-
-;; (def commit-sha (macros/get-env "ENION_SHA"))
+    [reagent.dom :as rdom])
+  (:require-macros
+    [enion-cljs.scene.macros :as macros]))
 
 (defn dev-setup []
   (when config/debug?
@@ -24,11 +24,9 @@
     (rdom/render [views/main-panel] root-el)))
 
 (defn- init-sentry []
-  (do
-    (println "init sentry")
-    ;; when-not dev?
+  (when-not dev?
     (.init Sentry #js{:dsn "https://f19d5f05ed8e4a778295b47108dddb14@o4504713579724800.ingest.sentry.io/4504713587851264"
-                      ;; :release commit-sha
+                      :release (macros/get-env "ENION_SHA")
                       ;; :environment (if (not dev?) "production" "dev")
                       :integrations #js [(new BrowserTracing)]
                       :tracesSampleRate 1.0})))

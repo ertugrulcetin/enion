@@ -17,3 +17,7 @@
                 (for [s skills]
                   `[(enion-cljs.scene.skills.core/can-skill-be-cancelled? ~s ~active-state ~state)
                     (enion-cljs.scene.skills.core/cancel-skill ~s)])))))
+
+(defmacro get-env
+  [k]
+  (System/getenv k))
