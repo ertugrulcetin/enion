@@ -146,7 +146,7 @@
    [:span (styles/party-member-username) username]])
 
 (defn- skill-bar []
-  [:div (styles/skill-bar)
+  [:div#skill-bar (styles/skill-bar)
    (map-indexed
      (fn [i s]
        ^{:key (str s "-" i)}
@@ -220,7 +220,7 @@
         input-active? @(subscribe [::subs/chat-input-active?])
         chat-type @(subscribe [::subs/chat-type])
         ref (atom nil)]
-    [:div {:class (styles/chat-wrapper)}
+    [:div#chat-wrapper {:class (styles/chat-wrapper)}
      [:button
       {:ref #(reset! ref %)
        :class (if open? (styles/chat-close-button) (styles/chat-open-button))
@@ -572,8 +572,8 @@
          "Remove from party"]
 
         @(subscribe [::subs/able-to-add-party-member?])
-        [:button {:class (styles/party-action-button)
-                  :on-click #(fire :add-to-party)}
+        [:button#add-to-party {:class (styles/party-action-button)
+                               :on-click #(fire :add-to-party)}
          "Add to party"]
 
         @(subscribe [::subs/able-to-exit-from-party?])
