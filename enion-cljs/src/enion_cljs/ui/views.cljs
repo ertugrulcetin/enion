@@ -1,6 +1,7 @@
 (ns enion-cljs.ui.views
   (:require
     [applied-science.js-interop :as j]
+    [breaking-point.core :as bp]
     [clojure.string :as str]
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on]]
@@ -747,7 +748,9 @@
          [:<>
           [:span "Number of players"]
           [:br]
-          [:span (styles/server-stats-refresh-message) "(Refreshes every 2 seconds)"]
+          (when-not (or @(subscribe [::bp/tablet?])
+                        @(subscribe [::bp/mobile?]))
+            [:span (styles/server-stats-refresh-message) "(Refreshes every 2 seconds)"])
           [:div (styles/server-stats-container)
            [:table (styles/server-stats-table)
             [:thead
@@ -822,11 +825,10 @@
       {:component-did-mount #(dispatch [::events/notify-ui-is-ready])
        :reagent-render
        (fn []
-         [:div (assoc (styles/init-modal) :data-title "Welcome!" :data-intro "Hello World! 👋")
+         [:div (styles/init-modal)
           [username-input username]
           [select-race race]
           [select-class class race]
-          [:br]
           [:hr (styles/init-modal-hr)]
           [server-stats]
           [:hr (styles/init-modal-hr)]

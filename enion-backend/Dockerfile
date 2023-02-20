@@ -10,6 +10,6 @@ ENTRYPOINT exec java -server \
                      -XX:+UseStringDeduplication \
                      -XX:MaxGCPauseMillis=50 \
                      -XX:+HeapDumpOnOutOfMemoryError \
-                     -XX:HeapDumpPath=/enion-backend/my-heap-dump.hprof \
+                     -XX:HeapDumpPath=/enion-backend/dumps \
                      -jar \
                      /enion-backend/app.jar

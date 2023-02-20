@@ -172,6 +172,9 @@
                      :enemy? enemy?)
            (fire :ui-selected-player temp-selected-player)))))))
 
+(defn get-health []
+  (j/get player :health))
+
 (defn set-mana [mana]
   (j/assoc! player :mana mana)
   (fire :ui-player-mana mana))

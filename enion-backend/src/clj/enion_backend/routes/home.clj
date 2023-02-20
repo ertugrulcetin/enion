@@ -25,7 +25,7 @@
       Executors
       TimeUnit)))
 
-;;TODO enable ping checks...
+;; TODO enable ping checks...
 
 (def battle-points-by-party-size
   {1 72
@@ -1027,7 +1027,7 @@
 
   (swap! world (fn [world]
                  (reduce (fn [world id]
-                           (assoc-in world [id :mana] 200))
+                           (assoc-in world [id :mana] 350))
                    world
                    (keys @players))))
 
@@ -1036,7 +1036,7 @@
   ;; move above to a function using defn
   (swap! world (fn [world]
                  (reduce (fn [world id]
-                           (assoc-in world [id :health] 20))
+                           (assoc-in world [id :health] 155))
                    world
                    (keys @players))))
 

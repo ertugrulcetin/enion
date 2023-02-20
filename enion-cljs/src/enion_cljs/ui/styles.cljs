@@ -9,6 +9,15 @@
 (def orc-color "rgb(15 188 3)")
 (def human-color "#2691b2ff")
 
+(def scroll-bar
+  ["&::-webkit-scrollbar" {:width "10px"
+                           :background-color "rgba(33, 33, 33, 0.5)"
+                           :border-radius "5px"}])
+
+(def scroll-bar-thumb
+  ["&::-webkit-scrollbar-thumb" {:background-color "black"
+                                 :border-radius "5px"}])
+
 (defglobal defaults
   [:body
    {:height "100%"
@@ -189,15 +198,6 @@
    :left :unset
    :bottom "20px"
    :height "150px"})
-
-(def scroll-bar
-  ["&::-webkit-scrollbar" {:width "10px"
-                           :background-color "rgba(33, 33, 33, 0.5)"
-                           :border-radius "5px"}])
-
-(def scroll-bar-thumb
-  ["&::-webkit-scrollbar-thumb" {:background-color "black"
-                                 :border-radius "5px"}])
 
 (defclass message-box []
   {:width "100%"
@@ -573,12 +573,15 @@
 
 (defattrs init-modal []
   {:composes [(party-request-modal)]
-   :width "40%"})
+   :width "40%"
+   :max-width "50%"
+   :max-height "80%"
+   :overflow-y :auto})
 
 (defclass init-modal-username-input []
   {:color "white"
    :width "300px"
-   :height "40px"
+   :height "30px"
    :font-family "IMMORTAL"
    :border-radius "5px"
    :border "1px solid black"
@@ -592,7 +595,7 @@
   {:display :flex
    :justify-content :center
    :gap "10px"
-   :margin-top "20px"})
+   :margin-top "-10px"})
 
 (defattrs init-modal-class-container []
   {:composes [(init-modal-race-container)]})
@@ -639,7 +642,6 @@
 
 (defclass init-modal-enter-button []
   {:composes [(init-modal-button nil nil)]
-   :margin-top "20px"
    :font-size "20px"}
   [:&:hover {:color "#ffc301c8 !important"
              :border "2px solid #ffc301c8"}])

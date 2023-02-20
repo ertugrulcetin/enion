@@ -202,14 +202,22 @@
 
 (defn- process-world-snapshot-for-player [state]
   (let [health (:health state)
-        mana (:mana state)]
-    (st/set-health health)
-    (st/set-mana mana)
-    (when (= 0 health)
-      (pc/set-anim-int (st/get-model-entity) "health" 0)
-      (fire :show-re-spawn-modal #(dispatch-pro :re-spawn))
-      (poki/gameplay-stop)
-      (js/setTimeout poki/commercial-break 2000))))
+        mana (:mana state)
+        current-health (st/get-health)]
+    (cond
+      (and (= health 0) (not= 0 current-health))
+      (do
+        (st/set-health health)
+        (st/set-mana mana)
+        (pc/set-anim-int (st/get-model-entity) "health" 0)
+        (fire :show-re-spawn-modal #(dispatch-pro :re-spawn))
+        (poki/gameplay-stop)
+        (js/setTimeout poki/commercial-break 2000))
+
+      (not (and (= health 0) (= 0 current-health)))
+      (do
+        (st/set-health health)
+        (st/set-mana mana)))))
 
 (let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange" "attackSingle"}
       temp-pos (pc/vec3)]
