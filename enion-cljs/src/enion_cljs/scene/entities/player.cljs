@@ -417,7 +417,8 @@
           entity (pc/clone (pc/find-by-name entity-name))
           _ (j/assoc! entity :id id)
           [x y z] pos
-          params {:entity entity
+          params {:id id
+                  :entity entity
                   :username username
                   :class class
                   :race race
