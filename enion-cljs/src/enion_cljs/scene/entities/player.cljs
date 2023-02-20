@@ -270,7 +270,14 @@
 (defn- create-model-and-template-entity [{:keys [id entity race class other-player?]}]
   (let [template-entity-name (str race "_" class)
         model-entity-name (str race "_" class "_model")
-        character-template-entity (pc/clone (get @template-entity-map template-entity-name))
+        character-template-entity (try
+                                    (pc/clone (get @template-entity-map template-entity-name))
+                                    (catch js/Error _
+                                      (throw (js/Error. (pr-str {:id id
+                                                                 :template-entity-name template-entity-name
+                                                                 :other-player? other-player?
+                                                                 :race race
+                                                                 :class class})))))
         _ (j/assoc! character-template-entity :name (str template-entity-name "_" id))
         character-model-entity (pc/find-by-name character-template-entity model-entity-name)]
     (j/assoc! character-template-entity :enabled true)
