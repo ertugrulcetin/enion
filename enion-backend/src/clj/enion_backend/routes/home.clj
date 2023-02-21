@@ -120,20 +120,22 @@
                 free-memory (.freeMemory (Runtime/getRuntime))
                 used-memory (- total-memory free-memory)
                 memory-ratio (double (/ used-memory total-memory))]
-            (when (> memory-ratio 0.5)
-              (log/info "Used memory: " used-memory)
-              (log/info "Free memory: " free-memory)
-              (log/info "Total memory: " total-memory)
-              (log/info "Triggering GC... Memory ratio: " memory-ratio)
+            (println
+              (format "Used memory: %s - Free memory: %s - Total memory: %s - Memory ratio: %s"
+                      used-memory free-memory total-memory memory-ratio))
+            (when (> memory-ratio 0.75)
+              (println "Triggering GC...")
+              (println
+                (format "Used memory: %s - Free memory: %s - Total memory: %s - Memory ratio: %s"
+                        used-memory free-memory total-memory memory-ratio))
               (System/gc)
               (let [total-memory (.totalMemory (Runtime/getRuntime))
                     free-memory (.freeMemory (Runtime/getRuntime))
                     used-memory (- total-memory free-memory)
                     memory-ratio (double (/ used-memory total-memory))]
-                (log/info "After GC - Used memory: " used-memory)
-                (log/info "After GC - Free memory: " free-memory)
-                (log/info "After GC - Total memory: " total-memory)
-                (log/info "After GC -Triggering GC... Memory ratio: " memory-ratio)))))
+                (println
+                  (format "After GC - Used memory: %s - Free memory: %s - Total memory: %s - Memory ratio: %s"
+                          used-memory free-memory total-memory memory-ratio))))))
         10 5 TimeUnit/SECONDS))))
 
 (defn- shutdown [^ExecutorService ec]
@@ -429,8 +431,12 @@
   (close-distance? player-world-state other-player-world-state (+ common.skills/attack-single-distance-threshold 0.5)))
 
 (defn- attack-range-in-distance? [world-state x y z]
-  (let [{:keys [px py pz]} world-state]
-    (<= (distance px x py y pz z) common.skills/attack-range-distance-threshold)))
+  (try
+    (let [{:keys [px py pz]} world-state]
+      (<= (distance px x py y pz z) common.skills/attack-range-distance-threshold))
+    (catch Exception e
+      (let [{:keys [px py pz]} world-state]
+        (log/error e (str "attack-range-in-distance failed, here params: " (pr-str [px x py y pz z])))))))
 
 (defn hidden? [selected-player-id]
   (get-in @players [selected-player-id :effects :hide :result]))
@@ -882,6 +888,7 @@
                     {:skill skill
                      :selected-player-id selected-player-id})))))))
 
+;; TODO attack-range-in-distance? NPE veriyor, ve birkac kisiyi vursam da tek kisi gozukuyor
 (defmethod apply-skill "attackRange" [{:keys [id ping] {:keys [skill x y z]} :data}]
   (let [players* @players
         w* @world]
