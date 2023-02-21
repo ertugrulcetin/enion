@@ -117,10 +117,13 @@
       (.scheduleAtFixedRate
         (fn []
           (let [total-memory (.totalMemory (Runtime/getRuntime))
-                free-memory (.freeMemory (Runtime/getRuntime))]
-            (when (> (double (/ free-memory total-memory)) 0.75)
-              (log/info "Triggering GC...")
-              (System/gc))))
+                free-memory (.freeMemory (Runtime/getRuntime))
+                memory-ratio (double (/ free-memory total-memory))]
+            (when (> memory-ratio 0.75)
+              (log/info "Triggering GC... Memory ratio: " memory-ratio)
+              (System/gc)
+              (log/info "Memory ratio after GC: "
+                        (double (/ (.freeMemory (Runtime/getRuntime)) (.totalMemory (Runtime/getRuntime))))))))
         10 5 TimeUnit/SECONDS))))
 
 (defn- shutdown [^ExecutorService ec]
