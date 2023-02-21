@@ -110,6 +110,19 @@
         world-tick-rate
         TimeUnit/MILLISECONDS))))
 
+;; TODO should not be using this tho!
+(defn- free-memory-when-needed []
+  (let [ec (Executors/newSingleThreadScheduledExecutor)]
+    (doto ec
+      (.scheduleAtFixedRate
+        (fn []
+          (let [total-memory (.totalMemory (Runtime/getRuntime))
+                free-memory (.freeMemory (Runtime/getRuntime))]
+            (when (> (double (/ free-memory total-memory)) 0.75)
+              (log/info "Triggering GC...")
+              (System/gc))))
+        10 5 TimeUnit/SECONDS))))
+
 (defn- shutdown [^ExecutorService ec]
   (.shutdown ec)
   (try
@@ -127,6 +140,10 @@
 (defstate ^{:on-reload :noop} teatime-pool
   :start (tea/start!)
   :stop (tea/stop!))
+
+(defstate ^{:on-reload :noop} memory-checker
+  :start (free-memory-when-needed)
+  :stop (shutdown memory-checker))
 
 (defn random-pos-for-orc
   []
