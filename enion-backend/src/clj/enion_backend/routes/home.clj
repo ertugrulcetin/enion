@@ -120,9 +120,6 @@
                 free-memory (.freeMemory (Runtime/getRuntime))
                 used-memory (- total-memory free-memory)
                 memory-ratio (double (/ used-memory total-memory))]
-            (println
-              (format "Used memory: %s - Free memory: %s - Total memory: %s - Memory ratio: %s"
-                      used-memory free-memory total-memory memory-ratio))
             (when (> memory-ratio 0.75)
               (println "Triggering GC...")
               (println
@@ -237,8 +234,7 @@
   (fn [{:keys [id] {:keys [msg]} :data}]
     (let [players* @players
           player (players* id)
-          race (:race player)
-          player-ids (find-player-ids-by-race players* race)
+          player-ids  (keys @world)
           message-sent-too-often? (message-sent-too-often? player)]
       (swap! players assoc-in [id :last-time :message-sent] (now))
       (cond

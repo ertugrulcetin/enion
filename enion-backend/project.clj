@@ -7,7 +7,7 @@
                  [clojure.java-time "1.1.0"]
                  [cprop "0.1.19"]
                  [luminus-aleph "0.2.0"]
-                 [aleph "0.6.0"]
+                 [aleph "0.6.1"]
                  [luminus-transit "0.1.5"]
                  [luminus/ring-ttl-session "0.3.3"]
                  [metosin/muuntaja "0.6.8"]
