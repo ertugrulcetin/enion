@@ -1,7 +1,6 @@
 (ns enion-backend.layout
   (:require
     [clojure.java.io]
-    [markdown.core :refer [md-to-html-string]]
     [ring.middleware.anti-forgery :refer [*anti-forgery-token*]]
     [ring.util.anti-forgery :refer [anti-forgery-field]]
     [ring.util.http-response :refer [content-type ok]]
@@ -11,7 +10,6 @@
 
 (parser/set-resource-path!  (clojure.java.io/resource "public"))
 (parser/add-tag! :csrf-field (fn [_ _] (anti-forgery-field)))
-(filters/add-filter! :markdown (fn [content] [:safe (md-to-html-string content)]))
 
 (defn render
   "renders the HTML template located relative to resources/html"

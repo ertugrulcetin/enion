@@ -5,7 +5,7 @@ COPY target/default+uberjar/enion-backend.jar /enion-backend/app.jar
 EXPOSE 8080
 
 ENTRYPOINT exec java -server \
-                     -Xms2750m -Xmx2750m \
+                     -Xms1750m -Xmx1750m \
                      -XX:+UseStringDeduplication \
                      -jar \
                      /enion-backend/app.jar

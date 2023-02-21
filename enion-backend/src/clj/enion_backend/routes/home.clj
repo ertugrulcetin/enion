@@ -118,12 +118,22 @@
         (fn []
           (let [total-memory (.totalMemory (Runtime/getRuntime))
                 free-memory (.freeMemory (Runtime/getRuntime))
-                memory-ratio (double (/ free-memory total-memory))]
-            (when (> memory-ratio 0.75)
+                used-memory (- total-memory free-memory)
+                memory-ratio (double (/ used-memory total-memory))]
+            (when (> memory-ratio 0.5)
+              (log/info "Used memory: " used-memory)
+              (log/info "Free memory: " free-memory)
+              (log/info "Total memory: " total-memory)
               (log/info "Triggering GC... Memory ratio: " memory-ratio)
               (System/gc)
-              (log/info "Memory ratio after GC: "
-                        (double (/ (.freeMemory (Runtime/getRuntime)) (.totalMemory (Runtime/getRuntime))))))))
+              (let [total-memory (.totalMemory (Runtime/getRuntime))
+                    free-memory (.freeMemory (Runtime/getRuntime))
+                    used-memory (- total-memory free-memory)
+                    memory-ratio (double (/ used-memory total-memory))]
+                (log/info "After GC - Used memory: " used-memory)
+                (log/info "After GC - Free memory: " free-memory)
+                (log/info "After GC - Total memory: " total-memory)
+                (log/info "After GC -Triggering GC... Memory ratio: " memory-ratio)))))
         10 5 TimeUnit/SECONDS))))
 
 (defn- shutdown [^ExecutorService ec]

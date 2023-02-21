@@ -2,13 +2,9 @@
   "Userspace functions you can run by default in your local REPL."
   (:require
     [clojure.pprint]
-    [clojure.spec.alpha :as s]
     [enion-backend.config :refer [env]]
-    [enion-backend.core :refer [start-app]]
-    [expound.alpha :as expound]
+    [enion-backend.core]
     [mount.core :as mount]))
-
-(alter-var-root #'s/*explain-out* (constantly expound/printer))
 
 (add-tap (bound-fn* clojure.pprint/pprint))
 
@@ -28,4 +24,3 @@
   []
   (stop)
   (start))
-
