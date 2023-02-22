@@ -38,31 +38,31 @@
 
   :profiles
   {:uberjar {:omit-source true
-             :aot [enion-backend.core]
+             :aot :all
              :uberjar-name "enion-backend.jar"
              :source-paths ["env/prod/clj"]
              :resource-paths ["env/prod/resources"]}
 
-   :dev           [:project/dev :profiles/dev]
-   :test          [:project/dev :project/test :profiles/test]
+   :dev [:project/dev :profiles/dev]
+   :test [:project/dev :project/test :profiles/test]
 
-   :project/dev  {:jvm-opts ["-Dconf=dev-config.edn"]
-                  :dependencies [[org.clojure/tools.namespace "1.3.0"]
-                                 [pjstadig/humane-test-output "0.11.0"]
-                                 [prone "2021-04-23"]
-                                 [ring/ring-devel "1.9.6"]
-                                 [ring/ring-mock "0.4.0"]]
-                  :plugins      [[com.jakemccrary/lein-test-refresh "0.24.1"]
-                                 [jonase/eastwood "1.2.4"]
-                                 [cider/cider-nrepl "0.26.0"]]
+   :project/dev {:jvm-opts ["-Dconf=dev-config.edn"]
+                 :dependencies [[org.clojure/tools.namespace "1.3.0"]
+                                [pjstadig/humane-test-output "0.11.0"]
+                                [prone "2021-04-23"]
+                                [ring/ring-devel "1.9.6"]
+                                [ring/ring-mock "0.4.0"]]
+                 :plugins [[com.jakemccrary/lein-test-refresh "0.24.1"]
+                           [jonase/eastwood "1.2.4"]
+                           [cider/cider-nrepl "0.26.0"]]
 
-                  :source-paths ["env/dev/clj"]
-                  :resource-paths ["env/dev/resources"]
-                  :repl-options {:init-ns user
-                                 :init (start)
-                                 :timeout 120000}
-                  :injections [(require 'pjstadig.humane-test-output)
-                               (pjstadig.humane-test-output/activate!)]}
+                 :source-paths ["env/dev/clj"]
+                 :resource-paths ["env/dev/resources"]
+                 :repl-options {:init-ns user
+                                :init (start)
+                                :timeout 120000}
+                 :injections [(require 'pjstadig.humane-test-output)
+                              (pjstadig.humane-test-output/activate!)]}
    :project/test {:jvm-opts ["-Dconf=test-config.edn"]
                   :resource-paths ["env/test/resources"]}
    :profiles/dev {}

@@ -5,7 +5,7 @@
     [clojure.string :as str]
     [clojure.tools.logging :as log]
     [common.enion.skills :as common.skills]
-    [enion-backend.async :refer [dispatch reg-pro]]
+    [enion-backend.async :as easync :refer [dispatch reg-pro]]
     [enion-backend.layout :as layout]
     [enion-backend.middleware :as middleware]
     [enion-backend.teatime :as tea]
@@ -156,6 +156,9 @@
 (defstate ^{:on-reload :noop} memory-checker
   :start (free-memory-when-needed)
   :stop (shutdown memory-checker))
+
+(defstate register-procedures
+  :start (easync/start-procedures))
 
 (defn random-pos-for-orc
   []

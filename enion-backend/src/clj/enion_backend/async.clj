@@ -6,6 +6,7 @@
     [manifold.stream :as s]
     [weavejester.dependency :as dep]))
 
+(defonce procedures (atom {}))
 (defonce procedure-map (atom {}))
 (defonce deps (atom (dep/graph)))
 (defonce validation-fn (atom nil))
@@ -154,7 +155,11 @@
              (log/debug "Process completed for" ~pro-name)
              (d/recur ~@(map (fn [_#] `(d/deferred)) (range (count topo-sorted-deps))))))))))
 
-(defmacro reg-pro
+(defn start-procedures []
+  (doseq [[_ p] @procedures]
+    (p)))
+
+(defn reg-pro
   "Defines a procedure with any doc-string or deps added to the procedure map.
    data-&-response-schema-map? defines a map with optional keys :data and :response that contain data or response schema.
 
@@ -190,30 +195,31 @@
                 fdecl)
         m (if (map? (first fdecl))
             (assoc m :data-response-schema-map (first fdecl))
-            m)]
-    `(do
-       (when-not (fn? ~(last fdecl))
-         (throw (ex-info "Last argument must be a function" {})))
-       (swap! procedure-map update ~pro-name merge (merge {:fn (bound-fn* (fn [] (eval '~(last fdecl))))
-                                                           :data-response-schema-map nil} ~m))
-       (reset! deps (dep/graph))
-       (doseq [[k# v#] @procedure-map]
-         (swap! deps (fn [deps#]
-                       (reduce #(dep/depend %1 k# %2) deps# (:deps v#)))))
-       (doseq [[k# _#] @procedure-map]
-         (let [dependencies# (dependencies k#)
-               topo-sort# (filter (-> dependencies# flatten set) (dep/topo-sort @deps))
-               topo-sort# (if (empty? topo-sort#) [k#] topo-sort#)]
-           (swap! procedure-map assoc-in [k# :topo-sort] topo-sort#)))
-       (doseq [k# (distinct (flatten (dependents ~pro-name)))]
-         (let [stream# (get-in @procedure-map [k# :stream])
-               async-flow# (get-in @procedure-map [k# :async-flow])
-               new-stream# (s/stream)]
-           (when stream#
-             (when (realized? async-flow#)
-               (s/put! stream# (Exception.)))
-             (s/close! stream#))
-           (swap! procedure-map (fn [m#]
-                                  (-> m#
-                                      (assoc-in [k# :stream] new-stream#)
-                                      (assoc-in [k# :async-flow] (delay (eval `(create-async-flow ~k#))))))))))))
+            m)
+        pro (fn []
+              (when-not (fn? (last fdecl))
+                (throw (ex-info "Last argument must be a function" {})))
+              (swap! procedure-map update pro-name merge (merge {:fn (bound-fn* (fn [] (eval (last fdecl))))
+                                                                 :data-response-schema-map nil} m))
+              (reset! deps (dep/graph))
+              (doseq [[k# v#] @procedure-map]
+                (swap! deps (fn [deps#]
+                              (reduce #(dep/depend %1 k# %2) deps# (:deps v#)))))
+              (doseq [[k# _#] @procedure-map]
+                (let [dependencies# (dependencies k#)
+                      topo-sort# (filter (-> dependencies# flatten set) (dep/topo-sort @deps))
+                      topo-sort# (if (empty? topo-sort#) [k#] topo-sort#)]
+                  (swap! procedure-map assoc-in [k# :topo-sort] topo-sort#)))
+              (doseq [k# (distinct (flatten (dependents pro-name)))]
+                (let [stream# (get-in @procedure-map [k# :stream])
+                      async-flow# (get-in @procedure-map [k# :async-flow])
+                      new-stream# (s/stream)]
+                  (when stream#
+                    (when (realized? async-flow#)
+                      (s/put! stream# (Exception.)))
+                    (s/close! stream#))
+                  (swap! procedure-map (fn [m#]
+                                         (-> m#
+                                             (assoc-in [k# :stream] new-stream#)
+                                             (assoc-in [k# :async-flow] (delay (eval `(create-async-flow ~k#))))))))))]
+    (swap! procedures assoc pro-name pro)))
