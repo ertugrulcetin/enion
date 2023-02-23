@@ -110,31 +110,6 @@
         world-tick-rate
         TimeUnit/MILLISECONDS))))
 
-;; TODO should not be using this tho!
-(defn- free-memory-when-needed []
-  (let [ec (Executors/newSingleThreadScheduledExecutor)]
-    (doto ec
-      (.scheduleAtFixedRate
-        (fn []
-          (let [total-memory (.totalMemory (Runtime/getRuntime))
-                free-memory (.freeMemory (Runtime/getRuntime))
-                used-memory (- total-memory free-memory)
-                memory-ratio (double (/ used-memory total-memory))]
-            (when (> memory-ratio 0.75)
-              (println "Triggering GC...")
-              (println
-                (format "Used memory: %s - Free memory: %s - Total memory: %s - Memory ratio: %s"
-                        used-memory free-memory total-memory memory-ratio))
-              (System/gc)
-              (let [total-memory (.totalMemory (Runtime/getRuntime))
-                    free-memory (.freeMemory (Runtime/getRuntime))
-                    used-memory (- total-memory free-memory)
-                    memory-ratio (double (/ used-memory total-memory))]
-                (println
-                  (format "After GC - Used memory: %s - Free memory: %s - Total memory: %s - Memory ratio: %s"
-                          used-memory free-memory total-memory memory-ratio))))))
-        10 5 TimeUnit/SECONDS))))
-
 (defn- shutdown [^ExecutorService ec]
   (.shutdown ec)
   (try
@@ -152,10 +127,6 @@
 (defstate ^{:on-reload :noop} teatime-pool
   :start (tea/start!)
   :stop (tea/stop!))
-
-(defstate ^{:on-reload :noop} memory-checker
-  :start (free-memory-when-needed)
-  :stop (shutdown memory-checker))
 
 (defstate register-procedures
   :start (easync/start-procedures))
@@ -230,7 +201,7 @@
 (defn- message-sent-too-often? [player]
   (let [last-time (get-in player [:last-time :message-sent])
         now (now)]
-    (and last-time (< (- now last-time) 1000))))
+    (and last-time (< (- now last-time) 1500))))
 
 (reg-pro
   :send-global-message
@@ -261,7 +232,7 @@
         message-sent-too-often? message-sent-too-often-msg
         :else
         (when (not (or (str/blank? msg)
-                       (> (count msg) 80)
+                       (> (count msg) 60)
                        (nil? party-id)))
           (doseq [id (find-player-ids-by-party-id players* party-id)]
             (send! id :party-message {:id id
