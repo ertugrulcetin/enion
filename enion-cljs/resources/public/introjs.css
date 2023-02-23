@@ -2,3 +2,49 @@
   pointer-events: all;
   user-select: none;
 }
+
+.introjs-tooltip {
+ font-family: IMMORTAL, arial, sans-serif;
+ font-size: 20px;
+ min-width: 400px;
+ margin-left: -175px;
+ color: white;
+ background-color: #10131dcc;
+ border: 2px solid black;
+}
+
+.introjs-tooltiptext {
+ font-family: IMMORTAL, arial, sans-serif;
+ color: white;
+}
+
+.introjs-tooltiptext > b {
+ font-family: IMMORTAL, arial, sans-serif;
+ color: #ffc107;
+}
+
+.introjs-tooltip-title {
+ font-size: 22px;
+ font-family: IMMORTAL, arial, sans-serif;
+ color: white;
+}
+
+.introjs-tooltipbuttons * {
+ font-family: IMMORTAL, arial, sans-serif;
+ color: white;
+ background-color: #10131dcc;
+ border: 2px solid black;
+ text-shadow: unset;
+ font-weight: bold;
+ font-size: 18px;
+}
+
+.introjs-button:hover, .introjs-button:focus, .introjs-button:active{
+    outline: none;
+    text-decoration: none;
+    border-color: unset;
+    background-color: unset;
+    color: white;
+    text-shadow: unset;
+    box-shadow: none;
+}

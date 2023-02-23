@@ -6,7 +6,6 @@
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on]]
     [enion-cljs.ui.events :as events]
-    [enion-cljs.ui.intro :as intro]
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
     [re-frame.core :refer [subscribe dispatch dispatch-sync]]
@@ -93,20 +92,49 @@
        (fn []
          [:div (styles/cooldown (/ cooldown-secs 1000))])})))
 
-(defn- skill [index skill]
-  [:div {:class (styles/skill)
-         :on-click #(dispatch [::events/update-skills-order index skill])
-         :on-mouse-over #(dispatch [::events/show-skill-description skill])
-         :on-mouse-out #(dispatch [::events/show-skill-description nil])}
-   [:span (styles/skill-number) (inc index)]
-   (when-not (= :none skill)
-     [:div (styles/childs-overlayed)
-      [:img {:class (styles/skill-img
-                      (or @(subscribe [::subs/blocked-skill? skill]) @(subscribe [::subs/died?]))
-                      @(subscribe [::subs/not-enough-mana? skill]))
-             :src (skill->img skill)}]
-      (when @(subscribe [::subs/cooldown-in-progress? skill])
-        [cooldown skill])])])
+#_(defonce right-click-skill-order-update-fn
+    (fn [ev]
+      (.-preventDefault ev)
+      (dispatch [::events/update-skills-order index skill])
+      false))
+
+(defn- skill [_ _]
+  (let [event-listeners (atom {})]
+    (fn [index skill]
+      (let [skill-move @(subscribe [::subs/skill-move])]
+        [:div {:ref (fn [ref]
+                      (when ref
+                        (when-let [[ref f] (get @event-listeners skill)]
+                          (.removeEventListener ref "contextmenu" f false))
+                        (let [f (fn [ev]
+                                  (.-preventDefault ev)
+                                  (dispatch [::events/update-skills-order index skill])
+                                  false)]
+                          (.addEventListener ref "contextmenu" f false)
+                          (swap! event-listeners assoc skill [ref f]))))
+               :class (styles/skill)
+               :on-click (fn []
+                           (if skill-move
+                             (dispatch [::events/update-skills-order index skill])
+                             (let [event (js/KeyboardEvent. "keydown" #js {:code (str "Digit" (inc index))
+                                                                           :key (inc index)
+                                                                           :keyCode (+ 49 index)
+                                                                           :bubbles true
+                                                                           :cancelable true})
+                                   event #js {:event event
+                                              :key (+ 49 index)}]
+                               (fire :process-skills-from-skill-bar-clicks event))))
+               :on-mouse-over #(dispatch [::events/show-skill-description skill])
+               :on-mouse-out #(dispatch [::events/show-skill-description nil])}
+         [:span (styles/skill-number) (inc index)]
+         (when-not (= :none skill)
+           [:div (styles/childs-overlayed)
+            [:img {:class (styles/skill-img
+                            (or @(subscribe [::subs/blocked-skill? skill]) @(subscribe [::subs/died?]))
+                            @(subscribe [::subs/not-enough-mana? skill]))
+                   :src (skill->img skill)}]
+            (when @(subscribe [::subs/cooldown-in-progress? skill])
+              [cooldown skill])])]))))
 
 (defn- hp-bar []
   (let [health @(subscribe [::subs/health])
@@ -181,12 +209,17 @@
 (defn scroll-to-bottom [e]
   (j/assoc! e :scrollTop (j/get e :scrollHeight)))
 
-(defn- on-message-box-update [ref]
-  (when-let [elem @ref]
-    (let [gap (- (j/get elem :scrollHeight) (+ (j/get elem :scrollTop)
-                                               (j/get elem :offsetHeight)))]
-      (when (< gap 50)
-        (scroll-to-bottom elem)))))
+(defn- on-message-box-update
+  ([ref]
+   (on-message-box-update ref false))
+  ([ref info?]
+   (when-let [elem @ref]
+     (if info?
+       (let [gap (- (j/get elem :scrollHeight) (+ (j/get elem :scrollTop)
+                                                  (j/get elem :offsetHeight)))]
+         (when (< gap 50)
+           (scroll-to-bottom elem)))
+       (scroll-to-bottom elem)))))
 
 ;; TODO when on hover disable character zoom in/out
 (defn- chat-message-box []
@@ -216,30 +249,42 @@
                             ^{:key idx}
                             [chat-message msg])])})))
 
+(defn- chat-input [_]
+  (let [ref (atom nil)]
+    (r/create-class
+      {:component-did-update (fn [this old]
+                               (let [old-value (second old)
+                                     new-value (second (r/argv this))]
+                                 (when (and (not= old-value new-value) @ref)
+                                   (if new-value
+                                     (.focus @ref)
+                                     (.blur @ref)))))
+       :reagent-render
+       (fn [input-active?]
+         [:input
+          {:ref #(some->> % (reset! ref))
+           :value @(subscribe [::subs/chat-message])
+           :disabled (not input-active?)
+           :placeholder "Press ENTER to enable chat"
+           :class (styles/chat-input)
+           :on-change #(dispatch-sync [::events/set-chat-message (-> % .-target .-value)])
+           :max-length 60}])})))
+
 (defn- chat []
   (let [open? @(subscribe [::subs/box-open? :chat-box])
         input-active? @(subscribe [::subs/chat-input-active?])
-        chat-type @(subscribe [::subs/chat-type])
-        ref (atom nil)]
+        chat-type @(subscribe [::subs/chat-type])]
     [:div#chat-wrapper {:class (styles/chat-wrapper)}
      [:button
-      {:ref #(reset! ref %)
-       :class (if open? (styles/chat-close-button) (styles/chat-open-button))
-       :on-click (fn []
-                   (dispatch [::events/toggle-box :chat-box])
-                   (some-> @ref .blur))}
+      {:class (if open? (styles/chat-close-button) (styles/chat-open-button))
+       :on-click #(dispatch [::events/toggle-box :chat-box])}
       (if open? "Close" "Open")]
      (when open?
        [:div (styles/chat)
         (if (= chat-type :all)
           [chat-message-box]
           [party-chat-message-box])
-        (when input-active?
-          [:input
-           {:ref #(some-> % .focus)
-            :class (styles/chat-input)
-            :on-change #(dispatch-sync [::events/set-chat-message (-> % .-target .-value)])
-            :max-length 80}])
+        [chat-input input-active?]
         [:div
          [:button
           {:class [(styles/chat-all-button) (when (= chat-type :all)
@@ -321,7 +366,7 @@
 (defn- info-message-box []
   (let [ref (atom nil)]
     (r/create-class
-      {:component-did-update #(on-message-box-update ref)
+      {:component-did-update #(on-message-box-update ref true)
        :reagent-render (fn []
                          [:div
                           {:ref #(reset! ref %)
@@ -611,6 +656,17 @@
      {:class (styles/online-counter ping? fps?)}
      (str "Online: " (or online "-"))]))
 
+(defn- tutorials []
+  [:div (styles/tutorial-container)
+   [:div {:style {:display :flex
+                  :flex-direction :column
+                  :gap "5px"}}
+    [:button (styles/tutorials) "How to rotate the camera?"]
+    [:button (styles/tutorials) "How to run faster?"]
+    [:button (styles/tutorials) "How to cast skills?"]
+    [:button (styles/tutorials) "How to use portal?"]
+    [:button (styles/tutorials) "What is my first quest?"]]])
+
 (defn- temp-container-for-fps-ping-online []
   [:div#temp-container-for-fps-ping-online
    (styles/temp-container-for-fps-ping-online)])
@@ -878,13 +934,20 @@
                                                      (= code "Tab")
                                                      (do
                                                        (.preventDefault e)
-                                                       (dispatch [::events/toggle-score-board]))
+                                                       (dispatch [::events/open-score-board]))
 
                                                      (= code "Escape")
                                                      (do
                                                        (dispatch [::events/cancel-skill-move])
                                                        (dispatch [::events/close-chat])
                                                        (dispatch [::events/close-settings-modal]))))))
+       (js/document.addEventListener "keyup" (fn [e]
+                                               (let [code (j/get e :code)]
+                                                 (cond
+                                                   (= code "Tab")
+                                                   (do
+                                                     (.preventDefault e)
+                                                     (dispatch [::events/close-score-board]))))))
        (on :ui-set-current-player #(dispatch [::events/set-current-player %]))
        (on :ui-set-as-party-leader #(dispatch [::events/set-as-party-leader %]))
        (on :init-skills #(dispatch [::events/init-skills %]))
@@ -927,6 +990,7 @@
            (when @(subscribe [::subs/ping?])
              [ping-counter])
            [online-counter]
+           [tutorials]
            [settings-button]
            (when @(subscribe [::subs/settings-modal-open?])
              [settings-modal])

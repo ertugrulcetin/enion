@@ -57,6 +57,11 @@
     (-> db :chat-box :type)))
 
 (reg-sub
+  ::chat-message
+  (fn [db]
+    (-> db :chat-box :message)))
+
+(reg-sub
   ::minimap?
   (fn [db]
     (-> db :settings :minimap?)))

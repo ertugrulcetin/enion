@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.network
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [fire on dlog ws-url]]
+    [enion-cljs.common :refer [dev? fire on dlog ws-url]]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.poki :as poki]
     [enion-cljs.scene.skills.effects :as effects]
@@ -392,6 +392,10 @@
       (fire :create-players players))))
 
 (defn- on-ws-open []
+  (when dev?
+    (dispatch-pro :init {:username "NeaTBuSTeR"
+                         :race "orc"
+                         :class "mage"}))
   (dispatch-pro :get-server-stats))
 
 (defn- on-ws-close []
@@ -419,7 +423,9 @@
                             (println "WS error occurred!")
                             (reset! open? false))})))
 
-(on :init-game #(dispatch-pro :init %))
+(when-not dev?
+  (on :init-game #(dispatch-pro :init %)))
+
 (on :connect-to-world-state #(dispatch-pro :connect-to-world-state))
 (on :send-global-message #(dispatch-pro :send-global-message {:msg %}))
 (on :send-party-message #(dispatch-pro :send-party-message {:msg %}))

@@ -240,16 +240,17 @@
   {:color "rgb(15 188 3)"})
 
 (defclass chat-input []
-  {:width "345px"
+  {:width "calc(100% - 20px)"
    :height "28px"
    :background-color "#10131dcc"
    :outline :none
    :color :white
    :font-weight :bold
-   :font-size "14px"
+   :font-size "18px"
    :font-family "IMMORTAL"
    :border "2px solid #10131dcc"
-   :border-radius "2px"})
+   :border-radius "2px"
+   :padding "5px"})
 
 (defattrs selected-player []
   {:composes [(actions-container)]
@@ -523,6 +524,18 @@
    :width "120px"}
   [:&:hover {:border "2px solid #2196F3"}])
 
+(let [blink-border-color "red"]
+  (defkeyframes blink-frames []
+    ["0%" {:border-color blink-border-color}]
+    ["50%" {:border-color "transparent"}]
+    ["100%" {:border-color blink-border-color}]))
+
+(defclass blink-animation []
+  {:border "2px solid transparent"
+   :transition "border-color 0.5s ease-in-out"
+   :animation (str (blink-frames) " 1s infinite")
+   :cursor :pointer})
+
 (defclass settings-button []
   {:composes [(button)]
    :position :absolute
@@ -558,6 +571,17 @@
           (and ping? fps?) "80px"
           (and ping? (not fps?)) "40px"
           (and (not ping?) fps?) "50px")}
+  [:&:hover {:border "2px solid #10131dcc"}])
+
+(defattrs tutorial-container []
+  {:position :absolute
+   :left "5px"
+   :top "115px"
+   :z-index 5})
+
+(defattrs tutorials []
+  {:composes [(button) (blink-animation)]
+   :width :fit-content}
   [:&:hover {:border "2px solid #10131dcc"}])
 
 (defclass connection-lost-button []
@@ -673,4 +697,3 @@
 
 (defattrs server-stats-refresh-message []
   {:font-size "15px"})
-

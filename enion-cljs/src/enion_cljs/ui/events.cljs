@@ -98,6 +98,11 @@
   (fn [[event x]]
     (fire event x)))
 
+(reg-fx
+  ::blur
+  (fn [elem]
+    (.blur elem)))
+
 (reg-event-db
   ::add-message-to-info-box*
   (fn [db [_ msg]]
@@ -384,12 +389,15 @@
     (assoc db :request-server-stats? false)))
 
 (reg-event-fx
-  ::toggle-score-board
+  ::open-score-board
   (fn [{:keys [db]}]
-    (let [open? (-> db :score-board :open? not)]
-      {:db (assoc-in db [:score-board :open?] open?)
-       :fx [(when open?
-              [::fire [:get-score-board]])]})))
+    {:db (assoc-in db [:score-board :open?] true)
+     :fx [[::fire [:get-score-board]]]}))
+
+(reg-event-db
+  ::close-score-board
+  (fn [db]
+    (assoc-in db [:score-board :open?] false)))
 
 (reg-event-db
   ::set-score-board

@@ -172,7 +172,8 @@
                     (fn [e]
                       (st/process-running)))
     (skills/register-skill-events events)
-    (on :update-skills-order skills/register-key->skills)))
+    (on :update-skills-order skills/register-key->skills)
+    (on :process-skills-from-skill-bar-clicks process-skills)))
 
 (defn- get-selected-enemy-id [e]
   (let [result (pc/raycast-rigid-body e entity.camera/entity)

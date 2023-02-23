@@ -7,6 +7,7 @@
     [enion-cljs.common :refer [dev?]]
     [enion-cljs.ui.config :as config]
     [enion-cljs.ui.events :as events]
+    [enion-cljs.ui.tutorial]
     [enion-cljs.ui.views :as views]
     [re-frame.core :as re-frame]
     [reagent.dom :as rdom])
