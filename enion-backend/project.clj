@@ -24,7 +24,8 @@
                  [clojure-msgpack "1.2.1"]
                  [amalloy/ring-gzip-middleware "0.1.4"]
                  [ring-cors/ring-cors "0.1.13"]
-                 [weavejester/dependency "0.2.1"]]
+                 [weavejester/dependency "0.2.1"]
+                 [io.sentry/sentry-clj "6.13.191"]]
 
   :min-lein-version "2.0.0"
 

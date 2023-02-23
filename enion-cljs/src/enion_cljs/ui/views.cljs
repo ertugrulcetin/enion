@@ -58,8 +58,8 @@
   (let [offset-width (r/atom 0)
         offset-height (r/atom 0)]
     (fn []
-      (when-let [skill-description (and (nil? @(subscribe [::subs/skill-move]))
-                                        @(subscribe [::subs/skill-description]))]
+      (when-let [{:keys [name description]} (and (nil? @(subscribe [::subs/skill-move]))
+                                                 @(subscribe [::subs/skill-description]))]
         [:div
          {:style {:position :absolute
                   :top (- @mouse-y @offset-height 5)
@@ -73,9 +73,8 @@
                    (when-let [oh (j/get % :offsetHeight)]
                      (reset! offset-height oh)))
            :class (styles/skill-description)}
-          [:span
-           {:style {:font-size "14px"}}
-           skill-description]]]))))
+          [:span name]
+          [:span.desc description]]]))))
 
 (defn- cooldown [skill]
   (let [cooldown-secs (-> skill common.skills/skills :cooldown)]
@@ -91,12 +90,6 @@
        :reagent-render
        (fn []
          [:div (styles/cooldown (/ cooldown-secs 1000))])})))
-
-#_(defonce right-click-skill-order-update-fn
-    (fn [ev]
-      (.-preventDefault ev)
-      (dispatch [::events/update-skills-order index skill])
-      false))
 
 (defn- skill [_ _]
   (let [event-listeners (atom {})]
@@ -265,7 +258,7 @@
           {:ref #(some->> % (reset! ref))
            :value @(subscribe [::subs/chat-message])
            :disabled (not input-active?)
-           :placeholder "Press ENTER to enable chat"
+           :placeholder "Press ENTER to enable chat..."
            :class (styles/chat-input)
            :on-change #(dispatch-sync [::events/set-chat-message (-> % .-target .-value)])
            :max-length 60}])})))
@@ -632,9 +625,10 @@
       [party-member-hp-mp-bars id username health total-health])]])
 
 (defn- settings-button []
-  (let [open? @(subscribe [::subs/settings-modal-open?])]
+  (let [minimap-open? @(subscribe [::subs/minimap?])
+        open? @(subscribe [::subs/settings-modal-open?])]
     [:button#settings-button
-     {:class (styles/settings-button)
+     {:class (styles/settings-button minimap-open?)
       :on-click (if open?
                   #(dispatch [::events/close-settings-modal])
                   #(dispatch [::events/open-settings-modal]))}
@@ -911,6 +905,22 @@
     {:class (styles/connection-lost-button)
      :on-click #(js/window.location.reload)}
     "Refresh"]])
+
+(defn- congrats-text []
+  [:<>
+   [:div
+    {:style {:position :absolute
+             :top "20%"
+             :left "50%"
+             :transform "translate(-50%, -50%)"
+             :font-size "56px"
+             :z-index 99
+             :color :white}}
+    [:span
+     {:style {:text-shadow "-2px -2px 0 #000,  \n    2px -2px 0 #000,\n    -2px 2px 0 #000,\n     2px 2px 0 #000"}}
+     "Congrats! "]
+    [:span
+     "\uD83C\uDF89"]]])
 
 ;; TODO when game is ready then show HUD
 (defn main-panel []

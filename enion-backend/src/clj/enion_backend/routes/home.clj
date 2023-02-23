@@ -16,7 +16,8 @@
     [msgpack.clojure-extensions]
     [msgpack.core :as msg]
     [ring.util.http-response :as response]
-    [ring.util.response])
+    [ring.util.response]
+    [sentry-clj.core :as sentry])
   (:import
     (java.time
       Instant)
@@ -131,6 +132,10 @@
 (defstate register-procedures
   :start (easync/start-procedures))
 
+(defstate init-sentry
+  :start (sentry/init! "https://9080b8a52af24bdb9c637555f1a36a1b@o4504713579724800.ingest.sentry.io/4504731298693120"
+                       {:traces-sample-rate 1.0}))
+
 (defn random-pos-for-orc
   []
   [(+ 38 (rand 1)) 0.57 (- (+ 39 (rand 4)))])
@@ -208,7 +213,7 @@
   (fn [{:keys [id] {:keys [msg]} :data}]
     (let [players* @players
           player (players* id)
-          player-ids  (keys @world)
+          player-ids (keys @world)
           message-sent-too-often? (message-sent-too-often? player)]
       (swap! players assoc-in [id :last-time :message-sent] (now))
       (cond
@@ -406,7 +411,10 @@
       (<= (distance px x py y pz z) common.skills/attack-range-distance-threshold))
     (catch Exception e
       (let [{:keys [px py pz]} world-state]
-        (log/error e (str "attack-range-in-distance failed, here params: " (pr-str [px x py y pz z])))))))
+        (log/error e (str "attack-range-in-distance failed, here params: " (pr-str [px x py y pz z])))
+        (sentry/send-event {:message (pr-str {:world-state world-state
+                                              :positions [px x py y pz z]})
+                            :throwable e})))))
 
 (defn hidden? [selected-player-id]
   (get-in @players [selected-player-id :effects :hide :result]))
@@ -1077,6 +1085,10 @@
                    (pr-str (select-keys opts [:id :data :ping]))
                    (get @players (:id opts))
                    (get @world (:id opts)))
+        (sentry/send-event {:message (pr-str {:data (select-keys opts [:id :data :ping])
+                                              :player-data (get @players (:id opts))
+                                              :world-state (get @world (:id opts))})
+                            :throwable e})
         skill-failed))))
 
 (defmulti process-party-request (fn [{:keys [data]}]
@@ -1257,6 +1269,9 @@
                    "Something went wrong when applying party request."
                    (pr-str (select-keys opts [:id :data :ping]))
                    (get @players (:id opts)))
+        (sentry/send-event {:message (pr-str {:data (select-keys opts [:id :data :ping])
+                                              :player-data (get @players (:id opts))})
+                            :throwable e})
         party-request-failed))))
 
 (defn- reset-states []
@@ -1307,7 +1322,10 @@
                                                        (when result
                                                          (s/put! socket (msg/pack (hash-map id result)))))}))
                 (catch Exception e
-                  (log/error e))))
+                  (log/error e)
+                  (sentry/send-event {:message (pr-str {:message (.getMessage e)
+                                                        :payload {:data 1}})
+                                      :throwable e}))))
             socket))))
   ;; Routing lib expects some sort of HTTP response, so just give it `nil`
   nil)

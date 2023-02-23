@@ -132,7 +132,7 @@
 (reg-sub
   ::skill-description
   (fn [db]
-    (some->> (:skill-description db) (get common.skills/skills) :description)))
+    (some->> (:skill-description db) (get common.skills/skills))))
 
 (reg-sub
   ::party-members

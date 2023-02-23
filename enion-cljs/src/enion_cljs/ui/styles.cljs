@@ -149,10 +149,17 @@
 (defclass skill-description []
   {:background "black"
    :color "#c2c2c2"
-   :max-width "350px"
+   :max-width "400px"
    :border "2px solid #10131dcc"
    :border-radius "5px"
-   :padding "10px"})
+   :padding "10px"
+   :text-align :center}
+  [:span {:font-size "18px"}]
+  [:span.desc
+   {:font-size "15px"
+    :margin-top "5px"
+    :text-align :left
+    :display :block}])
 
 (defclass temp-skill-order-description []
   {:composes [(skill-description)]
@@ -536,17 +543,17 @@
    :animation (str (blink-frames) " 1s infinite")
    :cursor :pointer})
 
-(defclass settings-button []
+(defclass settings-button [minimap?]
   {:composes [(button)]
    :position :absolute
-   :right "170px"
+   :right (if minimap? "170px" "145px")
    :top "10px"
    :font-size "18px"
    :opacity 0.75
    :z-index 5})
 
 (defclass ping-counter [fps? ping]
-  {:composes [(settings-button)]
+  {:composes [(settings-button false)]
    :left "5px"
    :width "110px"
    :top (if fps? "50px" "10px")

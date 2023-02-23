@@ -4,6 +4,7 @@
     [clojure.tools.logging :as log]
     [manifold.deferred :as d]
     [manifold.stream :as s]
+    [sentry-clj.core :as sentry]
     [weavejester.dependency :as dep]))
 
 (defonce procedures (atom {}))
@@ -136,6 +137,9 @@
                                                   result#)
                                                 (throw (ex-info (str "Procedure not defined: " ~s#) {})))
                                               (catch Throwable e#
+                                                (sentry/send-event
+                                                  {:message (str "Procedure not defined: " ~s#)
+                                                   :throwable e#})
                                                 e#))))))])
                                 topo-sorted-deps)]
                            (log/debug "All procedures are realized -" ~pro-name)
@@ -149,7 +153,10 @@
                                    (log/debug "Sending data for" ~pro-name "Data:" result#)
                                    (send-fn# (:socket ~'payload) {:id ~pro-name :result result#}))))
                              (catch Throwable e#
-                               (log/error e# "Something went wrong when sending data back to the client! -" ~pro-name))))))
+                               (log/error e# "Something went wrong when sending data back to the client! -" ~pro-name)
+                               (sentry/send-event
+                                 {:message (str "Something went wrong when sending data back to the client! - " ~pro-name)
+                                  :throwable e#}))))))
 
            (fn [_#]
              (log/debug "Process completed for" ~pro-name)
