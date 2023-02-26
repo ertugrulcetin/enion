@@ -1,6 +1,7 @@
 (ns enion-cljs.ui.subs
   (:require
     [common.enion.skills :as common.skills]
+    [enion-cljs.ui.tutorial :as tutorials]
     [re-frame.core :refer [reg-sub]]))
 
 (reg-sub
@@ -82,13 +83,35 @@
     (-> db :player :cooldown (get skill) :in-progress?)))
 
 (reg-sub
+  ::hp-potions
+  (fn [db]
+    (-> db :player :hp-potions (or 0))))
+
+(reg-sub
+  ::mp-potions
+  (fn [db]
+    (-> db :player :mp-potions (or 0))))
+
+(reg-sub
+  ::race
+  (fn [db]
+    (-> db :player :race)))
+
+(reg-sub
+  ::class
+  (fn [db]
+    (-> db :player :class)))
+
+(reg-sub
   ::blocked-skill?
   (fn [db [_ skill]]
-    (let [hp-in-progress? (-> db :player :cooldown (get "hpPotion") :in-progress?)
+    (let [hp-potions (-> db :player :hp-potions (or 0))
+          mp-potions (-> db :player :mp-potions (or 0))
+          hp-in-progress? (-> db :player :cooldown (get "hpPotion") :in-progress?)
           mp-in-progress? (-> db :player :cooldown (get "mpPotion") :in-progress?)]
       (cond
-        (= "hpPotion" skill) mp-in-progress?
-        (= "mpPotion" skill) hp-in-progress?
+        (= "hpPotion" skill) (or mp-in-progress? (= hp-potions 0))
+        (= "mpPotion" skill) (or hp-in-progress? (= mp-potions 0))
         (= "fleetFoot" skill) (-> db :player :slow-down-blocked?)
         :else false))))
 
@@ -229,3 +252,21 @@
   ::online
   (fn [db]
     (:online db)))
+
+(reg-sub
+  ::tutorials
+  (fn [db]
+    (let [finished-tutorials (set (keys (:tutorials db)))]
+      (remove #(finished-tutorials (first %)) tutorials/tutorials-order))))
+
+(reg-sub
+  ::congrats-text?
+  (fn [db]
+    (:congrats-text? db)))
+
+(reg-sub
+  ::show-hp-mp-potions-ads-button?
+  (fn [db]
+    (and (-> db :tutorials :what-is-the-first-quest?)
+         (or (= 0 (-> db :player :hp-potions (or 0)))
+             (= 0 (-> db :player :mp-potions (or 0)))))))

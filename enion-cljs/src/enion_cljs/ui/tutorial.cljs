@@ -1,48 +1,84 @@
 (ns enion-cljs.ui.tutorial
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [on]]
-    [enion-cljs.ui.events :as events]
-    [re-frame.core :refer [dispatch]]))
+    [common.enion.skills :as common.skills]
+    [enion-cljs.common :refer [on]]))
 
-(defn- navigation-steps []
+(defonce state (atom nil))
+
+(def cast-skills-mapping-by-class
+  {"asas" "attackDagger"
+   "warrior" "attackOneHand"
+   "mage" "attackSingle"
+   "priest" "breakDefense"})
+
+(defn- start-intro
+  ([steps]
+   (start-intro steps nil))
+  ([steps on-exit]
+   (when-let [intro (j/call js/window :introJs)]
+     (let [intro (if on-exit (j/call intro :onexit on-exit) intro)
+           intro (j/call intro :setOptions
+                         (clj->js
+                           {:tooltipClass "customTooltip"
+                            :steps
+                            (clj->js steps)}))]
+       (j/call intro :start)))))
+
+(defn navigation-steps []
   [{:title "Welcome to Enion Online!"
     :intro (str "To navigate the game, you can either use the <b>WASD</b> keys.<br/><br/>"
                 "Or click and drag the <b>LEFT MOUSE</b> button.")}
-   {:intro "To jump in the game, press the <b>SPACE</b> bar on your keyboard."}])
+   {:intro "Press the <b>SPACE</b> bar to jump!"}])
 
-(defn camera-steps []
-  [{:intro (str "<b>Click</b> and <b>hold</b> the <b>RIGHT MOUSE</b> button to adjust the camera rotation."
-                " Move your mouse in the direction you want.")}])
+(defn how-to-rotate-camera []
+  [{:title "How to rotate the camera?"
+    :intro (str "<b>Click</b> and <b>hold</b> the <b>RIGHT MOUSE</b> button to adjust the camera rotation.<br/>"
+                "<img src=\"img/rightmousebutton.jpeg\" style=\"position: relative;left: calc(50% - 45px);top: 20px;\">")}])
 
-(defn start []
-  (when-let [intro (j/call js/window :introJs)]
-    (let [intro (j/call intro :onexit #(dispatch [::events/update-settings :show-tutorial? false]))
-          intro (j/call intro :setOptions
-                        (clj->js
-                          {:tooltipClass "customTooltip"
-                           :steps
-                           (clj->js (navigation-steps))}))]
-      (j/call intro :start))))
+(defn how-to-run-faster []
+  [{:title "How to run faster?"
+    :intro "You can use the <b>Fleet Foot</b> skill to run faster."
+    :element (j/call js/document :getElementById "skill-fleetFoot")}])
 
-(on :ui-show-tutorial start)
+(defn how-to-use-portal []
+  [{:title "How to use a portal?"
+    :intro (str "You can use a <b>portal</b> to teleport to the forest, and then teleport back to your base."
+                "<img src=\"img/portal.png\" style=\"position: relative;left: calc(50% - 90px);top: 20px;\">")}])
+
+(defn what-is-the-first-quest []
+  [{:title "First quest!"
+    :intro (str "Find the chest in the forest to get <b>30 health and mana</b> potions.<br/><br/>"
+                "You can use the portal located at your base.<br/>"
+                "<img src=\"img/chest.png\" style=\"position: relative;left: calc(50% - 90px);top: 20px;\">")}])
+
+(defn how-to-cast-skills []
+  (let [class (:class @state)
+        race (:race @state)
+        skill (cast-skills-mapping-by-class class)
+        skill-name (-> skill common.skills/skills (get :name))]
+    [{:title "How to cast skills?"
+      :intro (if (= "orc" race)
+               (str "Find a <b>Human</b> and <b>select it by clicking on it with your mouse</b>, "
+                    "or you can <b>press the Z key</b> to select the closest enemy.<br/><br/> "
+                    "Apply <b>" skill-name "</b> by pressing a key on your keyboard or clicking with your mouse.<br/>"
+                    "<img src=\"img/enemy_human.jpeg\" style=\"position: relative;left: calc(50% - 70px);top: 20px;\">")
+               (str "Find an <b>Orc</b> and <b>select it by clicking on it with your mouse</b>, "
+                    "or you can <b>press the Z key</b> to select the closest enemy.<br/><br/> "
+                    "Apply <b>" skill-name "</b> by pressing a key on your keyboard or clicking with your mouse.<br/>"
+                    "<img src=\"img/enemy_orc.jpeg\" style=\"position: relative;left: calc(50% - 90px);top: 20px;\">"))
+      :element (j/call js/document :getElementById (str "skill-" skill))}]))
+
+(def tutorials-order
+  [[:how-to-rotate-camera? "How to rotate the camera?" how-to-rotate-camera]
+   [:how-to-run-faster? "How to run faster?" how-to-run-faster]
+   [:how-to-use-portal? "How to use portal?" how-to-use-portal]
+   [:how-to-cast-skills? "How to cast skills?" how-to-cast-skills]
+   [:what-is-the-first-quest? "What is the first quest?" what-is-the-first-quest]])
+
+(on :ui-init-tutorial-data (fn [data] (reset! state data)))
+(on :ui-start-navigation-steps (fn [] (start-intro (navigation-steps))))
 
 (comment
-  (start)
 
-
-  {:element (j/call js/document :getElementById "skill-bar")
-   :intro "You can apply your skills by pressing any key between <b>1 and 8</b> on your keyboard."}
-  {:element (j/call js/document :getElementById "skill-bar")
-   :intro "You can change the order of your skills by clicking and dragging a skill from one slot in the skill bar to another."}
-  {:element (j/call js/document :getElementById "chat-wrapper")
-   :intro (str "You can chat with your allies and party members by using the in-game chat feature.<br/><br/>"
-            "To use the in-game chat feature, press the <b>Enter</b> key on your keyboard to enable the chat window.")}
-  {:element (j/call js/document :getElementById "add-to-party")
-   :intro "You can create a party or invite other players to join your party by selecting a player and sending them a party invitation."}
-  {:element (j/call js/document :getElementById "settings-button")
-   :intro "You can customize game settings such as camera rotation, graphics, and sound by accessing the settings menu."}
-  {:element (j/call js/document :getElementById "temp-container-for-fps-ping-online")
-   :intro (str "You can view your current FPS, ping, and the number of online players. <br/><br/>"
-            "You can choose to hide or reveal these counters by adjusting your settings.")}
   )

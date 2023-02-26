@@ -134,7 +134,9 @@
         enemy (st/get-other-player selected-player-id)]
     (skills.effects/apply-effect-attack-dagger enemy)
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
-                        :hit damage})))
+                        :hit damage})
+    (when (not (utils/tutorial-finished? :how-to-cast-skills?))
+      (utils/finish-tutorial-step :how-to-cast-skills?))))
 
 (defmethod skills/skill-response "phantomVision" [_]
   (fire :ui-cooldown "phantomVision")

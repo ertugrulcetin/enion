@@ -136,14 +136,6 @@
   :start (sentry/init! "https://9080b8a52af24bdb9c637555f1a36a1b@o4504713579724800.ingest.sentry.io/4504731298693120"
                        {:traces-sample-rate 1.0}))
 
-(defn random-pos-for-orc
-  []
-  [(+ 38 (rand 1)) 0.57 (- (+ 39 (rand 4)))])
-
-(defn random-pos-for-human
-  []
-  [(- (+ 38 (rand 5.5))) 0.57 (+ 39 (rand 1.5))])
-
 (def selected-keys-of-set-state [:px :py :pz :ex :ey :ez :st])
 
 (reg-pro
@@ -293,8 +285,8 @@
       :else (do
               (println "Player joining...")
               (let [pos (if (= "orc" race)
-                          (random-pos-for-orc)
-                          (random-pos-for-human))
+                          (common.skills/random-pos-for-orc)
+                          (common.skills/random-pos-for-human))
                     health (get-in common.skills/classes [class :health])
                     mana (get-in common.skills/classes [class :mana])
                     attrs {:id id
@@ -330,6 +322,7 @@
   (fn [_]
     (map #(select-keys % [:id :username :race :class :health :mana :pos]) (vals @players))))
 
+(def ping-high {:error :ping-high})
 (def skill-failed {:error :skill-failed})
 (def too-far {:error :too-far})
 (def not-enough-mana {:error :not-enough-mana})
@@ -458,6 +451,9 @@
         (send! player-id :earned-bp bp)
         (swap! players update-in [player-id :bp] (fnil + 0) bp)))))
 
+(defn- ping-too-high? [ping]
+  (> ping 5000))
+
 ;; TODO make asas hide false when he gets damage
 (defmethod apply-skill "attackOneHand" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
   (let [players* @players]
@@ -467,7 +463,7 @@
               player-world-state (get w id)
               other-player-world-state (get w selected-player-id)]
           (cond
-            ;; (> ping 5000) skill-failed
+            (ping-too-high? ping) ping-high
             (not (warrior? id)) skill-failed
             (not (enemy? id selected-player-id)) skill-failed
             (not (alive? player-world-state)) skill-failed
@@ -504,7 +500,7 @@
               player-world-state (get w id)
               other-player-world-state (get w selected-player-id)]
           (cond
-            ;; (> ping 5000) skill-failed
+            (ping-too-high? ping) ping-high
             (not (warrior? id)) skill-failed
             (not (alive? player-world-state)) skill-failed
             (not (alive? other-player-world-state)) skill-failed
@@ -556,7 +552,7 @@
   (when-let [player (get @players id)]
     (when-let [world-state (get @world id)]
       (cond
-        ;; (> ping 5000) skill-failed
+        (ping-too-high? ping) ping-high
         (not (warrior? id)) skill-failed
         (not (alive? world-state)) skill-failed
         (not (enough-mana? skill world-state)) not-enough-mana
@@ -589,7 +585,7 @@
               player-world-state (get w id)
               other-player-world-state (get w selected-player-id)]
           (cond
-            ;; (> ping 5000) skill-failed
+            (ping-too-high? ping) ping-high
             (not (alive? player-world-state)) skill-failed
             (not (alive? other-player-world-state)) skill-failed
             (not (enemy? id selected-player-id)) skill-failed
@@ -624,7 +620,7 @@
   (when-let [player (get @players id)]
     (when-let [world-state (get @world id)]
       (cond
-        ;; (> ping 5000) skill-failed
+        (ping-too-high? ping) ping-high
         (not (alive? world-state)) skill-failed
         (not (enough-mana? skill world-state)) not-enough-mana
         (not (cooldown-finished? skill player)) skill-failed
@@ -643,7 +639,7 @@
   (when-let [player (get @players id)]
     (when-let [world-state (get @world id)]
       (cond
-        ;; (> ping 5000) skill-failed
+        (ping-too-high? ping) ping-high
         (not (alive? world-state)) skill-failed
         (not (cooldown-finished? skill player)) skill-failed
         (not (cooldown-finished? "mpPotion" player)) skill-failed
@@ -657,7 +653,7 @@
   (when-let [player (get @players id)]
     (when-let [world-state (get @world id)]
       (cond
-        ;; (> ping 5000) skill-failed
+        (ping-too-high? ping) ping-high
         (not (alive? world-state)) skill-failed
         (not (cooldown-finished? skill player)) skill-failed
         (not (cooldown-finished? "hpPotion" player)) skill-failed
@@ -675,7 +671,7 @@
               player-world-state (get w id)
               other-player-world-state (get w selected-player-id)]
           (cond
-            ;; (> ping 5000) skill-failed
+            (ping-too-high? ping) ping-high
             (not (asas? id)) skill-failed
             (not (enemy? id selected-player-id)) skill-failed
             (not (alive? player-world-state)) skill-failed
@@ -710,7 +706,7 @@
   (when-let [player (get @players id)]
     (when-let [world-state (get @world id)]
       (cond
-        ;; (> ping 5000) skill-failed
+        (ping-too-high? ping) ping-high
         (not (asas? id)) skill-failed
         (not (alive? world-state)) skill-failed
         (not (enough-mana? skill world-state)) not-enough-mana
@@ -739,7 +735,7 @@
   (when-let [player (get @players id)]
     (when-let [world-state (get @world id)]
       (cond
-        ;; (> ping 5000) skill-failed
+        (ping-too-high? ping) ping-high
         (not (asas? id)) skill-failed
         (not (alive? world-state)) skill-failed
         (not (enough-mana? skill world-state)) not-enough-mana
@@ -768,7 +764,7 @@
       (when-let [world-state (get @world id)]
         (when-let [other-player-world-state (get @world selected-player-id)]
           (cond
-            ;; (> ping 5000) skill-failed
+            (ping-too-high? ping) ping-high
             (not (priest? id)) skill-failed
             (not (ally? id selected-player-id)) skill-failed
             (not (alive? world-state)) skill-failed
@@ -800,7 +796,7 @@
       (when-let [world-state (get @world id)]
         (when-let [other-player-world-state (get @world selected-player-id)]
           (cond
-            ;; (> ping 5000) skill-failed
+            (ping-too-high? ping) ping-high
             (not (priest? id)) skill-failed
             (not (ally? id selected-player-id)) skill-failed
             (not (alive? world-state)) skill-failed
@@ -832,7 +828,7 @@
       (when-let [world-state (get @world id)]
         (when-let [other-player-world-state (get @world selected-player-id)]
           (cond
-            ;; (> ping 5000) skill-failed
+            (ping-too-high? ping) ping-high
             (not (priest? id)) skill-failed
             (not (enemy? id selected-player-id)) skill-failed
             (not (alive? world-state)) skill-failed
@@ -873,7 +869,7 @@
     (when-let [player (get players* id)]
       (when-let [world-state (get w* id)]
         (cond
-          ;; (> ping 5000) skill-failed
+          (ping-too-high? ping) ping-high
           (not (mage? id)) skill-failed
           (not (alive? world-state)) skill-failed
           (not (enough-mana? skill world-state)) not-enough-mana
@@ -905,6 +901,7 @@
                                                                                :player-id id})
                                             {:id enemy-id
                                              :damage damage})))]
+                  (println "damaged-enemies: " damaged-enemies)
                   {:skill skill
                    :x x
                    :y y
@@ -918,7 +915,7 @@
       (when-let [world-state (get w* id)]
         (when-let [other-player-world-state (get w* selected-player-id)]
           (cond
-            ;; (> ping 5000) skill-failed
+            (ping-too-high? ping) ping-high
             (not (mage? id)) skill-failed
             (not (enemy? id selected-player-id)) skill-failed
             (not (alive? world-state)) skill-failed
@@ -955,7 +952,7 @@
       (when-let [world-state (get w* id)]
         (when-let [other-player-world-state (get w* selected-player-id)]
           (cond
-            ;; (> ping 5000) skill-failed
+            (ping-too-high? ping) ping-high
             (not (mage? id)) skill-failed
             (not (ally? id selected-player-id)) skill-failed
             (not (alive? world-state)) skill-failed
@@ -994,7 +991,9 @@
             (alive? world-state) re-spawn-failed
             (not (re-spawn-duration-finished? player)) re-spawn-failed
             :else (let [effect-tasks (->> player :effects vals (keep :task))
-                        new-pos (if (= "orc" (:race player)) (random-pos-for-orc) (random-pos-for-human))
+                        new-pos (if (= "orc" (:race player))
+                                  (common.skills/random-pos-for-orc)
+                                  (common.skills/random-pos-for-human))
                         [x y z] new-pos]
                     (doseq [t effect-tasks]
                       (tea/cancel! t))
@@ -1051,7 +1050,7 @@
   ;; move above to a function using defn
   (swap! world (fn [world]
                  (reduce (fn [world id]
-                           (assoc-in world [id :health] 155))
+                           (assoc-in world [id :health] 20))
                    world
                    (keys @players))))
 
@@ -1119,7 +1118,7 @@
     (when-let [player (get players* id)]
       (when-let [other-player (get players* selected-player-id)]
         (cond
-          (> ping 5000) party-request-failed
+          (ping-too-high? ping) ping-high
           (= id selected-player-id) party-request-failed
           (not (ally? id selected-player-id)) party-request-failed
           (party-full? player players*) party-request-failed
@@ -1189,7 +1188,7 @@
     (when-let [player (get players* id)]
       (when-let [other-player (get players* selected-player-id)]
         (cond
-          (> ping 5000) party-request-failed
+          (ping-too-high? ping) ping-high
           (not (leader? player)) party-request-failed
           (not (already-in-the-party? player other-player)) party-request-failed
           :else (remove-from-party {:players* players*
@@ -1201,7 +1200,7 @@
   (let [players* @players]
     (when-let [player (get players* id)]
       (cond
-        (> ping 5000) party-request-failed
+        (ping-too-high? ping) ping-high
         (not (:party-id player)) party-request-failed
         :else (remove-from-party {:id id
                                   :players* players*
@@ -1216,7 +1215,7 @@
     (when-let [player (get players* id)]
       (when-let [other-player (get players* requested-player-id)]
         (cond
-          (> ping 5000) party-request-failed
+          (ping-too-high? ping) ping-high
           (not (accepts-or-rejects-party-request-on-time? other-player id)) party-request-failed
           (party-full? other-player players*) party-request-failed
           (already-in-another-party? other-player player) party-request-failed
@@ -1251,7 +1250,7 @@
     (when (get players* id)
       (when-let [other-player (get players* requested-player-id)]
         (cond
-          (> ping 5000) party-request-failed
+          (ping-too-high? ping) ping-high
           (not (accepts-or-rejects-party-request-on-time? other-player id)) party-request-failed
           :else (do
                   (send! requested-player-id :party {:type :party-request-rejected

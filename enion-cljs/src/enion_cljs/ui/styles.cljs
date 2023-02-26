@@ -146,6 +146,13 @@
    :z-index 10
    :font-weight :bold})
 
+(defattrs potion-count []
+  {:composes [(skill-number)]
+   :right "1px"
+   :bottom "1px"
+   :color "white"
+   :font-size "13px"})
+
 (defclass skill-description []
   {:background "black"
    :color "#c2c2c2"
@@ -531,16 +538,15 @@
    :width "120px"}
   [:&:hover {:border "2px solid #2196F3"}])
 
-(let [blink-border-color "red"]
-  (defkeyframes blink-frames []
-    ["0%" {:border-color blink-border-color}]
-    ["50%" {:border-color "transparent"}]
-    ["100%" {:border-color blink-border-color}]))
+(defkeyframes blink-frames [color]
+  ["0%" {:border-color color}]
+  ["50%" {:border-color "transparent"}]
+  ["100%" {:border-color color}])
 
 (defclass blink-animation []
   {:border "2px solid transparent"
    :transition "border-color 0.5s ease-in-out"
-   :animation (str (blink-frames) " 1s infinite")
+   :animation (str (blink-frames "red") " 1s infinite")
    :cursor :pointer})
 
 (defclass settings-button [minimap?]
@@ -586,10 +592,18 @@
    :top "115px"
    :z-index 5})
 
-(defattrs tutorials []
+(defclass tutorials []
   {:composes [(button) (blink-animation)]
    :width :fit-content}
   [:&:hover {:border "2px solid #10131dcc"}])
+
+(defclass get-hp-mp-potions-for-free []
+  {:composes [(tutorials)]
+   :background :green
+   :position :relative
+   :left "calc(50% - 141px)"
+   :bottom "5px"
+   :animation (str (blink-frames "white") " 1s infinite")})
 
 (defclass connection-lost-button []
   {:composes [(button)]

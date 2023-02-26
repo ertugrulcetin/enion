@@ -1,7 +1,10 @@
 (ns enion-cljs.scene.network
   (:require
     [applied-science.js-interop :as j]
+    [cljs.reader :as reader]
+    [clojure.string :as str]
     [enion-cljs.common :refer [dev? fire on dlog ws-url]]
+    [enion-cljs.scene.entities.chest :as chest]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.poki :as poki]
     [enion-cljs.scene.skills.effects :as effects]
@@ -38,6 +41,31 @@
 
 (defmulti dispatch-pro-response ffirst)
 
+(defn- get-potions []
+  (let [default {:hp-potions 0
+                 :mp-potions 0}]
+    (if-let [ls (j/get js/window :localStorage)]
+      (try
+        (let [potions (j/call ls :getItem "potions")]
+          (if (str/blank? potions)
+            default
+            (reader/read-string potions)))
+        (catch js/Error _
+          default))
+      default)))
+
+(defn- get-tutorials []
+  (let [default {}]
+    (if-let [ls (j/get js/window :localStorage)]
+      (try
+        (let [potions (j/call ls :getItem "tutorials")]
+          (if (str/blank? potions)
+            default
+            (reader/read-string potions)))
+        (catch js/Error _
+          default))
+      default)))
+
 (defmethod dispatch-pro-response :init [params]
   (if-let [error (-> params :init :error)]
     (case error
@@ -50,11 +78,15 @@
       :server-full (fire :ui-init-modal-error "Server is full. Please wait a bit and try again.")
       :orc-race-full (fire :ui-init-modal-error "Orc race is full. Please wait a bit and try again.")
       :human-race-full (fire :ui-init-modal-error "Human race is full. Please wait a bit and try again."))
-    (do
+    (let [potions (get-potions)
+          tutorials (get-tutorials)
+          data (merge (:init params) potions {:tutorials tutorials})]
       (fire :close-init-modal)
-      (fire :init (:init params))
+      (fire :init data)
       (set! current-player-id (-> params :init :id))
-      (fire :ui-set-current-player [current-player-id (-> params :init :username)])
+      (fire :ui-set-current-player data)
+      (fire :ui-init-tutorial-data data)
+      (chest/register-chest-trigger-events (not (:what-is-the-first-quest? tutorials)))
       (poki/gameplay-start))))
 
 (defmethod dispatch-pro-response :player-join [params]
@@ -393,7 +425,7 @@
 
 (defn- on-ws-open []
   (when dev?
-    (dispatch-pro :init {:username "NeaTBuSTeR"
+    (dispatch-pro :init {:username (str "NeaTBuSTeR_" (int (rand 99)))
                          :race "orc"
                          :class "mage"}))
   (dispatch-pro :get-server-stats))

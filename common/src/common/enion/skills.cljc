@@ -8,7 +8,6 @@
 (def attack-range-distance-threshold 12)
 (def attack-single-distance-threshold 9)
 
-
 (def re-spawn-duration-in-milli-secs 5000)
 (def party-request-duration-in-milli-secs 11000)
 
@@ -47,7 +46,7 @@
                    :description (str "Fast and deadly attack that allows the assassin "
                                      "to wield two daggers with deadly precision")
                    :required-mana 100
-                   :damage-fn  (create-damage-fn 150 250)}
+                   :damage-fn (create-damage-fn 225 300)}
    "phantomVision" {:cooldown 60000
                     :name "Phantom Vision"
                     :description (str "Allows the assassin and their party members to see invisible "
@@ -56,9 +55,8 @@
                     :effect-duration (* 120 1000)}
    "hide" {:cooldown 30000
            :name "Ghost Step"
-           :description (str "Stealthy movement ability that allows the assassin to move invisibly "
-                             "while running. However, Ghost Step does have a limited duration, and the assassin "
-                             "will become visible again after 50 seconds or when taking damage")
+           :description (str "Stealthy movement ability that allows the assassin to move invisibly. "
+                             "Assassin will become visible again after 50 seconds or when taking damage")
            :required-mana 150
            :effect-duration (* 50 1000)}
    ;; Warrior
@@ -67,12 +65,12 @@
                     :description (str "Allows your character to unleash a powerful, precise strike "
                                       "with their weapon, dealing heavy damage to their enemies")
                     :required-mana 100
-                    :damage-fn (create-damage-fn 200 300)}
+                    :damage-fn (create-damage-fn 300 450)}
    "attackSlowDown" {:cooldown 10000
                      :name "Slowing Slice"
                      :description (str "This skill has a 50% chance to apply a "
                                        "slowing effect on the target, reducing their movement "
-                                       "speed for a short duration")
+                                       "speed for 5 seconds")
                      :required-mana 200
                      :damage-fn (create-damage-fn 100 200)
                      :effect-duration 5000}
@@ -110,11 +108,10 @@
                    :description (str "Long range fire-based attack that unleashes a "
                                      "devastating blast of flame on a single enemy")
                    :required-mana 150
-                   :damage-fn (create-damage-fn 100 150)}
+                   :damage-fn (create-damage-fn 150 200)}
    "teleport" {:cooldown 1000
                :name "Teleport"
-               :description (str "Powerful arcane ability that allows the mage to instantly transport a "
-                                 "single party member to the same location as the mage")
+               :description "Teleports a single party member to your current location"
                :required-mana 100}
    ;; Common
    "attackR" {:required-mana 25
@@ -144,3 +141,13 @@
   (and (string? username)
        (not (empty? username))
        (re-find #"^[a-zA-Z0-9_]{2,20}$" username)))
+
+
+(defn random-pos-for-orc
+  []
+  [(+ 38 (rand 1)) 0.57 (- (+ 39 (rand 4)))])
+
+
+(defn random-pos-for-human
+  []
+  [(- (+ 38 (rand 5.5))) 0.57 (+ 39 (rand 1.5))])

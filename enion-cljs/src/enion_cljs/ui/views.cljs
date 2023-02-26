@@ -8,6 +8,7 @@
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
+    [enion-cljs.ui.tutorial :as tutorial]
     [re-frame.core :refer [subscribe dispatch dispatch-sync]]
     [reagent.core :as r]))
 
@@ -43,7 +44,7 @@
                :top (- @mouse-y 65)
                :left @mouse-x}
        :class (styles/temp-skill-order-description)}
-      "You're updating skill order. Use keyboard to apply skills."]
+      "You're updating the skill order. Click on any spot where you would like to place this skill."]
      [:div
       {:style {:position :absolute
                :top @mouse-y
@@ -94,8 +95,11 @@
 (defn- skill [_ _]
   (let [event-listeners (atom {})]
     (fn [index skill]
-      (let [skill-move @(subscribe [::subs/skill-move])]
-        [:div {:ref (fn [ref]
+      (let [skill-move @(subscribe [::subs/skill-move])
+            hp-potions @(subscribe [::subs/hp-potions])
+            mp-potions @(subscribe [::subs/mp-potions])]
+        [:div {:id (str "skill-" skill)
+               :ref (fn [ref]
                       (when ref
                         (when-let [[ref f] (get @event-listeners skill)]
                           (.removeEventListener ref "contextmenu" f false))
@@ -120,6 +124,10 @@
                :on-mouse-over #(dispatch [::events/show-skill-description skill])
                :on-mouse-out #(dispatch [::events/show-skill-description nil])}
          [:span (styles/skill-number) (inc index)]
+         (when (= "hpPotion" skill)
+           [:span (styles/potion-count) hp-potions])
+         (when (= "mpPotion" skill)
+           [:span (styles/potion-count) mp-potions])
          (when-not (= :none skill)
            [:div (styles/childs-overlayed)
             [:img {:class (styles/skill-img
@@ -177,6 +185,11 @@
 
 (defn- actions-section []
   [:div (styles/actions-container)
+   (when @(subscribe [::subs/show-hp-mp-potions-ads-button?])
+     [:button
+      {:class (styles/get-hp-mp-potions-for-free)
+       :on-click #(dispatch [::events/show-hp-mp-potions-ads])}
+      "Get Hp & Mp potions for Free! \uD83C\uDFAC"])
    [hp-mp-bars]
    [skill-bar]])
 
@@ -207,7 +220,8 @@
    (on-message-box-update ref false))
   ([ref info?]
    (when-let [elem @ref]
-     (if info?
+     (scroll-to-bottom elem)
+     #_(if info?
        (let [gap (- (j/get elem :scrollHeight) (+ (j/get elem :scrollTop)
                                                   (j/get elem :offsetHeight)))]
          (when (< gap 50)
@@ -316,6 +330,7 @@
     (:cure message) "hp-recover"
     (:mp message) "mp-recover"
     (:skill-failed message) "skill-failed"
+    (:ping-high message) "skill-failed"
     (:too-far message) "skill-failed"
     (:not-enough-mana message) "skill-failed"
     (:party-request-failed message) "skill-failed"
@@ -328,6 +343,7 @@
       heal-message (-> "heal" common.skills/skills :hp (str " HP recovered"))]
   (defn- info-message->text [message]
     (cond
+      (:ping-high message) "Ping too high! Can't process your request"
       (:damage message) (str "You took " (:damage message) " damage from " (:from message))
       (:hit message) (str (:to message) " received " (:hit message) " damage")
       (:skill message) (str "Using " (:skill message))
@@ -655,11 +671,12 @@
    [:div {:style {:display :flex
                   :flex-direction :column
                   :gap "5px"}}
-    [:button (styles/tutorials) "How to rotate the camera?"]
-    [:button (styles/tutorials) "How to run faster?"]
-    [:button (styles/tutorials) "How to cast skills?"]
-    [:button (styles/tutorials) "How to use portal?"]
-    [:button (styles/tutorials) "What is my first quest?"]]])
+    (for [[t title f] @(subscribe [::subs/tutorials])]
+      ^{:key t}
+      [:button
+       {:class (styles/tutorials)
+        :on-click #(tutorial/start-intro (f))}
+       title])]])
 
 (defn- temp-container-for-fps-ping-online []
   [:div#temp-container-for-fps-ping-online
@@ -907,20 +924,20 @@
     "Refresh"]])
 
 (defn- congrats-text []
-  [:<>
-   [:div
-    {:style {:position :absolute
-             :top "20%"
-             :left "50%"
-             :transform "translate(-50%, -50%)"
-             :font-size "56px"
-             :z-index 99
-             :color :white}}
-    [:span
-     {:style {:text-shadow "-2px -2px 0 #000,  \n    2px -2px 0 #000,\n    -2px 2px 0 #000,\n     2px 2px 0 #000"}}
-     "Congrats! "]
-    [:span
-     "\uD83C\uDF89"]]])
+  (when @(subscribe [::subs/congrats-text?])
+    [:div
+     {:style {:position :absolute
+              :top "20%"
+              :left "calc(50% + 25px)"
+              :transform "translate(-50%, -50%)"
+              :font-size "32px"
+              :z-index 99
+              :color :white}}
+     [:span
+      {:style {:text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}}
+      "You completed your first quest and earned 30 Health and Mana potions! "]
+     [:span
+      "\uD83C\uDF89"]]))
 
 ;; TODO when game is ready then show HUD
 (defn main-panel []
@@ -986,7 +1003,11 @@
        (on :ui-set-score-board #(dispatch [::events/set-score-board %]))
        (on :ui-set-connection-lost #(dispatch [::events/set-connection-lost]))
        (on :ui-player-ready #(dispatch [::events/update-settings]))
-       (on :ui-update-ping #(dispatch [::events/update-ping %])))
+       (on :ui-update-ping #(dispatch [::events/update-ping %]))
+       (on :ui-update-hp-potions #(dispatch [::events/update-hp-potions %]))
+       (on :ui-update-mp-potions #(dispatch [::events/update-mp-potions %]))
+       (on :ui-finish-tutorial-progress #(dispatch [::events/finish-tutorial-progress %]))
+       (on :ui-show-congrats-text #(dispatch [::events/show-congrats-text])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -994,6 +1015,7 @@
         (if @(subscribe [::subs/init-modal-open?])
           [init-modal]
           [:<>
+           [congrats-text]
            [temp-container-for-fps-ping-online]
            (when @(subscribe [::subs/connection-lost?])
              [connection-lost-modal])

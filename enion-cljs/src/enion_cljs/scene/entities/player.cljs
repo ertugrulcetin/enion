@@ -1,9 +1,8 @@
 (ns enion-cljs.scene.entities.player
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :as common :refer [dev? fire on]]
+    [enion-cljs.common :as common :refer [dev? fire on dlog]]
     [enion-cljs.scene.entities.camera :as entity.camera]
-    [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.asas :as skills.asas]
     [enion-cljs.scene.skills.core :as skills]
@@ -137,7 +136,7 @@
     (select-closest-enemy*)))
 
 (defn- look-at-selected-player [e]
-  (when (and (st/alive?) (= "KeyX" (j/get-in e [:event :code])))
+  (when (and (st/alive?) (= "KeyR" (j/get-in e [:event :code])))
     (when-let [selected-player (some-> (st/get-selected-player-id) (st/get-other-player-entity))]
       (let [selected-player-pos (pc/get-pos selected-player)
             x (j/get selected-player-pos :x)
@@ -188,7 +187,7 @@
 
 (defn- set-target-position [e]
   (when (st/alive?)
-    (let [result (pc/raycast-rigid-body e entity.camera/entity)
+    (let [result (st/get-closest-terrain-hit e)
           hit-entity-name (j/get-in result [:entity :name])]
       (when (= "terrain" hit-entity-name)
         (let [x (j/get-in result [:point :x])
@@ -255,7 +254,7 @@
 
 (defn- register-collision-events [entity]
   (j/call-in entity [:collision :on] "collisionstart" collision-start)
-  (j/call-in entity [:collision :on] "collisionend" collision-end))
+  (j/call-in entity [:collision :on] "collisionstart" collision-start))
 
 (defonce template-entity-map
   (delay
@@ -305,7 +304,7 @@
         (pc/set-loc-pos username-text-entity 0 0.05 0)))
     (j/assoc-in! username-text-entity [:script :enabled] true)))
 
-(defn- init-player [{:keys [id username class race mana health pos]} player-entity]
+(defn- init-player [{:keys [id username class race mana health pos hp-potions mp-potions tutorials]} player-entity]
   (let [[x y z] pos]
     (j/assoc! player
               :id id
@@ -316,6 +315,9 @@
               :total-health health
               :mana mana
               :total-mana mana
+              :hp-potions hp-potions
+              :mp-potions mp-potions
+              :tutorials tutorials
               :heal-counter 0)
     (when pos
       (j/call-in player-entity [:rigidbody :teleport] x y z))
@@ -602,7 +604,6 @@
                   (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :show])
                   (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :hide]))
           :ping? (j/assoc! st/settings :ping? v)
-          :show-tutorial? (when (or (= "true" v) (true? v)) (fire :ui-show-tutorial))
           nil))))
 
 (when dev?

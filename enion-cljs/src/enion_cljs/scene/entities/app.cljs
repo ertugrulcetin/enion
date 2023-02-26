@@ -8,7 +8,8 @@
    [enion-cljs.common :as common :refer [dev? fire on]]
    [enion-cljs.scene.pc :as pc]
    [enion-cljs.scene.poki :as poki]
-   [enion-cljs.scene.simulation :as simulation])
+   [enion-cljs.scene.simulation :as simulation]
+   [enion-cljs.scene.entities.portal :as portal])
   (:require-macros
    [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -52,12 +53,7 @@
              (map-pc-vars)
              (init-fn this)
              (init-ui)
-             #_(init {:id 1
-                      :username "NeaTBuSTeR"
-                      :race "orc"
-                      :class "warrior"
-                      :health 1000
-                      :mana 1000}))
+             (portal/register-portals-trigger-events))
      :post-init (fn []
                   ;;TODO window.Terrain/Water/Wave acik onlari da null'a setle
                   (when dev?

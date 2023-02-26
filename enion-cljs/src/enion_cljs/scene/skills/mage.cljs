@@ -10,7 +10,8 @@
     [enion-cljs.scene.skills.core :as skills]
     [enion-cljs.scene.skills.effects :as skills.effects]
     [enion-cljs.scene.states :refer [player get-model-entity]]
-    [enion-cljs.scene.states :as st])
+    [enion-cljs.scene.states :as st]
+    [enion-cljs.scene.utils :as utils])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
 
@@ -118,7 +119,9 @@
   (let [selected-player-id (-> params :skill :selected-player-id)
         damage (-> params :skill :damage)]
     (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
-                        :hit damage})))
+                        :hit damage})
+    (when (not (utils/tutorial-finished? :how-to-cast-skills?))
+      (utils/finish-tutorial-step :how-to-cast-skills?))))
 
 (defmethod skills/skill-response "teleport" [_]
   (fire :ui-cooldown "teleport"))

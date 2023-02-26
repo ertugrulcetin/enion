@@ -1,7 +1,10 @@
 (ns enion-cljs.scene.entities.camera
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.scene.pc :as pc :refer [app]])
+    [enion-cljs.common :refer [fire]]
+    [enion-cljs.scene.pc :as pc :refer [app]]
+    [enion-cljs.scene.states :as st]
+    [enion-cljs.scene.utils :as utils])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -22,6 +25,10 @@
 (comment
   (j/assoc! state :camera-rotation-speed 10)
   (j/assoc! state :edge-scroll-speed 100)
+  (j/get state :target-angle)
+  (j/get state :eulers)
+  (js/console.log entity)
+  st/player
   )
 
 (defonce entity nil)
@@ -30,7 +37,10 @@
   (j/assoc! state :page-x (j/get e :x))
   (when (j/get state :right-click?)
     (j/update-in! state [:eulers :x] - (mod (/ (* (j/get state :camera-rotation-speed) (j/get e :dx)) 60) 360))
-    (j/update-in! state [:eulers :y] + (mod (/ (* (j/get state :camera-rotation-speed) (j/get e :dy)) 60) 360))))
+    (j/update-in! state [:eulers :y] + (mod (/ (* (j/get state :camera-rotation-speed) (j/get e :dy)) 60) 360))
+    (when (and (not (utils/tutorial-finished? :how-to-rotate-camera?)) (not (j/get state :right-mouse-dragged?)))
+      (j/assoc! state :right-mouse-dragged? true)
+      (utils/finish-tutorial-step :how-to-rotate-camera?))))
 
 (defn- mouse-wheel [e]
   (let [ray-end (j/get state :ray-end)
@@ -61,6 +71,7 @@
 (defn- init-fn [this]
   (j/assoc! state :ray-end (pc/find-by-name "ray_end"))
   (set! entity (j/get this :entity))
+  (set! st/camera-entity entity)
   (pc/on-mouse :EVENT_MOUSEMOVE mouse-move)
   (pc/on-mouse :EVENT_MOUSEWHEEL mouse-wheel)
   (pc/on-mouse :EVENT_MOUSEDOWN mouse-down)

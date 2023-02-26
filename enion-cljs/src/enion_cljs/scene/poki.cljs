@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.poki
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [dev?]]))
+    [enion-cljs.common :refer [dev? on fire]]))
 
 (defn init []
   (when (j/get js/window :PokiSDK)
@@ -26,6 +26,15 @@
   (when (j/get js/window :PokiSDK)
     (-> (j/call-in js/window [:PokiSDK :commercialBreak])
         (.then #(gameplay-start)))))
+
+(defn rewarded-break []
+  (when (j/get js/window :PokiSDK)
+    (-> (j/call-in js/window [:PokiSDK :rewardedBreak])
+        (.then #(if %
+                  (fire :rewarded-break-potions)
+                  (println "No reward due to ad blocker!"))))))
+
+(on :rewarded-break rewarded-break)
 
 (comment
   (init)

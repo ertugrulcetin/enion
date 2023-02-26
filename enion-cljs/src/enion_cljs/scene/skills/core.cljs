@@ -8,7 +8,8 @@
     [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.effects :as skills.effects]
-    [enion-cljs.scene.states :as st :refer [player get-model-entity get-player-entity]]))
+    [enion-cljs.scene.states :as st :refer [player get-model-entity get-player-entity]]
+    [enion-cljs.scene.utils :as utils]))
 
 (def key->skill)
 
@@ -79,6 +80,9 @@
         (fire :ui-send-msg too-far-msg))
       result)))
 
+(defn close-for-r-attack? [selected-player-id]
+  (<= (st/distance-to selected-player-id) common.skills/close-attack-distance-threshold))
+
 (defn- get-hidden-enemy-asases []
   (reduce
     (fn [acc id]
@@ -105,7 +109,7 @@
     (st/enemy-selected? selected-player-id)
     (st/alive? selected-player-id)
     (st/enough-mana? attack-r-required-mana)
-    (close-for-attack? selected-player-id)))
+    (close-for-r-attack? selected-player-id)))
 
 (defn r-combo? [e prev-state active-state selected-player-id]
   (and (= active-state prev-state)
@@ -123,31 +127,53 @@
     (not (j/get player :fleet-foot?))
     (not (j/get player :slow-down?))))
 
+(defn- enough-hp-potions? []
+  (> (j/get player :hp-potions) 0))
+
+(defn- enough-mp-potions? []
+  (> (j/get player :mp-potions) 0))
+
 (defn hp-potion? [e]
   (and
     (skill-pressed? e "hpPotion")
     (st/cooldown-ready? "hpPotion")
-    (st/cooldown-ready? "mpPotion")))
+    (st/cooldown-ready? "mpPotion")
+    (enough-hp-potions?)))
 
 (defn mp-potion? [e]
   (and
     (skill-pressed? e "mpPotion")
     (st/cooldown-ready? "hpPotion")
-    (st/cooldown-ready? "mpPotion")))
+    (st/cooldown-ready? "mpPotion")
+    (enough-mp-potions?)))
+
+(defn use-hp-potion []
+  (let [hp-potions (j/get (j/update! st/player :hp-potions dec) :hp-potions)]
+    (fire :ui-update-hp-potions hp-potions)
+    (utils/set-item "potions" (pr-str {:hp-potions hp-potions
+                                       :mp-potions (j/get st/player :mp-potions)}))))
+
+(defn use-mp-potion []
+  (let [mp-potions (j/get (j/update! st/player :mp-potions dec) :mp-potions)]
+    (fire :ui-update-mp-potions mp-potions)
+    (utils/set-item "potions" (pr-str {:hp-potions (j/get st/player :hp-potions)
+                                       :mp-potions mp-potions}))))
 
 (let [hp-recover {:hp true}]
   (defmethod skill-response "hpPotion" [_]
     (fire :ui-cooldown "hpPotion")
     (fire :ui-send-msg hp-recover)
     (skills.effects/apply-effect-hp-potion player)
-    (st/play-sound "potion")))
+    (st/play-sound "potion")
+    (use-hp-potion)))
 
 (let [mp-recover {:mp true}]
   (defmethod skill-response "mpPotion" [_]
     (fire :ui-cooldown "mpPotion")
     (fire :ui-send-msg mp-recover)
     (skills.effects/apply-effect-mp-potion player)
-    (st/play-sound "potion")))
+    (st/play-sound "potion")
+    (use-mp-potion)))
 
 (defmethod skill-response "fleetFoot" [_]
   (fire :ui-cooldown "fleetFoot")
@@ -155,7 +181,9 @@
   (j/assoc! player
             :fleet-foot? true
             :speed (if (st/asas?) 850 700))
-  (st/play-sound "fleetFoot"))
+  (st/play-sound "fleetFoot")
+  (when (not (utils/tutorial-finished? :how-to-run-faster?))
+    (utils/finish-tutorial-step :how-to-run-faster?)))
 
 (defmethod skill-response "attackR" [params]
   (fire :ui-cooldown "attackR")

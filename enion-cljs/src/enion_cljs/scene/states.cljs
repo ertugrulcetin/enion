@@ -3,7 +3,6 @@
     [applied-science.js-interop :as j]
     [clojure.data :as data]
     [enion-cljs.common :refer [fire on]]
-    [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]))
 
@@ -28,6 +27,7 @@
 
 (defonce other-players #js {})
 (defonce settings #js {})
+(defonce camera-entity nil)
 
 (def username-color (pc/color 2 2 2))
 (def username-party-color (pc/color 2 2 0))
@@ -209,6 +209,9 @@
         (vreset! prev-state state)
         result))))
 
+(defn get-race []
+  (j/get player :race))
+
 (defn move-player
   ([[x y z]]
    (j/call-in (get-player-entity) [:rigidbody :teleport] x y z))
@@ -246,7 +249,7 @@
                     (fn [result]
                       (when (= "terrain" (j/get-in result [:entity :name]))
                         result))
-                    (pc/raycast-all-rigid-body e entity.camera/entity))
+                    (pc/raycast-all-rigid-body e camera-entity))
           player-pos (pc/get-pos (get-player-entity))
           total-results (count results)]
       (cond

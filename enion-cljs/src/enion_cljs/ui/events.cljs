@@ -16,8 +16,7 @@
    :minimap? true
    :camera-rotation-speed 10
    :edge-scroll-speed 100
-   :graphics-quality 0.75
-   :show-tutorial? true})
+   :graphics-quality 0.75})
 
 (reg-event-fx
   ::initialize-db
@@ -111,7 +110,8 @@
 (reg-event-fx
   ::add-message-to-info-box
   (fn [_ [_ msg]]
-    {::dispatch-throttle [::add-message-to-info-box* [::add-message-to-info-box* msg] 100]}))
+    #_{::dispatch-throttle [::add-message-to-info-box* [::add-message-to-info-box* msg] 100]}
+    {:dispatch [::add-message-to-info-box* msg]}))
 
 (reg-event-db
   ::add-message-to-chat-all
@@ -318,10 +318,15 @@
 
 (reg-event-db
   ::set-current-player
-  (fn [db [_ [id username]]]
+  (fn [db [_ {:keys [id username race class hp-potions mp-potions tutorials]}]]
     (-> db
         (assoc-in [:player :id] id)
-        (assoc-in [:player :username] username))))
+        (assoc-in [:player :username] username)
+        (assoc-in [:player :race] race)
+        (assoc-in [:player :class] class)
+        (assoc-in [:player :hp-potions] hp-potions)
+        (assoc-in [:player :mp-potions] mp-potions)
+        (assoc :tutorials tutorials))))
 
 (reg-event-db
   ::set-as-party-leader
@@ -413,3 +418,35 @@
   ::notify-ui-is-ready
   (fn []
     {::fire [:notify-ui-is-ready]}))
+
+(reg-event-db
+  ::update-hp-potions
+  (fn [db [_ hp-potions]]
+    (assoc-in db [:player :hp-potions] hp-potions)))
+
+(reg-event-db
+  ::update-mp-potions
+  (fn [db [_ mp-potions]]
+    (assoc-in db [:player :mp-potions] mp-potions)))
+
+(reg-event-db
+  ::finish-tutorial-progress
+  (fn [db [_ tutorial]]
+    (assoc-in db [:tutorials tutorial] true)))
+
+(reg-event-db
+  ::hide-congrats-text
+  (fn [db]
+    (assoc db :congrats-text? false)))
+
+(reg-event-fx
+  ::show-congrats-text
+  (fn [{:keys [db]} _]
+    {:db (assoc db :congrats-text? true)
+     :dispatch-later [{:ms 6000
+                       :dispatch [::hide-congrats-text]}]}))
+
+(reg-event-fx
+  ::show-hp-mp-potions-ads
+  (fn []
+    {::fire [:rewarded-break]}))

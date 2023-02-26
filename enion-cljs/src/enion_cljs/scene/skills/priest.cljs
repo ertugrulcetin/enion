@@ -8,7 +8,8 @@
     [enion-cljs.scene.skills.core :as skills]
     [enion-cljs.scene.skills.effects :as skills.effects]
     [enion-cljs.scene.states :refer [player get-model-entity]]
-    [enion-cljs.scene.states :as st])
+    [enion-cljs.scene.states :as st]
+    [enion-cljs.scene.utils :as utils])
   (:require-macros
     [enion-cljs.scene.macros :as m]))
 
@@ -79,7 +80,9 @@
         (fire :ui-send-msg cure-msg)))))
 
 (defmethod skills/skill-response "breakDefense" [_]
-  (fire :ui-cooldown "breakDefense"))
+  (fire :ui-cooldown "breakDefense")
+  (when (not (utils/tutorial-finished? :how-to-cast-skills?))
+    (utils/finish-tutorial-step :how-to-cast-skills?)))
 
 (defn- get-selected-player-id-for-priest-skill [selected-player-id]
   (if (st/enemy-selected? selected-player-id)
