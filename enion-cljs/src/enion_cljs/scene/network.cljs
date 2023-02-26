@@ -411,10 +411,15 @@
 
 (defmethod dispatch-pro-response :connect-to-world-state [params]
   (when (:connect-to-world-state params)
-    (send-states-to-server)
-    (dispatch-pro :request-all-players)
-    (fire :ui-player-ready)
-    (create-ping-interval)))
+    (let [tutorials (get-tutorials)
+          how-to-navigate? (:how-to-navigate? tutorials)]
+      (send-states-to-server)
+      (dispatch-pro :request-all-players)
+      (fire :ui-player-ready)
+      (create-ping-interval)
+      (when-not how-to-navigate?
+        (fire :ui-start-navigation-steps)
+        (utils/set-item "tutorials" (pr-str (assoc tutorials :how-to-navigate? true)))))))
 
 (defmethod dispatch-pro-response :request-all-players [params]
   (let [players (:request-all-players params)
