@@ -450,3 +450,10 @@
   ::show-hp-mp-potions-ads
   (fn []
     {::fire [:rewarded-break]}))
+
+(reg-event-fx
+  ::reset-tutorials
+  (fn [{:keys [db]}]
+    (let [db (update db :tutorials #(select-keys % [:what-is-the-first-quest?]))]
+      {:db db
+       ::fire [:reset-tutorials (:tutorials db)]})))

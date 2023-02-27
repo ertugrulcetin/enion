@@ -800,7 +800,11 @@
      [:button
       {:class (styles/settings-exit-button)
        :on-click #(dispatch [::events/close-settings-modal])}
-      "Exit"]]))
+      "Exit"]
+     [:button
+      {:class (styles/settings-reset-tutorials-button)
+       :on-click #(dispatch [::events/reset-tutorials])}
+      "Reset tutorials"]]))
 
 (defn server-stats []
   (r/create-class

@@ -10,7 +10,8 @@
     [enion-cljs.scene.skills.mage :as skills.mage]
     [enion-cljs.scene.skills.priest :as skills.priest]
     [enion-cljs.scene.skills.warrior :as skills.warrior]
-    [enion-cljs.scene.states :as st :refer [player other-players]])
+    [enion-cljs.scene.states :as st :refer [player other-players]]
+    [enion-cljs.scene.utils :as utils])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -605,6 +606,11 @@
                   (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :hide]))
           :ping? (j/assoc! st/settings :ping? v)
           nil))))
+
+(on :reset-tutorials
+    (fn [tutorials]
+      (j/assoc! st/player :tutorials tutorials)
+      (utils/set-item "tutorials" (pr-str tutorials))))
 
 (when dev?
   (on :re-init (fn []

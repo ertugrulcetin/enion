@@ -70,11 +70,11 @@
       :element (j/call js/document :getElementById (str "skill-" skill))}]))
 
 (def tutorials-order
-  [[:how-to-rotate-camera? "How to rotate the camera?" how-to-rotate-camera]
-   [:how-to-run-faster? "How to run faster?" how-to-run-faster]
-   [:how-to-use-portal? "How to use portal?" how-to-use-portal]
-   [:how-to-cast-skills? "How to cast skills?" how-to-cast-skills]
-   [:what-is-the-first-quest? "What is the first quest?" what-is-the-first-quest]])
+  [[:how-to-rotate-camera? "Adjust your camera rotation" how-to-rotate-camera]
+   [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster]
+   [:how-to-use-portal? "Use portal to teleport to the forest" how-to-use-portal]
+   [:how-to-cast-skills? "Use your skills to defeat enemies" how-to-cast-skills]
+   [:what-is-the-first-quest? "Get you first quest" what-is-the-first-quest]])
 
 (on :ui-init-tutorial-data (fn [data] (reset! state data)))
 (on :ui-start-navigation-steps (fn [] (start-intro (navigation-steps))))

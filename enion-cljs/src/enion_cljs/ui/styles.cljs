@@ -535,8 +535,17 @@
   {:composes [(button)]
    :margin-top "20px"
    :font-size "30px"
-   :width "120px"}
+   :width "120px"
+   :border "2px solid white"}
   [:&:hover {:border "2px solid #2196F3"}])
+
+(defclass settings-reset-tutorials-button []
+  {:composes [(settings-exit-button)]
+   :position :absolute
+   :right "10px"
+   :width "auto"
+   :margin-top "22px"
+   :font-size "25px"})
 
 (defkeyframes blink-frames [color]
   ["0%" {:border-color color}]

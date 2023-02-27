@@ -431,7 +431,7 @@
 (defn- on-ws-open []
   (when dev?
     (dispatch-pro :init {:username (str "NeaTBuSTeR_" (int (rand 99)))
-                         :race "orc"
+                         :race "human"
                          :class "mage"}))
   (dispatch-pro :get-server-stats))
 
