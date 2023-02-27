@@ -1,5 +1,6 @@
 (ns enion-cljs.ui.views
   (:require
+    ["react-device-detect" :as device-dec]
     [applied-science.js-interop :as j]
     [breaking-point.core :as bp]
     [clojure.string :as str]
@@ -222,11 +223,11 @@
    (when-let [elem @ref]
      (scroll-to-bottom elem)
      #_(if info?
-       (let [gap (- (j/get elem :scrollHeight) (+ (j/get elem :scrollTop)
-                                                  (j/get elem :offsetHeight)))]
-         (when (< gap 50)
-           (scroll-to-bottom elem)))
-       (scroll-to-bottom elem)))))
+         (let [gap (- (j/get elem :scrollHeight) (+ (j/get elem :scrollTop)
+                                                   (j/get elem :offsetHeight)))]
+           (when (< gap 50)
+             (scroll-to-bottom elem)))
+         (scroll-to-bottom elem)))))
 
 ;; TODO when on hover disable character zoom in/out
 (defn- chat-message-box []
@@ -888,7 +889,7 @@
      "Loading..."
      "Enter")])
 
-(defn init-modal []
+(defn- init-modal []
   (let [username (r/atom nil)
         race (r/atom nil)
         class (r/atom nil)]
@@ -906,6 +907,11 @@
           (when-let [err @(subscribe [::subs/init-modal-error])]
             [:p (styles/init-modal-error) err])
           [enter username race class]])})))
+
+(defn- mobile-user-modal []
+  [:div (styles/init-modal)
+   [:p "This game is not supported on mobile and tablet devices yet"]
+   [:p "Please use a desktop computer to play"]])
 
 (defn- on-mouse-down [e]
   (when (= (j/get e :button) 0)
@@ -1030,8 +1036,14 @@
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
-        (if @(subscribe [::subs/init-modal-open?])
+        (cond
+          device-dec/isMobile
+          [mobile-user-modal]
+
+          @(subscribe [::subs/init-modal-open?])
           [init-modal]
+
+          :else
           [:<>
            [congrats-text]
            [adblock-warning-text]
