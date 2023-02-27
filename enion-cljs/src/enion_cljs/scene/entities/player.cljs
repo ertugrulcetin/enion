@@ -610,7 +610,8 @@
 (on :reset-tutorials
     (fn [tutorials]
       (j/assoc! st/player :tutorials tutorials)
-      (utils/set-item "tutorials" (pr-str tutorials))))
+      (utils/set-item "tutorials" (pr-str tutorials))
+      (j/assoc! entity.camera/state :right-mouse-dragged? false)))
 
 (when dev?
   (on :re-init (fn []
