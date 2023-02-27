@@ -34,6 +34,7 @@
 
 (on :notify-ui-is-ready
   (fn []
+    (fire :start-ws)
     (poki/game-loading-finished)))
 
 (defn visibility-props []
@@ -64,7 +65,6 @@
                       (j/assoc! js/window :pc nil)
                       (j/assoc-in! js/window [:pc :FILLMODE_NONE] fill-mode-none)
                       (j/assoc-in! js/window [:pc :FILLMODE_KEEP_ASPECT] fill-mode-aspect)))
-                  (fire :start-ws)
                   (poki/init)
                   (let [{:keys [hidden visibility-change]} (visibility-props)]
                     (when hidden

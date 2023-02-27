@@ -224,6 +224,12 @@
     (-> db :init-modal :loading?)))
 
 (reg-sub
+  ::ready-to-enter?
+  (fn [db]
+    (and (:ws-connected? db)
+         (not (-> db :init-modal :loading?)))))
+
+(reg-sub
   ::server-stats
   (fn [db]
     (:server-stats db)))
@@ -255,9 +261,11 @@
 
 (reg-sub
   ::tutorials
-  (fn [db]
-    (let [finished-tutorials (set (keys (:tutorials db)))]
-      (remove #(finished-tutorials (first %)) tutorials/tutorials-order))))
+  (fn [db [_ tutorial]]
+    (if tutorial
+      (-> db :tutorials (get tutorial))
+      (let [finished-tutorials (set (keys (:tutorials db)))]
+        (take 3 (remove #(finished-tutorials (first %)) tutorials/tutorials-order))))))
 
 (reg-sub
   ::congrats-text?

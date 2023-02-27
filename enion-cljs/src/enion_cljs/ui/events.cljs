@@ -469,3 +469,8 @@
     {:db (assoc db :adblock-warning-text? true)
      :dispatch-later [{:ms 5000
                        :dispatch [::hide-adblock-warning-text]}]}))
+
+(reg-event-db
+  ::set-ws-connected
+  (fn [db]
+    (assoc db :ws-connected? true)))

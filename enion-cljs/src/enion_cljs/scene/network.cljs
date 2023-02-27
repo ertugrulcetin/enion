@@ -433,7 +433,8 @@
     (dispatch-pro :init {:username (str "NeaTBuSTeR_" (int (rand 99)))
                          :race "human"
                          :class "mage"}))
-  (dispatch-pro :get-server-stats))
+  (dispatch-pro :get-server-stats)
+  (fire :ui-ws-connected))
 
 (defn- on-ws-close []
   (fire :ui-init-modal-error "Connection closed! Please refresh the page.")
@@ -526,9 +527,6 @@
         (pc/set-anim-int (st/get-model-entity) "health" 100)))))
 
 (comment
-  (fire :start-ws)
-
-
   (send-states-to-server)
   (cancel-sending-states-to-server)
 

@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.utils
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [fire]]
+    [enion-cljs.common :refer [fire on]]
     [enion-cljs.scene.states :as st]))
 
 (defn rand-between [min max]
@@ -23,3 +23,5 @@
 
 (defn tutorial-finished? [tutorial-step]
   (tutorial-step (j/get st/player :tutorials)))
+
+(on :finish-tutorial-step finish-tutorial-step)

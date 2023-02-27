@@ -52,13 +52,18 @@
                 "You can use the portal located at your base.<br/>"
                 "<img src=\"img/chest.png\" style=\"position: relative;left: calc(50% - 90px);top: 20px;\">")}])
 
+(defn how-to-change-skill-order []
+  [{:title "How to change skill order?"
+    :intro (str "<b>Right-click on any of the skill</b> you'd like to change the order of, "
+                "and then click on the spot where you'd like to have it.")
+    :element (j/call js/document :getElementById "skill-bar")}])
+
 (defn how-to-cast-skills []
   (let [class (:class @state)
         race (:race @state)
         skill (cast-skills-mapping-by-class class)
         skill-name (-> skill common.skills/skills (get :name))]
-    [{:title "How to cast skills?"
-      :intro (if (= "orc" race)
+    [{:intro (if (= "orc" race)
                (str "Find a <b>Human</b> and <b>select it by clicking on it with your mouse</b>, "
                     "or you can <b>press the Z key</b> to select the closest enemy.<br/><br/> "
                     "Apply <b>" skill-name "</b> by pressing a key on your keyboard or clicking with your mouse.<br/>"
@@ -74,7 +79,8 @@
    [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster]
    [:how-to-use-portal? "Use portal to teleport to the forest" how-to-use-portal]
    [:how-to-cast-skills? "Use your skills to defeat enemies" how-to-cast-skills]
-   [:what-is-the-first-quest? "Get you first quest" what-is-the-first-quest]])
+   [:what-is-the-first-quest? "Get you first quest" what-is-the-first-quest]
+   [:how-to-change-skill-order? "Change your skill order" how-to-change-skill-order]])
 
 (on :ui-init-tutorial-data (fn [data] (reset! state data)))
 (on :ui-start-navigation-steps (fn [] (start-intro (navigation-steps))))

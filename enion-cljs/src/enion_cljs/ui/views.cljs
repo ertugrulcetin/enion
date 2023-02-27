@@ -98,7 +98,8 @@
     (fn [index skill]
       (let [skill-move @(subscribe [::subs/skill-move])
             hp-potions @(subscribe [::subs/hp-potions])
-            mp-potions @(subscribe [::subs/mp-potions])]
+            mp-potions @(subscribe [::subs/mp-potions])
+            change-skill-order-completed? @(subscribe [::subs/tutorials :how-to-change-skill-order?])]
         [:div {:id (str "skill-" skill)
                :ref (fn [ref]
                       (when ref
@@ -107,6 +108,8 @@
                         (let [f (fn [ev]
                                   (.-preventDefault ev)
                                   (dispatch [::events/update-skills-order index skill])
+                                  (when-not change-skill-order-completed?
+                                    (fire :finish-tutorial-step :how-to-change-skill-order?))
                                   false)]
                           (.addEventListener ref "contextmenu" f false)
                           (swap! event-listeners assoc skill [ref f]))))
@@ -696,7 +699,7 @@
       {:style {:display :flex
                :flex-direction :row
                :justify-content :center
-               :gap "50px"}}
+               :gap "30px"}}
       [:div
        {:style {:display :flex
                 :flex-direction :column
@@ -798,14 +801,19 @@
                :on-change #(dispatch-sync [::events/update-settings :graphics-quality (-> % .-target .-value (/ 100))])}]
       [:span {:style {:font-size "25px"}} (str graphics-quality "/100")]]
 
-     [:button
-      {:class (styles/settings-exit-button)
-       :on-click #(dispatch [::events/close-settings-modal])}
-      "Exit"]
+     [:hr (styles/init-modal-hr)]
+
      [:button
       {:class (styles/settings-reset-tutorials-button)
        :on-click #(dispatch [::events/reset-tutorials])}
-      "Reset tutorials"]]))
+      "Reset tutorials"]
+
+     [:hr (styles/init-modal-hr)]
+
+     [:button
+      {:class (styles/settings-exit-button)
+       :on-click #(dispatch [::events/close-settings-modal])}
+      "Exit"]]))
 
 (defn server-stats []
   (r/create-class
@@ -883,7 +891,7 @@
 (defn- enter [username race class]
   [:button
    {:class (styles/init-modal-enter-button)
-    :disabled @(subscribe [::subs/init-modal-loading?])
+    :disabled (not @(subscribe [::subs/ready-to-enter?]))
     :on-click #(dispatch [::events/init-game @username @race @class])}
    (if @(subscribe [::subs/init-modal-loading?])
      "Loading..."
@@ -1032,7 +1040,8 @@
        (on :ui-update-mp-potions #(dispatch [::events/update-mp-potions %]))
        (on :ui-finish-tutorial-progress #(dispatch [::events/finish-tutorial-progress %]))
        (on :ui-show-congrats-text #(dispatch [::events/show-congrats-text]))
-       (on :ui-show-adblock-warning-text #(dispatch [::events/show-adblock-warning-text])))
+       (on :ui-show-adblock-warning-text #(dispatch [::events/show-adblock-warning-text]))
+       (on :ui-ws-connected #(dispatch [::events/set-ws-connected])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

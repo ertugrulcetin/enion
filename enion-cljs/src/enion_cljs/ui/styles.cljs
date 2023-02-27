@@ -2,10 +2,6 @@
   (:require
     [spade.core :refer [defglobal defclass defattrs defkeyframes]]))
 
-#_(sr/inject!
-    "enion-cljs-ui-styles-cooldown-property"
-    "@property --cooldown {\n  syntax: \"<percentage>\";\n  inherits: false;\n  initial-value: 0%;\n}")
-
 (def orc-color "rgb(15 188 3)")
 (def human-color "#2691b2ff")
 
@@ -38,7 +34,7 @@
    :transform "translateX(-50%)"
    :left "50%"
    :bottom "20px"
-   :z-index 3})
+   :z-index 15})
 
 (defclass button []
   {:outline :none
@@ -529,7 +525,10 @@
    :pointer-events :all
    :user-select :none
    :width "45%"
-   :z-index 30})
+   :max-width "50%"
+   :max-height "80%"
+   :z-index 30
+   :overflow-y :auto})
 
 (defclass settings-exit-button []
   {:composes [(button)]
@@ -541,10 +540,8 @@
 
 (defclass settings-reset-tutorials-button []
   {:composes [(settings-exit-button)]
-   :position :absolute
-   :right "10px"
    :width "auto"
-   :margin-top "22px"
+   :margin-top :unset
    :font-size "25px"})
 
 (defkeyframes blink-frames [color]
