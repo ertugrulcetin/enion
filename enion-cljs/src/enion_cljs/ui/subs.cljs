@@ -265,6 +265,11 @@
     (:congrats-text? db)))
 
 (reg-sub
+  ::adblock-warning-text?
+  (fn [db]
+    (:adblock-warning-text? db)))
+
+(reg-sub
   ::show-hp-mp-potions-ads-button?
   (fn [db]
     (and (-> db :tutorials :what-is-the-first-quest?)

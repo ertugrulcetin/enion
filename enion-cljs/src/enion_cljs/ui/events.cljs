@@ -457,3 +457,15 @@
     (let [db (update db :tutorials #(select-keys % [:what-is-the-first-quest?]))]
       {:db db
        ::fire [:reset-tutorials (:tutorials db)]})))
+
+(reg-event-db
+  ::hide-adblock-warning-text
+  (fn [db]
+    (assoc db :adblock-warning-text? false)))
+
+(reg-event-fx
+  ::show-adblock-warning-text
+  (fn [{:keys [db]} _]
+    {:db (assoc db :adblock-warning-text? true)
+     :dispatch-later [{:ms 5000
+                       :dispatch [::hide-adblock-warning-text]}]}))

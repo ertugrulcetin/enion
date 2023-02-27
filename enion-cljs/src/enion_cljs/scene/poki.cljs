@@ -32,7 +32,9 @@
     (-> (j/call-in js/window [:PokiSDK :rewardedBreak])
         (.then #(if %
                   (fire :rewarded-break-potions)
-                  (println "No reward due to ad blocker!"))))))
+                  (do
+                    (println "No reward due to ad blocker!")
+                    (fire :ui-show-adblock-warning-text)))))))
 
 (on :rewarded-break rewarded-break)
 

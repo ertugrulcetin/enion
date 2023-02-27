@@ -943,6 +943,20 @@
      [:span
       "\uD83C\uDF89"]]))
 
+(defn- adblock-warning-text []
+  (when @(subscribe [::subs/adblock-warning-text?])
+    [:div
+     {:style {:position :absolute
+              :top "20%"
+              :left "calc(50% + 35px)"
+              :transform "translate(-50%, -50%)"
+              :font-size "32px"
+              :z-index 99
+              :color :white}}
+     [:span
+      {:style {:text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}}
+      "You need to disable your Adblock in order to get free potions!"]]))
+
 ;; TODO when game is ready then show HUD
 (defn main-panel []
   (r/create-class
@@ -1011,15 +1025,16 @@
        (on :ui-update-hp-potions #(dispatch [::events/update-hp-potions %]))
        (on :ui-update-mp-potions #(dispatch [::events/update-mp-potions %]))
        (on :ui-finish-tutorial-progress #(dispatch [::events/finish-tutorial-progress %]))
-       (on :ui-show-congrats-text #(dispatch [::events/show-congrats-text])))
+       (on :ui-show-congrats-text #(dispatch [::events/show-congrats-text]))
+       (on :ui-show-adblock-warning-text #(dispatch [::events/show-adblock-warning-text])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
-
         (if @(subscribe [::subs/init-modal-open?])
           [init-modal]
           [:<>
            [congrats-text]
+           [adblock-warning-text]
            [temp-container-for-fps-ping-online]
            (when @(subscribe [::subs/connection-lost?])
              [connection-lost-modal])
