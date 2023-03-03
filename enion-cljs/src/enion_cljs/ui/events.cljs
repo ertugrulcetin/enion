@@ -5,14 +5,16 @@
     [clojure.string :as str]
     [enion-cljs.common :as common :refer [fire]]
     [enion-cljs.ui.db :as db]
+    [enion-cljs.ui.utils :as ui.utils]
+    [enion-cljs.utils :as common.utils]
     [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx reg-cofx inject-cofx]]))
 
 (defonce throttle-timeouts (atom {}))
 
 (def default-settings
   {:sound? true
-   :fps? true
-   :ping? true
+   :fps? false
+   :ping? false
    :minimap? true
    :camera-rotation-speed 10
    :edge-scroll-speed 100
@@ -27,14 +29,14 @@
 (reg-fx
   ::set-to-ls
   (fn [[k v]]
-    (when-let [ls (j/get js/window :localStorage)]
+    (when-let [ls (common.utils/get-local-storage)]
       (.setItem ls k v))))
 
 (reg-cofx
   ::settings
   (fn [cofx _]
     (try
-      (if-let [ls (j/get js/window :localStorage)]
+      (if-let [ls (common.utils/get-local-storage)]
         (assoc cofx :settings (let [settings (j/call ls :getItem "settings")]
                                 (if (str/blank? settings)
                                   default-settings
@@ -173,8 +175,8 @@
                                (assoc-in [:chat-box :message] ""))
                        :fx [(when-not (str/blank? msg)
                               (if (= chat-type :all)
-                                [::fire [:send-global-message msg]]
-                                [::fire [:send-party-message msg]]))
+                                [::fire [:send-global-message (ui.utils/clean msg)]]
+                                [::fire [:send-party-message (ui.utils/clean msg)]]))
                             [::fire [:chat-open? false]]]}
           (not input-open?) {:db (assoc-in db [:chat-box :active-input?] true)
                              :fx [[::fire [:chat-open? true]]]})))))

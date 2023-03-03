@@ -70,6 +70,35 @@
       (j/call tween-opacity :start)
       nil)))
 
+(let [final-pos #js {}
+      y-offset (volatile! nil)]
+  (defn- effect-ice-spell [skill duration]
+    (let [new-counter (-> skill (j/update! :counter inc) (j/get :counter))
+          entity (j/get skill :entity)
+          _ (when-let [y-offset @y-offset]
+              (pc/set-loc-pos entity 0 y-offset 0))
+          first-pos (pc/get-loc-pos entity)
+          _ (when-not @y-offset
+              (vreset! y-offset (j/get first-pos :y)))
+          _ (j/assoc! final-pos :x (j/get first-pos :x) :y (j/get first-pos :y) :z (j/get first-pos :z))
+          _ (pc/setv first-pos (j/get first-pos :x) (+ (j/get first-pos :y) 1.5) (j/get first-pos :z))
+          _ (j/assoc! entity :enabled true)
+          tween-opacity (-> (j/call entity :tween first-pos)
+                            (j/call :to final-pos duration pc/linear))
+          _ (j/call tween-opacity :on "complete"
+                    (fn []
+                      (js/setTimeout
+                        (fn []
+                          (when (= new-counter (j/get skill :counter))
+                            (j/assoc! entity :enabled false)))
+                        2000)))]
+      (j/call tween-opacity :start)
+      nil)))
+
+(comment
+  (effect-ice-spell (j/get-in player [:effects :attack_ice]) 0.25)
+  )
+
 (let [last-state #js {:value 0}]
   (defn- effect-particle-fade-out
     ([skill duration]
@@ -138,6 +167,12 @@
 
 (defn apply-effect-phantom-vision [state]
   (effect-opacity-fade-out (j/get-in state [:effects :asas_eyes]) 2.5))
+
+(defn apply-effect-ice-spell [state]
+  (effect-ice-spell (j/get-in state [:effects :attack_ice]) 0.5))
+
+(comment
+  (apply-effect-ice-spell player))
 
 (defn apply-effect-hp-potion [state]
   (effect-particle-fade-out (j/get-in state [:effects :particle_hp_potion]) 1.5))

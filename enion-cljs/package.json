@@ -13,6 +13,7 @@
   "dependencies": {
     "@sentry/browser": "^7.38.0",
     "@sentry/tracing": "^7.38.0",
+    "bad-words": "^3.0.4",
     "highlight.js": "11.5.1",
     "playcanvas": "^1.60.0",
     "react": "17.0.2",

@@ -10,6 +10,7 @@
     [enion-cljs.scene.skills.effects :as effects]
     [enion-cljs.scene.states :as st]
     [enion-cljs.scene.utils :as utils]
+    [enion-cljs.utils :as common.utils]
     [msgpack-cljs.core :as msg]))
 
 (defonce socket (atom nil))
@@ -44,7 +45,7 @@
 (defn- get-potions []
   (let [default {:hp-potions 0
                  :mp-potions 0}]
-    (if-let [ls (j/get js/window :localStorage)]
+    (if-let [ls (common.utils/get-local-storage)]
       (try
         (let [potions (j/call ls :getItem "potions")]
           (if (str/blank? potions)
@@ -56,7 +57,7 @@
 
 (defn- get-tutorials []
   (let [default {}]
-    (if-let [ls (j/get js/window :localStorage)]
+    (if-let [ls (common.utils/get-local-storage)]
       (try
         (let [potions (j/call ls :getItem "tutorials")]
           (if (str/blank? potions)

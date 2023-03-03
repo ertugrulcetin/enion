@@ -2,7 +2,8 @@
   (:require
     [applied-science.js-interop :as j]
     [enion-cljs.common :refer [fire on]]
-    [enion-cljs.scene.states :as st]))
+    [enion-cljs.scene.states :as st]
+    [enion-cljs.utils :as common.utils]))
 
 (defn rand-between [min max]
   (+ (Math/floor (* (Math/random) (+ (- max min) 1))) min))
@@ -12,7 +13,7 @@
        (= "visible" (j/get js/document :visibilityState))))
 
 (defn set-item [k v]
-  (when-let [ls (j/get js/window :localStorage)]
+  (when-let [ls (common.utils/get-local-storage)]
     (.setItem ls k v)))
 
 (defn finish-tutorial-step [tutorial-step]

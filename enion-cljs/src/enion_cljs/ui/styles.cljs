@@ -585,7 +585,7 @@
 
 (defclass online-counter [ping? fps?]
   {:composes [(ping-counter nil nil)]
-   :color "grey"
+   :color "white"
    :top (cond
           (and ping? fps?) "80px"
           (and ping? (not fps?)) "40px"

@@ -7,8 +7,7 @@
   (when (j/get js/window :PokiSDK)
     (-> (j/call-in js/window [:PokiSDK :init])
         (.then #(js/console.log "Poki SDK successfully initialized"))
-        (.catch #(js/console.log "Initialized, but the user likely has adblock")))
-    (j/call-in js/window [:PokiSDK :setDebug] dev?)))
+        (.catch #(js/console.log "Initialized, but the user likely has adblock")))))
 
 (defn game-loading-finished []
   (when (j/get js/window :PokiSDK)

@@ -17,3 +17,7 @@
 (on :rewarded-break-potions
     (fn []
       (update-potions 50 50)))
+
+(comment
+  (update-potions 0 0)
+  )

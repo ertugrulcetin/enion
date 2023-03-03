@@ -1,5 +1,6 @@
 (ns enion-cljs.ui.views
   (:require
+    ["bad-words" :as bad-words]
     ["react-device-detect" :as device-dec]
     [applied-science.js-interop :as j]
     [breaking-point.core :as bp]
@@ -10,6 +11,7 @@
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
     [enion-cljs.ui.tutorial :as tutorial]
+    [enion-cljs.ui.utils :as ui.utils]
     [re-frame.core :refer [subscribe dispatch dispatch-sync]]
     [reagent.core :as r]))
 
@@ -106,7 +108,7 @@
                         (when-let [[ref f] (get @event-listeners skill)]
                           (.removeEventListener ref "contextmenu" f false))
                         (let [f (fn [ev]
-                                  (.-preventDefault ev)
+                                  (.preventDefault ev)
                                   (dispatch [::events/update-skills-order index skill])
                                   (when-not change-skill-order-completed?
                                     (fire :finish-tutorial-step :how-to-change-skill-order?))
@@ -187,13 +189,26 @@
        [skill i s])
      @(subscribe [::subs/skills]))])
 
+(defn- get-hp-&-mp-potions-ad []
+  (let [f (fn [e]
+            (when (= "Space" (j/get e :code))
+              (.preventDefault e)))
+        ref (atom nil)]
+    (r/create-class
+      {:component-did-mount (fn [] (some-> @ref (.addEventListener "keydown" f false)))
+       :component-will-unmount (fn [] (some-> @ref (.removeEventListener "keydown" f false)))
+       :reagent-render
+       (fn []
+         [:button
+          {:ref #(reset! ref %)
+           :class (styles/get-hp-mp-potions-for-free)
+           :on-click #(dispatch [::events/show-hp-mp-potions-ads])}
+          "Get Hp & Mp potions for Free! \uD83C\uDFAC"])})))
+
 (defn- actions-section []
   [:div (styles/actions-container)
    (when @(subscribe [::subs/show-hp-mp-potions-ads-button?])
-     [:button
-      {:class (styles/get-hp-mp-potions-for-free)
-       :on-click #(dispatch [::events/show-hp-mp-potions-ads])}
-      "Get Hp & Mp potions for Free! \uD83C\uDFAC"])
+     [get-hp-&-mp-potions-ad])
    [hp-mp-bars]
    [skill-bar]])
 
@@ -774,7 +789,7 @@
                :margin-top "25px"}}
       [:strong "Edge Scrolling Speed"]
       [:span {:style {:font-size "15px"}}
-       "(Allows to move the camera by moving the mouse to the edges of the screen)"]
+       "(Allows to move the camera by moving the mouse to the edges of the screen - You can press Key Q or E)"]
       [:input {:style {:outline :none}
                :type "range"
                :min "1"
@@ -850,7 +865,9 @@
 (defn- username-input [username]
   [:input
    {:ref #(some-> % .focus)
+    :value @username
     :on-change #(reset! username (-> % .-target .-value))
+    :on-blur #(swap! username ui.utils/clean)
     :placeholder "Enter your username"
     :class (styles/init-modal-username-input)}])
 

@@ -1,23 +1,23 @@
-ASSET_PREFIX = "";
-SCRIPT_PREFIX = "";
-SCENE_PATH = "1396021.json";
-CONTEXT_OPTIONS = {
+window.ASSET_PREFIX = "";
+window.SCRIPT_PREFIX = "";
+window.SCENE_PATH = "1396021.json";
+window.CONTEXT_OPTIONS = {
     'antialias': true,
     'alpha': false,
     'preserveDrawingBuffer': false,
     'preferWebGl2': true,
     'powerPreference': "default"
 };
-SCRIPTS = [ 118396797, 78753240, 111773112, 108026253, 99767394, 108026252, 109387017, 109848422, 109848430, 110329954, 112098061, 114063573, 114085216, 118401522, 118403201, 120163247, 120163248, 121963195, 123110240 ];
-CONFIG_FILENAME = "config.json";
-INPUT_SETTINGS = {
+window.SCRIPTS = [ 118396797, 78753240, 111773112, 108026253, 99767394, 108026252, 109387017, 109848422, 109848430, 110329954, 112098061, 114063573, 114085216, 118401522, 118403201, 120163247, 120163248, 121963195, 123110240 ];
+window.CONFIG_FILENAME = "config.json";
+window.INPUT_SETTINGS = {
     useKeyboard: true,
     useMouse: true,
     useGamepads: false,
     useTouch: true
 };
 pc.script.legacy = false;
-PRELOAD_MODULES = [
+window.PRELOAD_MODULES = [
     {'moduleName' : 'Ammo', 'glueUrl' : 'files/assets/120163247/1/ammo.wasm.js', 'wasmUrl' : 'files/assets/120163246/1/ammo.wasm.wasm', 'fallbackUrl' : 'files/assets/120163248/1/ammo.js', 'preload' : true},
 ];
 
@@ -54,7 +54,7 @@ var loadModules = function (modules, urlPrefix, doneCallback) { // eslint-disabl
     // Shared Lib
     var CANVAS_ID = 'application-canvas';
 
-    // Needed as we will have edge cases for particlar versions of iOS
+    // Needed as we will have edge cases for particular versions of iOS
     // returns null if not iOS
     var getIosVersion = function () {
         if (/iP(hone|od|ad)/.test(navigator.platform)) {
@@ -75,10 +75,9 @@ var loadModules = function (modules, urlPrefix, doneCallback) { // eslint-disabl
         iosVersion: getIosVersion(),
 
         createCanvas: function () {
-            canvas = document.createElement('canvas'); // eslint-disable-line no-global-assign
+            var canvas = document.createElement('canvas');
             canvas.setAttribute('id', CANVAS_ID);
             canvas.setAttribute('tabindex', 0);
-            // canvas.style.visibility = 'hidden';
 
             // Disable I-bar cursor on click+drag
             canvas.onselectstart = function () { return false; };
@@ -121,7 +120,7 @@ var loadModules = function (modules, urlPrefix, doneCallback) { // eslint-disabl
             this.resizeCanvas(app, canvas);
 
             // Poll for size changes as the window inner height can change after the resize event for iOS
-            // Have one tab only, and rotrait to portrait -> landscape -> portrait
+            // Have one tab only, and rotate from portrait -> landscape -> portrait
             if (windowSizeChangeIntervalHandler === null) {
                 windowSizeChangeIntervalHandler = setInterval(function () {
                     if (lastWindowHeight !== window.innerHeight || lastWindowWidth !== window.innerWidth) {

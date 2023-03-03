@@ -1,7 +1,6 @@
 (ns enion-cljs.scene.entities.camera
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [fire]]
     [enion-cljs.scene.pc :as pc :refer [app]]
     [enion-cljs.scene.states :as st]
     [enion-cljs.scene.utils :as utils])
@@ -9,7 +8,7 @@
     [enion-cljs.scene.macros :refer [fnt]]))
 
 (defonce state (clj->js {:eulers (pc/vec3)
-                         :mouse-edge-range 5
+                         :mouse-edge-range 15
                          :mouse-over? false
                          :camera-rotation-speed 10
                          :edge-scroll-speed 100
@@ -23,6 +22,7 @@
                          :last-shake-time nil}))
 
 (comment
+  (j/assoc! state :mouse-edge-range 15)
   (j/assoc! state :camera-rotation-speed 10)
   (j/assoc! state :edge-scroll-speed 100)
   (j/get state :target-angle)
@@ -163,12 +163,14 @@
     (when (and (j/get state :mouse-over?)
                (not (j/get state :right-click?))
                page-x
-               (<= page-x (j/get state :mouse-edge-range)))
+               (or (<= page-x (j/get state :mouse-edge-range))
+                   (and (st/chat-closed?) (pc/pressed? :KEY_Q))))
       (j/update! eulers :x + (* dt (j/get state :edge-scroll-speed))))
     (when (and (j/get state :mouse-over?)
                (not (j/get state :right-click?))
                page-x
-               (>= page-x (- js/window.innerWidth (j/get state :mouse-edge-range))))
+               (or (>= page-x (- js/window.innerWidth (j/get state :mouse-edge-range)))
+                   (and (st/chat-closed?) (pc/pressed? :KEY_E))))
       (j/update! eulers :x - (* dt (j/get state :edge-scroll-speed))))
     (when (j/get state :wheel-clicked?)
       (if (>= (j/get state :wheel-x) 180)
