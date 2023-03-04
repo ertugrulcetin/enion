@@ -179,7 +179,7 @@
    :z-index 15
    :opacity 0.8})
 
-(defattrs info-box-wrapper []
+(defclass info-box-wrapper []
   {:composes [(chat-wrapper)]
    :width "25%"
    :right "25px"
@@ -444,13 +444,15 @@
 
 (def party-member-hp-mp-height "12px")
 
-(defattrs party-list-container [minimap-open?]
-  {:position :sticky
+(defclass party-list-container [minimap-open?]
+  (at-media {:max-height "470px"}
+            {:max-height "230px"
+             :overflow-y :auto})
+  {:position :absolute
    :width "200px"
-   :height "70%"
    :margin-left :auto
    :z-index 3
-   :float :right
+   :right 0
    :margin-top (if minimap-open? "170px" "10px")})
 
 (defattrs party-action-button-container []
@@ -494,7 +496,7 @@
 
 (def score-table-padding "0.75em 2.75em")
 
-(defattrs score-modal []
+(defclass score-modal []
   {:composes [(party-request-modal)]
    :max-height "65%"
    :width "60%"
@@ -520,7 +522,7 @@
    :pointer-events :all
    :user-select :none})
 
-(defattrs settings-modal []
+(defclass settings-modal []
   {:composes [(party-request-modal)]
    :pointer-events :all
    :user-select :none
@@ -622,7 +624,7 @@
 (defattrs score-modal-human-color []
   {:color human-color})
 
-(defattrs init-modal []
+(defclass init-modal []
   {:composes [(party-request-modal)]
    :width "40%"
    :max-width "50%"
@@ -700,8 +702,22 @@
 (defattrs init-modal-hr []
   {:border-color "grey"})
 
-(defattrs init-modal-error []
+(defattrs error-popup-modal []
+  {:composes [(party-request-modal)]
+   :background-color "black"
+   :width "60%"
+   :max-width "80%"
+   :max-height "80%"
+   :overflow-y :auto})
+
+(defattrs error-popup-message []
   {:color "red"})
+
+(defclass error-popup-ok-button []
+  {:composes [(init-modal-enter-button)]
+   :color "white !important"}
+  [:&:hover {:border "2px solid white"
+             :color "white !important"}])
 
 (defattrs server-stats-container []
   {:display "flex"

@@ -300,7 +300,10 @@
   (let [open? @(subscribe [::subs/box-open? :chat-box])
         input-active? @(subscribe [::subs/chat-input-active?])
         chat-type @(subscribe [::subs/chat-type])]
-    [:div#chat-wrapper {:class (styles/chat-wrapper)}
+    [:div#chat-wrapper
+     {:class (styles/chat-wrapper)
+      :on-mouse-over #(fire :on-ui-element? true)
+      :on-mouse-out #(fire :on-ui-element? false)}
      [:button
       {:class (if open? (styles/chat-close-button) (styles/chat-open-button))
        :on-click #(dispatch [::events/toggle-box :chat-box])}
@@ -407,7 +410,10 @@
   (when @(subscribe [::subs/any-info-box-messages?])
     (let [open? @(subscribe [::subs/box-open? :info-box])
           ref (atom nil)]
-      [:div (styles/info-box-wrapper)
+      [:div
+       {:class (styles/info-box-wrapper)
+        :on-mouse-over #(fire :on-ui-element? true)
+        :on-mouse-out #(fire :on-ui-element? false)}
        [:button
         {:ref #(reset! ref %)
          :class (if open? (styles/info-close-button) (styles/info-open-button))
@@ -594,44 +600,53 @@
    (if human [human-row human] [:<> [:td] [:td] [:td]])])
 
 (defn- score-modal []
-  [:div (styles/score-modal)
-   [:div
-    {:style {:display "flex"
-             :justify-content "center"}}
-    [:table
-     [:thead
-      [:tr
-       [:th
-        {:colSpan "3"
-         :style {:color styles/orc-color}}
-        "Orcs"]
-       [:th {:colSpan "3"
-             :style {:color styles/human-color}} "Humans"]]
-      [:tr
-       [:th (styles/score-modal-orc-color) "Player"]
-       [:th (styles/score-modal-orc-color) "Class"]
-       [:th (styles/score-modal-orc-color) "Battle Point"]
-       [:th (styles/score-modal-human-color) "Player"]
-       [:th (styles/score-modal-human-color) "Class"]
-       [:th (styles/score-modal-human-color) "Battle Point"]]]
-     [:tbody
-      (let [players @(subscribe [::subs/score-board])
-            orcs (sort-by :bp > (filter #(= "orc" (:race %)) players))
-            humans (sort-by :bp > (filter #(= "human" (:race %)) players))
-            orcs-count (count orcs)
-            humans-count (count humans)
-            same-count? (= orcs-count humans-count)
-            orcs-greater? (> orcs-count humans-count)
-            result (cond
-                     same-count? (interleave orcs humans)
-                     orcs-greater? (interleave orcs (concat humans (repeat (- orcs-count humans-count) nil)))
-                     :else (interleave (concat orcs (repeat (- humans-count orcs-count) nil)) humans))]
-        (for [[orc human] (partition-all 2 result)]
-          ^{:key (str (:id orc) "-" (:id human))}
-          [orc-human-row orc human]))]]]])
+  (r/create-class
+    {:component-will-unmount #(fire :on-ui-element? false)
+     :reagent-render
+     (fn []
+       [:div
+        {:class (styles/score-modal)
+         :on-mouse-over #(fire :on-ui-element? true)
+         :on-mouse-out #(fire :on-ui-element? false)}
+        [:div
+         {:style {:display "flex"
+                  :justify-content "center"}}
+         [:table
+          [:thead
+           [:tr
+            [:th
+             {:colSpan "3"
+              :style {:color styles/orc-color}}
+             "Orcs"]
+            [:th {:colSpan "3"
+                  :style {:color styles/human-color}} "Humans"]]
+           [:tr
+            [:th (styles/score-modal-orc-color) "Player"]
+            [:th (styles/score-modal-orc-color) "Class"]
+            [:th (styles/score-modal-orc-color) "Battle Point"]
+            [:th (styles/score-modal-human-color) "Player"]
+            [:th (styles/score-modal-human-color) "Class"]
+            [:th (styles/score-modal-human-color) "Battle Point"]]]
+          [:tbody
+           (let [players @(subscribe [::subs/score-board])
+                 orcs (sort-by :bp > (filter #(= "orc" (:race %)) players))
+                 humans (sort-by :bp > (filter #(= "human" (:race %)) players))
+                 orcs-count (count orcs)
+                 humans-count (count humans)
+                 same-count? (= orcs-count humans-count)
+                 orcs-greater? (> orcs-count humans-count)
+                 result (cond
+                          same-count? (interleave orcs humans)
+                          orcs-greater? (interleave orcs (concat humans (repeat (- orcs-count humans-count) nil)))
+                          :else (interleave (concat orcs (repeat (- humans-count orcs-count) nil)) humans))]
+             (for [[orc human] (partition-all 2 result)]
+               ^{:key (str (:id orc) "-" (:id human))}
+               [orc-human-row orc human]))]]]])}))
 
 (defn- party-list []
-  [:div (styles/party-list-container @(subscribe [::subs/minimap?]))
+  [:div {:class (styles/party-list-container @(subscribe [::subs/minimap?]))
+         :on-mouse-over #(fire :on-ui-element? true)
+         :on-mouse-out #(fire :on-ui-element? false)}
    [:div (styles/party-action-button-container)
     (let [selected-party-member @(subscribe [::subs/selected-party-member])]
       (cond
@@ -654,11 +669,11 @@
         [:button {:class (styles/party-action-button)
                   :on-click #(fire :exit-from-party)}
          "Exit from party"]))]
-   [:div
-    (for [{:keys [id username health total-health]} @(subscribe [::subs/party-members])]
-      ^{:key id}
-      [party-member-hp-mp-bars id username health total-health])]])
+   (for [{:keys [id username health total-health]} @(subscribe [::subs/party-members])]
+     ^{:key id}
+     [party-member-hp-mp-bars id username health total-health])])
 
+;; TODO add general component that prevents space press to enable button
 (defn- settings-button []
   (let [minimap-open? @(subscribe [::subs/minimap?])
         open? @(subscribe [::subs/settings-modal-open?])]
@@ -690,11 +705,11 @@
    [:div {:style {:display :flex
                   :flex-direction :column
                   :gap "5px"}}
-    (for [[t title f] @(subscribe [::subs/tutorials])]
+    (for [[t title f show-ui-panel?] @(subscribe [::subs/tutorials])]
       ^{:key t}
       [:button
        {:class (styles/tutorials)
-        :on-click #(tutorial/start-intro (f))}
+        :on-click #(tutorial/start-intro (f) nil show-ui-panel?)}
        title])]])
 
 (defn- temp-container-for-fps-ping-online []
@@ -702,133 +717,140 @@
    (styles/temp-container-for-fps-ping-online)])
 
 (defn- settings-modal []
-  (let [{:keys [sound?
-                fps?
-                ping?
-                minimap?
-                camera-rotation-speed
-                edge-scroll-speed
-                graphics-quality]} @(subscribe [::subs/settings])]
-    [:div (styles/settings-modal)
-     [:div
-      {:style {:display :flex
-               :flex-direction :row
-               :justify-content :center
-               :gap "30px"}}
-      [:div
-       {:style {:display :flex
-                :flex-direction :column
-                :align-items :center}}
-       [:strong "Sound"]
-       [:label.switch
-        [:input {:style {:outline :none}
-                 :type "checkbox"
-                 :checked sound?
-                 :on-change #(dispatch-sync [::events/update-settings :sound? (not sound?)])}]
-        [:span.slider.round]]]
-      [:div
-       {:style {:display :flex
-                :flex-direction :column
-                :align-items :center}}
-       [:strong "FPS"]
-       [:label.switch
-        [:input {:style {:outline :none}
-                 :type "checkbox"
-                 :checked fps?
-                 :on-change #(dispatch-sync [::events/update-settings :fps? (not fps?)])}]
-        [:span.slider.round]]]
+  (r/create-class
+    {:component-will-unmount #(fire :on-ui-element? false)
+     :reagent-render
+     (fn []
+       (let [{:keys [sound?
+                     fps?
+                     ping?
+                     minimap?
+                     camera-rotation-speed
+                     edge-scroll-speed
+                     graphics-quality]} @(subscribe [::subs/settings])]
+         [:div
+          {:class (styles/settings-modal)
+           :on-mouse-over #(fire :on-ui-element? true)
+           :on-mouse-out #(fire :on-ui-element? false)}
+          [:div
+           {:style {:display :flex
+                    :flex-direction :row
+                    :justify-content :center
+                    :gap "30px"}}
+           [:div
+            {:style {:display :flex
+                     :flex-direction :column
+                     :align-items :center}}
+            [:strong "Sound"]
+            [:label.switch
+             [:input {:style {:outline :none}
+                      :type "checkbox"
+                      :checked sound?
+                      :on-change #(dispatch-sync [::events/update-settings :sound? (not sound?)])}]
+             [:span.slider.round]]]
+           [:div
+            {:style {:display :flex
+                     :flex-direction :column
+                     :align-items :center}}
+            [:strong "FPS"]
+            [:label.switch
+             [:input {:style {:outline :none}
+                      :type "checkbox"
+                      :checked fps?
+                      :on-change #(dispatch-sync [::events/update-settings :fps? (not fps?)])}]
+             [:span.slider.round]]]
 
-      [:div
-       {:style {:display :flex
-                :flex-direction :column
-                :align-items :center}}
-       [:strong "Ping"]
-       [:label.switch
-        [:input {:style {:outline :none}
-                 :type "checkbox"
-                 :checked ping?
-                 :on-change #(dispatch-sync [::events/update-settings :ping? (not ping?)])}]
-        [:span.slider.round]]]
+           [:div
+            {:style {:display :flex
+                     :flex-direction :column
+                     :align-items :center}}
+            [:strong "Ping"]
+            [:label.switch
+             [:input {:style {:outline :none}
+                      :type "checkbox"
+                      :checked ping?
+                      :on-change #(dispatch-sync [::events/update-settings :ping? (not ping?)])}]
+             [:span.slider.round]]]
 
-      [:div
-       {:style {:display :flex
-                :flex-direction :column
-                :align-items :center}}
-       [:strong "Minimap"]
-       [:label.switch
-        [:input {:style {:outline :none}
-                 :type "checkbox"
-                 :checked minimap?
-                 :on-change #(dispatch-sync [::events/update-settings :minimap? (not minimap?)])}]
-        [:span.slider.round]]]]
+           [:div
+            {:style {:display :flex
+                     :flex-direction :column
+                     :align-items :center}}
+            [:strong "Minimap"]
+            [:label.switch
+             [:input {:style {:outline :none}
+                      :type "checkbox"
+                      :checked minimap?
+                      :on-change #(dispatch-sync [::events/update-settings :minimap? (not minimap?)])}]
+             [:span.slider.round]]]]
 
-     [:hr (styles/init-modal-hr)]
+          [:hr (styles/init-modal-hr)]
 
-     [:div
-      {:style {:display :flex
-               :flex-direction :column
-               :margin-top "25px"}}
-      [:strong "Camera Rotation Speed"]
-      [:span {:style {:font-size "15px"}}
-       "(Allows to rotate the camera by right-clicking and dragging the mouse)"]
-      [:input
-       {:style {:outline :none}
-        :type "range"
-        :min "1"
-        :max "30"
-        :step "0.5"
-        :value camera-rotation-speed
-        :on-change #(dispatch-sync [::events/update-settings :camera-rotation-speed (-> % .-target .-value)])}]
-      [:span {:style {:font-size "25px"}} (str camera-rotation-speed "/30")]]
+          [:div
+           {:style {:display :flex
+                    :flex-direction :column
+                    :margin-top "25px"}}
+           [:strong "Camera Rotation Speed"]
+           [:span {:style {:font-size "15px"}}
+            "(Allows to rotate the camera by right-clicking and dragging the mouse)"]
+           [:input
+            {:style {:outline :none}
+             :type "range"
+             :min "1"
+             :max "30"
+             :step "0.5"
+             :value camera-rotation-speed
+             :on-change #(dispatch-sync [::events/update-settings :camera-rotation-speed (-> % .-target .-value)])}]
+           [:span {:style {:font-size "25px"}} (str camera-rotation-speed "/30")]]
 
-     [:hr (styles/init-modal-hr)]
+          [:hr (styles/init-modal-hr)]
 
-     [:div
-      {:style {:display :flex
-               :flex-direction :column
-               :margin-top "25px"}}
-      [:strong "Edge Scrolling Speed"]
-      [:span {:style {:font-size "15px"}}
-       "(Allows to move the camera by moving the mouse to the edges of the screen - You can press Key Q or E)"]
-      [:input {:style {:outline :none}
-               :type "range"
-               :min "1"
-               :max "200"
-               :value edge-scroll-speed
-               :on-change #(dispatch-sync [::events/update-settings :edge-scroll-speed (-> % .-target .-value)])}]
-      [:span {:style {:font-size "25px"}} (str edge-scroll-speed "/200")]]
+          [:div
+           {:style {:display :flex
+                    :flex-direction :column
+                    :margin-top "25px"}}
+           [:strong "Edge Scrolling Speed"]
+           [:span {:style {:font-size "15px"}}
+            "(Allows to move the camera by moving the mouse to the edges of the screen - You can press Key Q or E)"]
+           [:input {:style {:outline :none}
+                    :type "range"
+                    :min "1"
+                    :max "200"
+                    :value edge-scroll-speed
+                    :on-change #(dispatch-sync [::events/update-settings :edge-scroll-speed (-> % .-target .-value)])}]
+           [:span {:style {:font-size "25px"}} (str edge-scroll-speed "/200")]]
 
-     [:hr (styles/init-modal-hr)]
+          [:hr (styles/init-modal-hr)]
 
-     [:div
-      {:style {:display :flex
-               :flex-direction :column
-               :margin-top "25px"}}
-      [:strong "Graphics Quality"]
-      (when (> graphics-quality 75)
-        [:span {:style {:font-size "15px"}}
-         "(If you make it higher, you might encounter performance issues)"])
-      [:input {:style {:outline :none}
-               :type "range"
-               :min "50"
-               :max "100"
-               :value graphics-quality
-               :on-change #(dispatch-sync [::events/update-settings :graphics-quality (-> % .-target .-value (/ 100))])}]
-      [:span {:style {:font-size "25px"}} (str graphics-quality "/100")]]
+          [:div
+           {:style {:display :flex
+                    :flex-direction :column
+                    :margin-top "25px"}}
+           [:strong "Graphics Quality"]
+           (when (> graphics-quality 75)
+             [:span {:style {:font-size "15px"}}
+              "(If you make it higher, you might encounter performance issues)"])
+           [:input {:style {:outline :none}
+                    :type "range"
+                    :min "50"
+                    :max "100"
+                    :value graphics-quality
+                    :on-change #(dispatch-sync [::events/update-settings :graphics-quality (-> % .-target .-value (/ 100))])}]
+           [:span {:style {:font-size "25px"}} (str graphics-quality "/100")]]
 
-     [:hr (styles/init-modal-hr)]
+          [:hr (styles/init-modal-hr)]
 
-     [:button
-      {:class (styles/settings-reset-tutorials-button)
-       :on-click #(dispatch [::events/reset-tutorials])}
-      "Reset tutorials"]
+          [:button
+           {:class (styles/settings-reset-tutorials-button)
+            :on-click #(dispatch [::events/reset-tutorials])}
+           "Reset tutorials"]
 
-     [:hr (styles/init-modal-hr)]
+          [:hr (styles/init-modal-hr)]
 
-     [:button
-      {:class (styles/settings-exit-button)
-       :on-click #(dispatch [::events/close-settings-modal])}
-      "Exit"]]))
+          [:button
+           {:class (styles/settings-exit-button)
+            :on-click #(dispatch [::events/close-settings-modal])}
+           "Exit"]]))}))
 
 (defn server-stats []
   (r/create-class
@@ -840,27 +862,21 @@
                      max-number-of-same-race-players
                      humans
                      orcs] :as server-stats} @(subscribe [::subs/server-stats])]
-         [:<>
-          [:span "Number of players"]
-          [:br]
-          (when-not (or @(subscribe [::bp/tablet?])
-                        @(subscribe [::bp/mobile?]))
-            [:span (styles/server-stats-refresh-message) "(Refreshes every 2 seconds)"])
-          [:div (styles/server-stats-container)
-           [:table (styles/server-stats-table)
-            [:thead
-             [:tr
-              [:th (styles/server-stats-orc-cell) "Orcs"]
-              [:th (styles/server-stats-human-cell) "Humans"]
-              [:th (styles/server-stats-total-cell) "Total"]]]
-            [:tbody
-             [:tr
-              [:td (styles/server-stats-orc-cell)
-               (if server-stats (str orcs "/" max-number-of-same-race-players) "~/~")]
-              [:td (styles/server-stats-human-cell)
-               (if server-stats (str humans "/" max-number-of-same-race-players) "~/~")]
-              [:td (styles/server-stats-total-cell)
-               (if server-stats (str number-of-players "/" max-number-of-players) "~/~")]]]]]]))}))
+         [:div (styles/server-stats-container)
+          [:table (styles/server-stats-table)
+           [:thead
+            [:tr
+             [:th (styles/server-stats-orc-cell) "Orcs"]
+             [:th (styles/server-stats-human-cell) "Humans"]
+             [:th (styles/server-stats-total-cell) "Total"]]]
+           [:tbody
+            [:tr
+             [:td (styles/server-stats-orc-cell)
+              (if server-stats (str orcs "/" max-number-of-same-race-players) "~/~")]
+             [:td (styles/server-stats-human-cell)
+              (if server-stats (str humans "/" max-number-of-same-race-players) "~/~")]
+             [:td (styles/server-stats-total-cell)
+              (if server-stats (str number-of-players "/" max-number-of-players) "~/~")]]]]]))}))
 
 (defn- username-input [username]
   [:input
@@ -914,15 +930,27 @@
      "Loading..."
      "Enter")])
 
+(defn- error-popup [err]
+  [:div (styles/error-popup-modal)
+   [:p (styles/error-popup-message) err]
+   [:button
+    {:class (styles/error-popup-ok-button)
+     :on-click #(dispatch [::events/clear-init-modal-error])}
+    "OK"]])
+
 (defn- init-modal []
   (let [username (r/atom nil)
         race (r/atom nil)
         class (r/atom nil)]
     (r/create-class
       {:component-did-mount #(dispatch [::events/notify-ui-is-ready])
+       :component-will-unmount #(fire :on-ui-element? false)
        :reagent-render
        (fn []
-         [:div (styles/init-modal)
+         [:div
+          {:class (styles/init-modal)
+           :on-mouse-over #(fire :on-ui-element? true)
+           :on-mouse-out #(fire :on-ui-element? false)}
           [username-input username]
           [select-race race]
           [select-class class race]
@@ -930,7 +958,7 @@
           [server-stats]
           [:hr (styles/init-modal-hr)]
           (when-let [err @(subscribe [::subs/init-modal-error])]
-            [:p (styles/init-modal-error) err])
+            [error-popup err])
           [enter username race class]])})))
 
 (defn- mobile-user-modal []
@@ -1058,7 +1086,8 @@
        (on :ui-finish-tutorial-progress #(dispatch [::events/finish-tutorial-progress %]))
        (on :ui-show-congrats-text #(dispatch [::events/show-congrats-text]))
        (on :ui-show-adblock-warning-text #(dispatch [::events/show-adblock-warning-text]))
-       (on :ui-ws-connected #(dispatch [::events/set-ws-connected])))
+       (on :ui-ws-connected #(dispatch [::events/set-ws-connected]))
+       (on :ui-show-panel? #(dispatch [::events/show-ui-panel? %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -1070,29 +1099,30 @@
           [init-modal]
 
           :else
-          [:<>
-           [congrats-text]
-           [adblock-warning-text]
-           [temp-container-for-fps-ping-online]
-           (when @(subscribe [::subs/connection-lost?])
-             [connection-lost-modal])
-           (when @(subscribe [::subs/ping?])
-             [ping-counter])
-           [online-counter]
-           [tutorials]
-           [settings-button]
-           (when @(subscribe [::subs/settings-modal-open?])
-             [settings-modal])
-           [selected-player]
-           (when @(subscribe [::subs/minimap?])
-             [minimap])
-           [party-list]
-           [chat]
-           [party-request-modal]
-           [info-box]
-           (when @(subscribe [::subs/score-board-open?])
-             [score-modal])
-           [re-spawn-modal]
-           [actions-section]
-           [temp-skill-img]
-           [skill-description]])])}))
+          (when @(subscribe [::subs/show-ui-panel?])
+            [:<>
+             [congrats-text]
+             [adblock-warning-text]
+             [temp-container-for-fps-ping-online]
+             (when @(subscribe [::subs/connection-lost?])
+               [connection-lost-modal])
+             (when @(subscribe [::subs/ping?])
+               [ping-counter])
+             [online-counter]
+             [tutorials]
+             [settings-button]
+             (when @(subscribe [::subs/settings-modal-open?])
+               [settings-modal])
+             [selected-player]
+             (when @(subscribe [::subs/minimap?])
+               [minimap])
+             [party-list]
+             [chat]
+             [party-request-modal]
+             [info-box]
+             (when @(subscribe [::subs/score-board-open?])
+               [score-modal])
+             [re-spawn-modal]
+             [actions-section]
+             [temp-skill-img]
+             [skill-description]]))])}))

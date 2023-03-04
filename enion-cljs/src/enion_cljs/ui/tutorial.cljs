@@ -2,7 +2,7 @@
   (:require
     [applied-science.js-interop :as j]
     [common.enion.skills :as common.skills]
-    [enion-cljs.common :refer [on]]))
+    [enion-cljs.common :refer [on fire]]))
 
 (defonce state (atom nil))
 
@@ -14,16 +14,20 @@
 
 (defn- start-intro
   ([steps]
-   (start-intro steps nil))
-  ([steps on-exit]
+   (start-intro steps nil nil))
+  ([steps on-exit show-ui-panel?]
    (when-let [intro (j/call js/window :introJs)]
-     (let [intro (if on-exit (j/call intro :onexit on-exit) intro)
+     (let [intro (j/call intro :onexit (fn []
+                                         (fire :ui-show-panel? true)
+                                         (when on-exit (on-exit))))
            intro (j/call intro :setOptions
                          (clj->js
                            {:tooltipClass "customTooltip"
                             :steps
                             (clj->js steps)}))]
-       (j/call intro :start)))))
+       (j/call intro :start)
+       (when-not show-ui-panel?
+         (fire :ui-show-panel? false))))))
 
 (defn navigation-steps []
   [{:title "Welcome to Enion Online!"
@@ -76,11 +80,11 @@
 
 (def tutorials-order
   [[:how-to-rotate-camera? "Adjust your camera rotation" how-to-rotate-camera]
-   [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster]
+   [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster true]
    [:how-to-use-portal? "Use portal to teleport to the forest" how-to-use-portal]
-   [:how-to-cast-skills? "Use your skills to defeat enemies" how-to-cast-skills]
+   [:how-to-cast-skills? "Use your skills to defeat enemies" how-to-cast-skills true]
    [:what-is-the-first-quest? "Get you first quest" what-is-the-first-quest]
-   [:how-to-change-skill-order? "Change your skill order" how-to-change-skill-order]])
+   [:how-to-change-skill-order? "Change your skill order" how-to-change-skill-order true]])
 
 (on :ui-init-tutorial-data (fn [data] (reset! state data)))
 (on :ui-start-navigation-steps (fn [] (start-intro (navigation-steps))))

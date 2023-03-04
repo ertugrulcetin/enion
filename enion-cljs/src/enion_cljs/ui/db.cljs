@@ -4,6 +4,7 @@
 
 (def default-db
   {:name "Enion Online"
+   :show-ui-panel? true
    :info-box {:messages (rb/ring-buffer 50)
               :open? true}
    :chat-box {:messages {:all (conj (rb/ring-buffer 50)

@@ -180,7 +180,7 @@
   (skills.effects/apply-effect-fleet-foot player)
   (j/assoc! player
             :fleet-foot? true
-            :speed (if (st/asas?) 850 700))
+            :speed (if (st/asas?) st/speed-fleet-foot-asas st/speed-fleet-foot))
   (st/play-sound "fleetFoot")
   (when (not (utils/tutorial-finished? :how-to-run-faster?))
     (utils/finish-tutorial-step :how-to-run-faster?)))

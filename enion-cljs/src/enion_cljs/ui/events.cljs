@@ -476,3 +476,13 @@
   ::set-ws-connected
   (fn [db]
     (assoc db :ws-connected? true)))
+
+(reg-event-db
+  ::show-ui-panel?
+  (fn [db [_ show-ui-panel?]]
+    (assoc db :show-ui-panel? show-ui-panel?)))
+
+(reg-event-db
+  ::clear-init-modal-error
+  (fn [db]
+    (assoc-in db [:init-modal :error] nil)))

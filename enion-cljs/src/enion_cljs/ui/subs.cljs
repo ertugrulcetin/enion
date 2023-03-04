@@ -283,3 +283,8 @@
     (and (-> db :tutorials :what-is-the-first-quest?)
          (or (= 0 (-> db :player :hp-potions (or 0)))
              (= 0 (-> db :player :mp-potions (or 0)))))))
+
+(reg-sub
+  ::show-ui-panel?
+  (fn [db]
+    (:show-ui-panel? db)))

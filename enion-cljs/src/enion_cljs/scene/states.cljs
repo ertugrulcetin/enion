@@ -7,6 +7,8 @@
     [enion-cljs.scene.pc :as pc]))
 
 (def speed 550)
+(def speed-fleet-foot 750)
+(def speed-fleet-foot-asas 900)
 
 (defonce player (clj->js {:speed speed
                           :x 0
@@ -33,9 +35,17 @@
 (def username-party-color (pc/color 2 2 0))
 (def username-enemy-color (pc/color 2 0 0))
 
+(comment
+  (j/assoc! player :speed 900)
+  )
+
 (on :tab-hidden
     (fn [hidden?]
       (j/assoc! settings :tab-hidden hidden?)))
+
+(on :on-ui-element?
+    (fn [on-ui-element?]
+      (j/assoc! settings :on-ui-element? on-ui-element?)))
 
 (defn get-player-id []
   (j/get player :id))

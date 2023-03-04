@@ -458,6 +458,16 @@
   (when (= "asas" class)
     (common/update-fleet-foot-cooldown-for-asas)))
 
+(defn- set-default-camera-angle []
+  (let [state entity.camera/state]
+    (if (= "orc" (st/get-race))
+      (do
+        (pc/setv (j/get state :eulers) -10122.552 18017.66 0)
+        (pc/setv (j/get state :target-angle) -19.82 138.27 0))
+      (do
+        (pc/setv (j/get state :eulers) -10285.025 16218.33 0)
+        (pc/setv (j/get state :target-angle) -18.33 334.974 0)))))
+
 (defn- init-fn [this player-data]
   (let [player-entity (j/get this :entity)
         _ (init-player player-data player-entity)
@@ -481,6 +491,7 @@
     (register-collision-events player-entity)
     (update-fleet-foot-cooldown-if-asas (j/get player :class))
     (fire :init-skills (keyword (j/get player :class)))
+    (set-default-camera-angle)
     (on :create-players (fn [players]
                           (doseq [p players]
                             (st/add-player (create-player p)))))
