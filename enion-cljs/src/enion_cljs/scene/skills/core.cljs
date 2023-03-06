@@ -19,6 +19,7 @@
   #{"hide"
     "attackRange"
     "attackSingle"
+    "attackIce"
     "teleport"
     "breakDefense"
     "heal"
@@ -325,6 +326,14 @@
     (skills.effects/apply-effect-got-defense-break st/player)
     (fire :ui-send-msg defense-break-msg)))
 
+(defmethod net/dispatch-pro-response :got-attack-priest-damage [params]
+  (let [params (:got-attack-priest-damage params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (skills.effects/apply-effect-attack-priest st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
 ;; write for :cured-defense-break-damage
 (defmethod net/dispatch-pro-response :cured-defense-break [_]
   ;; TODO implement
@@ -356,3 +365,29 @@
     (j/call-in (st/get-player-entity) [:rigidbody :teleport] x y z)
     (skills.effects/apply-effect-teleport st/player)
     (st/cancel-target-pos)))
+
+(defmethod net/dispatch-pro-response :got-attack-ice [params]
+  (let [params (:got-attack-ice params)
+        damage (:damage params)
+        player-id (:player-id params)
+        ice-slow-down? (:ice-slow-down? params)]
+    (when ice-slow-down?
+      (j/assoc! st/player
+                :slow-down? true
+                :fleet-foot? false)
+      (j/assoc-in! (st/get-player-entity) [:c :sound :slots :run_2 :pitch] 0)
+      (fire :ui-slow-down? true)
+      (fire :ui-cancel-skill "fleetFoot"))
+    (skills.effects/apply-effect-ice-spell st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
+(defmethod net/dispatch-pro-response :cured-attack-ice-damage [_]
+  (pc/update-anim-speed (st/get-model-entity) "run" 1)
+  (j/assoc! st/player
+            :slow-down? false
+            :speed st/speed)
+  (j/assoc-in! (st/get-player-entity) [:c :sound :slots :run_2 :pitch] 1)
+  (fire :ui-slow-down? false)
+  (fire :ui-cancel-skill "fleetFoot")
+  (st/set-cooldown true "fleetFoot"))

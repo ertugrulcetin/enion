@@ -95,10 +95,6 @@
       (j/call tween-opacity :start)
       nil)))
 
-(comment
-  (effect-ice-spell (j/get-in player [:effects :attack_ice]) 0.25)
-  )
-
 (let [last-state #js {:value 0}]
   (defn- effect-particle-fade-out
     ([skill duration]
@@ -129,6 +125,9 @@
 (defn apply-effect-attack-r [state]
   (effect-opacity-fade-out (j/get-in state [:effects :attack_r]) 0.2))
 
+(defn apply-effect-attack-priest [state]
+  (effect-opacity-fade-out (j/get-in state [:effects :attack_priest]) 0.1))
+
 (defn apply-effect-attack-flame [state]
   (effect-opacity-fade-out (j/get-in state [:effects :attack_flame]) 1))
 
@@ -150,6 +149,9 @@
 (defn apply-effect-fire-hands [state]
   (effect-particle-fade-out (j/get-in state [:effects :particle_fire_hands]) 2))
 
+(defn apply-effect-ice-hands [state]
+  (effect-particle-fade-out (j/get-in state [:effects :particle_ice_hands]) 2))
+
 (defn apply-effect-flame-particles [state]
   (effect-particle-fade-out (j/get-in state [:effects :particle_flame_dots]) 2.5))
 
@@ -169,7 +171,7 @@
   (effect-opacity-fade-out (j/get-in state [:effects :asas_eyes]) 2.5))
 
 (defn apply-effect-ice-spell [state]
-  (effect-ice-spell (j/get-in state [:effects :attack_ice]) 0.5))
+  (effect-ice-spell (j/get-in state [:effects :attack_ice]) 0.25))
 
 (comment
   (apply-effect-ice-spell player))

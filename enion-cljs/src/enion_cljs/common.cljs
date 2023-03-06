@@ -29,16 +29,18 @@
              6 "mpPotion"}
    :mage {1 "attackRange"
           2 "attackSingle"
-          3 "teleport"
-          4 "fleetFoot"
-          5 "hpPotion"
-          6 "mpPotion"}
+          3 "attackIce"
+          4 "teleport"
+          5 "fleetFoot"
+          6 "hpPotion"
+          7 "mpPotion"}
    :priest {1 "heal"
             2 "breakDefense"
-            3 "cure"
-            4 "fleetFoot"
-            5 "hpPotion"
-            6 "mpPotion"}})
+            3 "attackPriest"
+            4 "cure"
+            5 "fleetFoot"
+            6 "hpPotion"
+            7 "mpPotion"}})
 
 (defn update-fleet-foot-cooldown-for-asas []
   (let [duration (-> common.skills/skills (get "fleetFoot") :cooldown-asas)]

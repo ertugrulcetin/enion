@@ -22,6 +22,8 @@
      {:anim-state "attackRange" :event "onAttackRangeCall" :call? true}
      {:anim-state "attackSingle" :event "onAttackSingleEnd" :skill? true :end? true}
      {:anim-state "attackSingle" :event "onAttackSingleCall" :call? true}
+     {:anim-state "attackIce" :event "onAttackIceEnd" :skill? true :end? true}
+     {:anim-state "attackIce" :event "onAttackIceCall" :call? true}
      {:anim-state "attackR" :event "onAttackREnd" :skill? true :end? true}
      {:anim-state "attackR" :event "onAttackRCall" :call? true}
      {:anim-state "teleport" :event "onTeleportCall" :call? true}
@@ -29,6 +31,7 @@
 
 (def attack-range-required-mana (-> common.skills/skills (get "attackRange") :required-mana))
 (def attack-single-required-mana (-> common.skills/skills (get "attackSingle") :required-mana))
+(def attack-ice-required-mana (-> common.skills/skills (get "attackIce") :required-mana))
 (def teleport-required-mana (-> common.skills/skills (get "teleport") :required-mana))
 
 (let [too-far-msg {:too-far true}]
@@ -123,6 +126,13 @@
     (when (not (utils/tutorial-finished? :how-to-cast-skills?))
       (utils/finish-tutorial-step :how-to-cast-skills?))))
 
+(defmethod skills/skill-response "attackIce" [params]
+  (fire :ui-cooldown "attackIce")
+  (let [selected-player-id (-> params :skill :selected-player-id)
+        damage (-> params :skill :damage)]
+    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+                        :hit damage})))
+
 (defmethod skills/skill-response "teleport" [_]
   (fire :ui-cooldown "teleport"))
 
@@ -142,6 +152,15 @@
        (st/enough-mana? attack-single-required-mana)
        (close-for-attack-single? selected-player-id)))
 
+(defn- attack-ice? [e active-state selected-player-id]
+  (and (skills/idle-run-states active-state)
+       (skills/skill-pressed? e "attackIce")
+       (st/alive? selected-player-id)
+       (st/cooldown-ready? "attackIce")
+       (st/enemy-selected? selected-player-id)
+       (st/enough-mana? attack-single-required-mana)
+       (close-for-attack-single? selected-player-id)))
+
 ;; TODO check if selected ally in the same party
 (defn teleport? [e active-state selected-player-id]
   (and (skills/idle-run-states active-state)
@@ -157,7 +176,7 @@
           active-state (pc/get-anim-state model-entity)
           selected-player-id (st/get-selected-player-id)]
       (m/process-cancellable-skills
-        ["attackRange" "attackSingle" "attackR" "teleport"]
+        ["attackRange" "attackSingle" "attackIce" "attackR" "teleport"]
         (j/get-in e [:event :code])
         active-state
         player)
@@ -176,6 +195,16 @@
           (skills.effects/apply-effect-fire-hands player)
           (st/look-at-selected-player)
           (st/play-sound "attackSingle"))
+
+        (attack-ice? e active-state selected-player-id)
+        (do
+          (j/assoc! player :positioning-nova? false)
+          (pc/set-nova-circle-pos)
+          (j/assoc-in! player [:skill->selected-player-id "attackIce"] selected-player-id)
+          (pc/set-anim-boolean model-entity "attackIce" true)
+          (skills.effects/apply-effect-ice-hands player)
+          (st/look-at-selected-player)
+          (st/play-sound "attackIce"))
 
         (teleport? e active-state selected-player-id)
         (do

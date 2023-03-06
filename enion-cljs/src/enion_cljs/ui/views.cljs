@@ -32,6 +32,8 @@
     "hide" (img->img-url "hide.png")
     "attackRange" (img->img-url "attack_range.jpeg")
     "attackSingle" (img->img-url "attack_single.png")
+    "attackIce" (img->img-url "attack_ice.png")
+    "attackPriest" (img->img-url "attack_priest.png")
     "teleport" (img->img-url "teleport.png")
     "heal" (img->img-url "heal.png")
     "cure" (img->img-url "cure.png")
@@ -62,8 +64,8 @@
   (let [offset-width (r/atom 0)
         offset-height (r/atom 0)]
     (fn []
-      (when-let [{:keys [name description]} (and (nil? @(subscribe [::subs/skill-move]))
-                                                 @(subscribe [::subs/skill-description]))]
+      (when-let [{:keys [name description cooldown required-mana]} (and (nil? @(subscribe [::subs/skill-move]))
+                                                                        @(subscribe [::subs/skill-description]))]
         [:div
          {:style {:position :absolute
                   :top (- @mouse-y @offset-height 5)
@@ -77,8 +79,12 @@
                    (when-let [oh (j/get % :offsetHeight)]
                      (reset! offset-height oh)))
            :class (styles/skill-description)}
-          [:span name]
-          [:span.desc description]]]))))
+          [:span.skill-name name]
+          [:span.desc description]
+          [:span.info "Cooldown: " (/ cooldown 1000) "s"]
+          [:br]
+          (when required-mana
+            [:span.info "Required MP: " required-mana])]]))))
 
 (defn- cooldown [skill]
   (let [cooldown-secs (-> skill common.skills/skills :cooldown)]
@@ -325,20 +331,6 @@
                                                 (styles/chat-party-button-selected))]
            :on-click #(dispatch [::events/set-chat-type :party])}
           "Party"]]])]))
-
-(comment
-  {:damage 100
-   :from "NeaTBuSTeR"}
-  {:bp 62}
-  {:hit 88
-   :to "LeXXo"}
-  {:skill "Smash raptor"}
-  {:skill-failed true}
-  {:too-far true}
-  {:potion :hp}
-  {:potion :mp}
-  {:hp true}
-  {:mp true})
 
 (defn- info-message->class [message]
   (cond

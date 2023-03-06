@@ -157,12 +157,16 @@
    :border-radius "5px"
    :padding "10px"
    :text-align :center}
-  [:span {:font-size "18px"}]
+  [:span.skill-name {:font-size "22px"}]
   [:span.desc
-   {:font-size "15px"
-    :margin-top "5px"
-    :text-align :left
-    :display :block}])
+   {:margin-top "15px"
+    :margin-bottom "15px"
+    :display :flex
+    :text-align :center
+    :padding-left "10px"
+    :padding-right "10px"}]
+  [:span {:font-size "18px"}]
+  [:span.info {:font-size "16px"}])
 
 (defclass temp-skill-order-description []
   {:composes [(skill-description)]

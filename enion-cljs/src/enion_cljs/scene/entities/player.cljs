@@ -332,6 +332,7 @@
     (->> (map (j/get :name) (j/get effects :children))
          (concat
            ["particle_fire_hands"
+            "particle_ice_hands"
             "particle_flame_dots"
             "particle_heal_hands"
             "particle_cure_hands"

@@ -18,7 +18,7 @@
 
 
 (def classes
-  {"warrior" {:health 1600
+  {"warrior" {:health 1650
               :mana 1000}
    "asas" {:health 1400
            :mana 1200}
@@ -96,6 +96,12 @@
            :description (str "Removes toxic effects from you and your party members, "
                              "restoring health and vitality")
            :required-mana 100}
+   "attackPriest" {:cooldown 1000
+                   :name "Divine Hammerstrike"
+                   :damage-fn (create-damage-fn 100 200)
+                   :description (str "Powerful close combat skill that allows the Priest to "
+                                     "channel holy energy into their hammer, delivering a crushing blow to their enemies")
+                   :required-mana 100}
    ;; Mage
    "attackRange" {:cooldown 15000
                   :name "Inferno Nova"
@@ -109,6 +115,13 @@
                                      "devastating blast of flame on a single enemy")
                    :required-mana 150
                    :damage-fn (create-damage-fn 150 200)}
+   "attackIce" {:cooldown 4000
+                :name "Frostfall"
+                :description (str "Ice skill has a 20% chance of freezing enemies. "
+                                  "Slows the target's movement speed for 2.5 seconds")
+                :required-mana 200
+                :damage-fn (create-damage-fn 100 175)
+                :effect-duration 2500}
    "teleport" {:cooldown 1000
                :name "Teleport"
                :description "Teleports a single party member to your current location"

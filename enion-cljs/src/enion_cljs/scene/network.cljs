@@ -252,7 +252,7 @@
         (st/set-health health)
         (st/set-mana mana)))))
 
-(let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange" "attackSingle"}
+(let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange" "attackSingle" "attackIce"}
       temp-pos (pc/vec3)]
   (defn- process-world-snapshot [world]
     (doseq [s world
@@ -278,7 +278,7 @@
           (pc/set-anim-int (st/get-model-entity id) "health" health)
           ;; TODO remove 'constantly' for prod
           (when-let [tw (j/get-in st/other-players [id :tween :interpolation])]
-            (j/call (tw) :stop))
+            (if dev? (j/call (tw) :stop) (j/call tw :stop)))
 
           ;; TODO bu checkten dolayi karakter havada basliyor
           ;; TODO also do not run (st/move-player) for players far away - LOD optimization
@@ -302,7 +302,9 @@
                                     z (j/get initial-pos :z)]
                                 (st/move-player other-player entity x y z))))]
               (j/call tween-interpolation :start)
-              (j/assoc-in! st/other-players [id :tween :interpolation] (constantly tween-interpolation))))
+              (j/assoc-in! st/other-players [id :tween :interpolation] (if dev?
+                                                                         (constantly tween-interpolation)
+                                                                         tween-interpolation))))
           (st/rotate-player id (:ex new-state) (:ey new-state) (:ez new-state))
           (if (and prev-pos (j/call prev-pos :equals pos) (= "run" new-anim-state))
             (st/set-anim-state id "idle")
@@ -316,6 +318,7 @@
               "breakDefense" (effects/apply-effect-defense-break-particles other-player)
               "attackRange" (effects/apply-effect-flame-particles other-player)
               "attackSingle" (effects/apply-effect-fire-hands other-player)
+              "attackIce" (effects/apply-effect-ice-hands other-player)
               nil))))
       (-> st/other-players
           (j/assoc-in! [id :prev-pos] new-pos)
@@ -332,6 +335,8 @@
       :attack-one-hand (effects/apply-effect-attack-one-hand other-player-state)
       :attack-slow-down (effects/apply-effect-attack-slow-down other-player-state)
       :attack-single (effects/apply-effect-attack-flame other-player-state)
+      :attack-ice (effects/apply-effect-ice-spell other-player-state)
+      :attack-priest (effects/apply-effect-attack-priest other-player-state)
       :teleport (effects/apply-effect-teleport other-player-state)
       :hp-potion (effects/apply-effect-hp-potion other-player-state)
       :mp-potion (effects/apply-effect-mp-potion other-player-state)
@@ -432,8 +437,8 @@
 (defn- on-ws-open []
   (when dev?
     (dispatch-pro :init {:username (str "NeaTBuSTeR_" (int (rand 99)))
-                         :race "human"
-                         :class "mage"}))
+                         :race "orc"
+                         :class "priest"}))
   (dispatch-pro :get-server-stats)
   (fire :ui-ws-connected))
 

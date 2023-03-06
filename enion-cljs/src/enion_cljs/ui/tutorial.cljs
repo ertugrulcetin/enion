@@ -10,7 +10,7 @@
   {"asas" "attackDagger"
    "warrior" "attackOneHand"
    "mage" "attackSingle"
-   "priest" "breakDefense"})
+   "priest" "attackPriest"})
 
 (defn- start-intro
   ([steps]
