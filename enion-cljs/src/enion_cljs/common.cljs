@@ -16,11 +16,12 @@
 
 (def skill-slot-order-by-class
   {:asas {1 "attackDagger"
-          2 "phantomVision"
-          3 "hide"
-          4 "fleetFoot"
-          5 "hpPotion"
-          6 "mpPotion"}
+          2 "attackStab"
+          3 "phantomVision"
+          4 "hide"
+          5 "fleetFoot"
+          6 "hpPotion"
+          7 "mpPotion"}
    :warrior {1 "attackOneHand"
              2 "attackSlowDown"
              3 "shieldWall"

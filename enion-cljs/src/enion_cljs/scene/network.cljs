@@ -332,6 +332,7 @@
     (case e
       :attack-r (effects/apply-effect-attack-r other-player-state)
       :attack-dagger (effects/apply-effect-attack-dagger other-player-state)
+      :attack-stab (effects/apply-effect-attack-stab other-player-state)
       :attack-one-hand (effects/apply-effect-attack-one-hand other-player-state)
       :attack-slow-down (effects/apply-effect-attack-slow-down other-player-state)
       :attack-single (effects/apply-effect-attack-flame other-player-state)
@@ -438,7 +439,7 @@
   (when dev?
     (dispatch-pro :init {:username (str "NeaTBuSTeR_" (int (rand 99)))
                          :race "orc"
-                         :class "priest"}))
+                         :class "asas"}))
   (dispatch-pro :get-server-stats)
   (fire :ui-ws-connected))
 

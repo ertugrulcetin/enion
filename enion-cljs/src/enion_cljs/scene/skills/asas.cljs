@@ -19,6 +19,8 @@
      {:anim-state "attackDagger" :event "onAttackDaggerCall" :call? true}
      {:anim-state "attackDagger" :event "onAttackDaggerLock" :r-lock? true}
      {:anim-state "attackDagger" :event "onAttackDaggerLockRelease" :r-release? true}
+     {:anim-state "attackStab" :event "onAttackStabEnd" :skill? true :end? true}
+     {:anim-state "attackStab" :event "onAttackStabCall" :call? true}
      {:anim-state "attackR" :event "onAttackREnd" :skill? true :end? true}
      {:anim-state "attackR" :event "onAttackRCall" :call? true}
      {:anim-state "attackR" :event "onAttackRLock" :r-lock? true}
@@ -28,6 +30,7 @@
 
 (def attack-dagger-cooldown (-> common.skills/skills (get "attackDagger") :cooldown))
 (def attack-dagger-required-mana (-> common.skills/skills (get "attackDagger") :required-mana))
+(def attack-stab-required-mana (-> common.skills/skills (get "attackStab") :required-mana))
 
 (def last-one-hand-combo (volatile! (js/Date.now)))
 
@@ -138,6 +141,15 @@
     (when (not (utils/tutorial-finished? :how-to-cast-skills?))
       (utils/finish-tutorial-step :how-to-cast-skills?))))
 
+(defmethod skills/skill-response "attackStab" [params]
+  (fire :ui-cooldown "attackStab")
+  (let [selected-player-id (-> params :skill :selected-player-id)
+        damage (-> params :skill :damage)
+        enemy (st/get-other-player selected-player-id)]
+    (skills.effects/apply-effect-attack-stab enemy)
+    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+                        :hit damage})))
+
 (defmethod skills/skill-response "phantomVision" [_]
   (fire :ui-cooldown "phantomVision")
   (skills.effects/apply-effect-phantom-vision player)
@@ -175,6 +187,16 @@
     (st/enough-mana? attack-dagger-required-mana)
     (skills/close-for-attack? selected-player-id)))
 
+(defn- attack-stab? [e active-state selected-player-id]
+  (and
+    (skills/idle-run-states active-state)
+    (skills/skill-pressed? e "attackStab")
+    (st/cooldown-ready? "attackStab")
+    (st/enemy-selected? selected-player-id)
+    (st/alive? selected-player-id)
+    (st/enough-mana? attack-stab-required-mana)
+    (skills/close-for-attack? selected-player-id)))
+
 (def phantom-vision-required-mana (-> common.skills/skills (get "phantomVision") :required-mana))
 (def hide-required-mana (-> common.skills/skills (get "hide") :required-mana))
 
@@ -196,7 +218,7 @@
           active-state (pc/get-anim-state model-entity)
           selected-player-id (st/get-selected-player-id)]
       (m/process-cancellable-skills
-        ["attackDagger" "attackR" "hide"]
+        ["attackDagger" "attackR" "hide" "attackStab"]
         (j/get-in e [:event :code])
         active-state
         player)
@@ -226,6 +248,12 @@
           (j/assoc-in! player [:skill->selected-player-id "attackDagger"] selected-player-id)
           (pc/set-anim-boolean (st/get-model-entity) "attackDagger" true)
           (st/play-sound "attackDagger"))
+
+        (attack-stab? e active-state selected-player-id)
+        (do
+          (j/assoc-in! player [:skill->selected-player-id "attackStab"] selected-player-id)
+          (pc/set-anim-boolean (st/get-model-entity) "attackStab" true)
+          (st/play-sound "attackStab"))
 
         (hide? e active-state)
         (do

@@ -28,6 +28,7 @@
     "shieldWall" (img->img-url "shield_wall.png")
     "fleetFoot" (img->img-url "fleet_foot.png")
     "attackDagger" (img->img-url "attack_dagger.png")
+    "attackStab" (img->img-url "attack_stab.png")
     "phantomVision" (img->img-url "phantom_vision.png")
     "hide" (img->img-url "hide.png")
     "attackRange" (img->img-url "attack_range.jpeg")

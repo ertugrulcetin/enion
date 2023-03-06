@@ -701,6 +701,44 @@
                      :damage damage
                      :selected-player-id selected-player-id})))))))
 
+(defmethod apply-skill "attackStab" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
+  (let [players* @players]
+    (when-let [player (get players* id)]
+      (when (get players* selected-player-id)
+        (let [w @world
+              player-world-state (get w id)
+              other-player-world-state (get w selected-player-id)]
+          (cond
+            (ping-too-high? ping) ping-high
+            (not (asas? id)) skill-failed
+            (not (enemy? id selected-player-id)) skill-failed
+            (not (alive? player-world-state)) skill-failed
+            (not (alive? other-player-world-state)) skill-failed
+            (not (enough-mana? skill player-world-state)) not-enough-mana
+            (not (cooldown-finished? skill player)) skill-failed
+            (not (close-for-attack? player-world-state other-player-world-state)) too-far
+            :else (let [required-mana (get-required-mana skill)
+                        ;; TODO update damage, player might have defense or poison etc.
+                        damage ((-> common.skills/skills (get skill) :damage-fn)
+                                (has-defense? selected-player-id)
+                                (has-break-defense? selected-player-id))
+                        health-after-damage (- (:health other-player-world-state) damage)
+                        health-after-damage (Math/max ^long health-after-damage 0)]
+                    (swap! world (fn [world]
+                                   (-> world
+                                       (update-in [id :mana] - required-mana)
+                                       (assoc-in [selected-player-id :health] health-after-damage))))
+                    (add-effect :attack-stab selected-player-id)
+                    (make-asas-appear-if-hidden id)
+                    (make-asas-appear-if-hidden selected-player-id)
+                    (swap! players assoc-in [id :last-time :skill skill] (now))
+                    (process-if-death id selected-player-id health-after-damage players*)
+                    (send! selected-player-id :got-attack-stab-damage {:damage damage
+                                                                       :player-id id})
+                    {:skill skill
+                     :damage damage
+                     :selected-player-id selected-player-id})))))))
+
 ;; write the same function of shieldWall defmethod but for asas class and for skill phantomVision
 (defmethod apply-skill "phantomVision" [{:keys [id ping] {:keys [skill]} :data}]
   (when-let [player (get @players id)]
@@ -1137,7 +1175,9 @@
   ;; move above to a function using defn
   (swap! world (fn [world]
                  (reduce (fn [world id]
-                           (assoc-in world [id :health] 20))
+                           (-> world
+                             (assoc-in  [id :health] 200000)
+                             (assoc-in  [id :mana] 200000)))
                    world
                    (keys @players))))
 

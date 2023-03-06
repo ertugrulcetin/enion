@@ -211,8 +211,7 @@
                       (f player-entity))
                     (when end?
                       (pc/set-anim-boolean model-entity anim-state false)
-                      (when (k/pressing-wasd?)
-                        (pc/set-anim-boolean model-entity "run" true))
+                      (st/process-running)
                       (when skill?
                         (j/assoc! player
                                   :skill-locked? false
@@ -276,6 +275,14 @@
         damage (:damage params)
         player-id (:player-id params)]
     (skills.effects/apply-effect-attack-dagger st/player)
+    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
+                        :damage damage})))
+
+(defmethod net/dispatch-pro-response :got-attack-stab-damage [params]
+  (let [params (:got-attack-stab-damage params)
+        damage (:damage params)
+        player-id (:player-id params)]
+    (skills.effects/apply-effect-attack-stab st/player)
     (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
                         :damage damage})))
 

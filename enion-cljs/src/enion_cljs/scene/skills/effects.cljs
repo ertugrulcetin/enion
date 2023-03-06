@@ -128,6 +128,9 @@
 (defn apply-effect-attack-priest [state]
   (effect-opacity-fade-out (j/get-in state [:effects :attack_priest]) 0.1))
 
+(defn apply-effect-attack-stab [state]
+  (effect-opacity-fade-out (j/get-in state [:effects :attack_stab]) 0.15))
+
 (defn apply-effect-attack-flame [state]
   (effect-opacity-fade-out (j/get-in state [:effects :attack_flame]) 1))
 

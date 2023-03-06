@@ -47,6 +47,12 @@
                                      "to wield two daggers with deadly precision")
                    :required-mana 100
                    :damage-fn (create-damage-fn 225 300)}
+   "attackStab" {:cooldown 10000
+                 :name "Dark Stab"
+                 :description (str "A lethal close-range attack that lets the Assassin deliver a quick "
+                                   "and deadly strike with a hidden blade")
+                 :required-mana 200
+                 :damage-fn (create-damage-fn 500 600)}
    "phantomVision" {:cooldown 60000
                     :name "Phantom Vision"
                     :description (str "Allows the assassin and their party members to see invisible "
@@ -131,8 +137,8 @@
               :cooldown 200
               :damage-fn (create-damage-fn 20 50)}
 
-   "fleetFoot" {:cooldown 26500
-                :cooldown-asas 13500
+   "fleetFoot" {:cooldown 26000
+                :cooldown-asas 13000
                 :name "Fleet Foot"
                 :description (str "Increases your character's running speed by 30% for 25 seconds. "
                                   "(Assassins receive a 50% increase for 12 seconds)")
