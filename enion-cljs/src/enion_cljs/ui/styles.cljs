@@ -174,6 +174,8 @@
    :z-index 16})
 
 (defclass chat-wrapper []
+  (at-media {:max-width "1250px"}
+            {:width "20% !important"})
   {:position :absolute
    :width "30%"
    :left "10px"
