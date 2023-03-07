@@ -439,7 +439,7 @@
   (when dev?
     (dispatch-pro :init {:username (str "NeaTBuSTeR_" (int (rand 99)))
                          :race "orc"
-                         :class "asas"}))
+                         :class "warrior"}))
   (dispatch-pro :get-server-stats)
   (fire :ui-ws-connected))
 

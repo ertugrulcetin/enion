@@ -85,6 +85,11 @@
                  :description "Increases the defense power of himself and all party members by 15% for 2 minutes"
                  :required-mana 200
                  :effect-duration (* 120 1000)}
+   "battleFury" {:cooldown (* 60 1000)
+                 :name "Battle Fury"
+                 :description "Increases attack damage by 10% for 5 seconds"
+                 :required-mana 200
+                 :effect-duration (* 5 1000)}
    ;; Priest
    "heal" {:cooldown 2000
            :name "Healing Touch"

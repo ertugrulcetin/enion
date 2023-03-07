@@ -34,6 +34,7 @@
 (def attack-one-hand-required-mana (-> common.skills/skills (get "attackOneHand") :required-mana))
 (def attack-slow-down-required-mana (-> common.skills/skills (get "attackSlowDown") :required-mana))
 (def shield-required-mana (-> common.skills/skills (get "shieldWall") :required-mana))
+(def battle-fury-required-mana (-> common.skills/skills (get "battleFury") :required-mana))
 
 (defmethod skills/skill-response "attackOneHand" [params]
   (fire :ui-cooldown "attackOneHand")
@@ -55,6 +56,11 @@
   (fire :ui-cooldown "shieldWall")
   (skills.effects/apply-effect-shield-wall player)
   (st/play-sound "pv-sw"))
+
+(defmethod skills/skill-response "battleFury" [_]
+  (fire :ui-cooldown "battleFury")
+  (skills.effects/apply-effect-battle-fury player)
+  (st/play-sound "attackBoost"))
 
 (defn- one-hand-combo? [e active-state selected-player-id]
   (and (= active-state "attackR")
@@ -94,6 +100,12 @@
     (skills/skill-pressed? e "shieldWall")
     (st/cooldown-ready? "shieldWall")
     (st/enough-mana? shield-required-mana)))
+
+(defn- battle-fury? [e]
+  (and
+    (skills/skill-pressed? e "battleFury")
+    (st/cooldown-ready? "battleFury")
+    (st/enough-mana? battle-fury-required-mana)))
 
 (defn process-skills [e]
   (when (and (not (-> e .-event .-repeat)) (st/alive?))
@@ -148,6 +160,9 @@
 
         (shield-wall? e)
         (dispatch-pro :skill {:skill "shieldWall"})
+
+        (battle-fury? e)
+        (dispatch-pro :skill {:skill "battleFury"})
 
         (skills/fleet-foot? e)
         (dispatch-pro :skill {:skill "fleetFoot"})

@@ -170,6 +170,9 @@
 (defn apply-effect-shield-wall [state]
   (effect-opacity-fade-out (j/get-in state [:effects :shield]) 4))
 
+(defn apply-effect-battle-fury [state]
+  (effect-opacity-fade-out (j/get-in state [:effects :boost_attack]) 4))
+
 (defn apply-effect-phantom-vision [state]
   (effect-opacity-fade-out (j/get-in state [:effects :asas_eyes]) 2.5))
 

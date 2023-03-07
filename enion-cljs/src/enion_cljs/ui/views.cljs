@@ -25,6 +25,7 @@
   (case skill
     "attackOneHand" (img->img-url "attack_one_hand.png")
     "attackSlowDown" (img->img-url "attack_slowdown.png")
+    "battleFury" (img->img-url "attack_boost.png")
     "shieldWall" (img->img-url "shield_wall.png")
     "fleetFoot" (img->img-url "fleet_foot.png")
     "attackDagger" (img->img-url "attack_dagger.png")

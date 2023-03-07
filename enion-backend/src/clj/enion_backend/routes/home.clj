@@ -454,6 +454,14 @@
 (defn- ping-too-high? [ping]
   (> ping 5000))
 
+(defn- has-battle-fury? [players id]
+  (get-in players [id :effects :battle-fury :result]))
+
+(defn- increase-damage-if-has-battle-fury [damage players id]
+  (if (has-battle-fury? players id)
+    (* damage 1.1)
+    damage))
+
 ;; TODO make asas hide false when he gets damage
 (defmethod apply-skill "attackOneHand" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
   (let [players* @players]
@@ -476,6 +484,7 @@
                         damage ((-> common.skills/skills (get skill) :damage-fn)
                                 (has-defense? selected-player-id)
                                 (has-break-defense? selected-player-id))
+                        damage (increase-damage-if-has-battle-fury damage players* id)
                         health-after-damage (- (:health other-player-world-state) damage)
                         health-after-damage (Math/max ^long health-after-damage 0)]
                     (swap! world (fn [world]
@@ -513,6 +522,7 @@
                         damage ((-> common.skills/skills (get skill) :damage-fn)
                                 (has-defense? selected-player-id)
                                 (has-break-defense? selected-player-id))
+                        damage (increase-damage-if-has-battle-fury damage players* id)
                         health-after-damage (- (:health other-player-world-state) damage)
                         health-after-damage (Math/max ^long health-after-damage 0)
                         slow-down? (prob? 0.5)]
@@ -577,6 +587,35 @@
                                      (assoc-in [id :effects :shield-wall :task] tea))))
                 {:skill skill})))))
 
+(defmethod apply-skill "battleFury" [{:keys [id ping] {:keys [skill]} :data}]
+  (when-let [player (get @players id)]
+    (when-let [world-state (get @world id)]
+      (cond
+        (ping-too-high? ping) ping-high
+        (not (warrior? id)) skill-failed
+        (not (alive? world-state)) skill-failed
+        (not (enough-mana? skill world-state)) not-enough-mana
+        (not (cooldown-finished? skill player)) skill-failed
+        :else (let [required-mana (get-required-mana skill)
+                    _ (when-let [task (get-in @players [id :effects :battle-fury :task])]
+                        (tea/cancel! task))
+                    tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
+                                    (bound-fn []
+                                      (when (get @players id)
+                                        (send! id :shield-wall-finished true)
+                                        (swap! players (fn [players]
+                                                         (-> players
+                                                             (assoc-in [id :effects :battle-fury :result] false)
+                                                             (assoc-in [id :effects :battle-fury :task] nil)))))))]
+                ;; TODO update here, after implementing party system
+                (swap! world update-in [id :mana] - required-mana)
+                (swap! players (fn [players]
+                                 (-> players
+                                     (assoc-in [id :last-time :skill skill] (now))
+                                     (assoc-in [id :effects :battle-fury :result] true)
+                                     (assoc-in [id :effects :battle-fury :task] tea))))
+                {:skill skill})))))
+
 (defmethod apply-skill "attackR" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
   (let [players* @players]
     (when-let [player (get players* id)]
@@ -597,6 +636,7 @@
                         damage ((-> common.skills/skills (get skill) :damage-fn)
                                 (has-defense? selected-player-id)
                                 (has-break-defense? selected-player-id))
+                        damage (increase-damage-if-has-battle-fury damage players* id)
                         health-after-damage (- (:health other-player-world-state) damage)
                         health-after-damage (Math/max ^long health-after-damage 0)]
                     (swap! world (fn [world]
@@ -1176,8 +1216,8 @@
   (swap! world (fn [world]
                  (reduce (fn [world id]
                            (-> world
-                             (assoc-in  [id :health] 200000)
-                             (assoc-in  [id :mana] 200000)))
+                             (assoc-in [id :health] 200000)
+                             (assoc-in [id :mana] 200000)))
                    world
                    (keys @players))))
 

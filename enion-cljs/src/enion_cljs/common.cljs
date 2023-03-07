@@ -25,9 +25,10 @@
    :warrior {1 "attackOneHand"
              2 "attackSlowDown"
              3 "shieldWall"
-             4 "fleetFoot"
-             5 "hpPotion"
-             6 "mpPotion"}
+             4 "battleFury"
+             5 "fleetFoot"
+             6 "hpPotion"
+             7 "mpPotion"}
    :mage {1 "attackRange"
           2 "attackSingle"
           3 "attackIce"
