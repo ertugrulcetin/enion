@@ -69,16 +69,16 @@
 
 (defmethod dispatch-pro-response :init [params]
   (if-let [error (-> params :init :error)]
-    (case error
-      :invalid-username (fire :ui-init-modal-error
-                              (str "Username must be between 2 and 20 characters long and can only contain "
-                                   "letters, numbers, and underscores."))
-      :username-taken (fire :ui-init-modal-error "Username is already taken.")
-      :invalid-race (fire :ui-init-modal-error "Race is not selected.")
-      :invalid-class (fire :ui-init-modal-error "Class is not selected.")
-      :server-full (fire :ui-init-modal-error "Server is full. Please wait a bit and try again.")
-      :orc-race-full (fire :ui-init-modal-error "Orc race is full. Please wait a bit and try again.")
-      :human-race-full (fire :ui-init-modal-error "Human race is full. Please wait a bit and try again."))
+    (fire :ui-init-modal-error
+          (case error
+            :invalid-username (str "Username must be between 2 and 20 characters long and can only contain "
+                                   "letters, numbers, and underscores.")
+            :username-taken "Username is already taken."
+            :invalid-race "Race is not selected."
+            :invalid-class "Class is not selected."
+            :server-full "Server is full. Please wait a bit and try again."
+            :orc-race-full "Orc race is full. Please wait a bit and try again."
+            :human-race-full "Human race is full. Please wait a bit and try again."))
     (let [potions (get-potions)
           tutorials (get-tutorials)
           data (merge (:init params) potions {:tutorials tutorials})]

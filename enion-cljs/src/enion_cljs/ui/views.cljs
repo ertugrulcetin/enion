@@ -1034,6 +1034,11 @@
                                                        (.preventDefault e)
                                                        (dispatch [::events/open-score-board]))
 
+                                                     (= code "Space")
+                                                     (do
+                                                       (.preventDefault e)
+                                                       (tutorial/next-intro))
+
                                                      (= code "Escape")
                                                      (do
                                                        (dispatch [::events/cancel-skill-move])

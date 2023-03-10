@@ -136,7 +136,7 @@
   (when (and (st/alive?) (= "KeyZ" (j/get-in e [:event :code])))
     (select-closest-enemy*)))
 
-(defn- look-at-selected-player [e]
+(defn- look-at-&-run-towards-selected-player [e]
   (when (and (st/alive?) (= "KeyR" (j/get-in e [:event :code])))
     (when-let [selected-player (some-> (st/get-selected-player-id) (st/get-other-player-entity))]
       (let [selected-player-pos (pc/get-pos selected-player)
@@ -167,7 +167,7 @@
                                    (not (j/get-in e [:event :altKey])))
                           (process-skills e))
                         (select-closest-enemy e)
-                        (look-at-selected-player e))))
+                        (look-at-&-run-towards-selected-player e))))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
                       (st/process-running)))
@@ -175,16 +175,22 @@
     (on :update-skills-order skills/register-key->skills)
     (on :process-skills-from-skill-bar-clicks process-skills)))
 
-(defn- get-selected-enemy-id [e]
-  (let [result (pc/raycast-rigid-body e entity.camera/entity)
-        hit-entity-name (j/get-in result [:entity :name])]
-    (when (= "enemy_player" hit-entity-name)
-      (let [enemy-id (j/get-in result [:entity :id])
-            enemy (st/get-other-player enemy-id)
-            enemy-hidden? (j/get enemy :hide?)]
-        (when (or (not enemy-hidden?)
-                  (and enemy-hidden? (has-phantom-vision?)))
-          (str enemy-id))))))
+(let [last-selected #js {:time (js/Date.now)}
+      key-r-e (clj->js {:event {:code "KeyR"}})]
+  (defn- get-selected-enemy-id [e]
+    (let [result (pc/raycast-rigid-body e entity.camera/entity)
+          hit-entity-name (j/get-in result [:entity :name])]
+      (when (= "enemy_player" hit-entity-name)
+        (let [enemy-id (j/get-in result [:entity :id])
+              enemy (st/get-other-player enemy-id)
+              enemy-hidden? (j/get enemy :hide?)]
+          (when (or (not enemy-hidden?)
+                    (and enemy-hidden? (has-phantom-vision?)))
+            (when (< (- (js/Date.now) (j/get last-selected :time)) 250)
+              (look-at-&-run-towards-selected-player key-r-e)
+              (st/process-running))
+            (j/assoc! last-selected :time (js/Date.now))
+            (str enemy-id)))))))
 
 (defn- set-target-position [e]
   (when (st/alive?)

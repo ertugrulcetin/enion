@@ -72,7 +72,9 @@
 
 (defn jump? [e active-state]
   (and (idle-run-states active-state)
-       (pc/key? e :KEY_SPACE) (j/get player :on-ground?)))
+       (pc/key? e :KEY_SPACE)
+       (j/get player :on-ground?)
+       (not (j/get st/settings :tutorial?))))
 
 (let [too-far-msg {:too-far true}]
   (defn close-for-attack? [selected-player-id]

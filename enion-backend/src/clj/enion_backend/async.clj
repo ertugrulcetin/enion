@@ -209,24 +209,24 @@
               (swap! procedure-map update pro-name merge (merge {:fn (bound-fn* (fn [] (eval (last fdecl))))
                                                                  :data-response-schema-map nil} m))
               (reset! deps (dep/graph))
-              (doseq [[k# v#] @procedure-map]
+              (doseq [[k v] @procedure-map]
                 (swap! deps (fn [deps#]
-                              (reduce #(dep/depend %1 k# %2) deps# (:deps v#)))))
-              (doseq [[k# _#] @procedure-map]
-                (let [dependencies# (dependencies k#)
-                      topo-sort# (filter (-> dependencies# flatten set) (dep/topo-sort @deps))
-                      topo-sort# (if (empty? topo-sort#) [k#] topo-sort#)]
-                  (swap! procedure-map assoc-in [k# :topo-sort] topo-sort#)))
-              (doseq [k# (distinct (flatten (dependents pro-name)))]
-                (let [stream# (get-in @procedure-map [k# :stream])
-                      async-flow# (get-in @procedure-map [k# :async-flow])
-                      new-stream# (s/stream)]
-                  (when stream#
-                    (when (realized? async-flow#)
-                      (s/put! stream# (Exception.)))
-                    (s/close! stream#))
-                  (swap! procedure-map (fn [m#]
-                                         (-> m#
-                                             (assoc-in [k# :stream] new-stream#)
-                                             (assoc-in [k# :async-flow] (delay (eval `(create-async-flow ~k#))))))))))]
+                              (reduce #(dep/depend %1 k %2) deps# (:deps v)))))
+              (doseq [[k _] @procedure-map]
+                (let [dependencies# (dependencies k)
+                      topo-sort (filter (-> dependencies# flatten set) (dep/topo-sort @deps))
+                      topo-sort (if (empty? topo-sort) [k] topo-sort)]
+                  (swap! procedure-map assoc-in [k :topo-sort] topo-sort)))
+              (doseq [k (distinct (flatten (dependents pro-name)))]
+                (let [stream (get-in @procedure-map [k :stream])
+                      async-flow (get-in @procedure-map [k :async-flow])
+                      new-stream (s/stream)]
+                  (when stream
+                    (when (realized? async-flow)
+                      (s/put! stream (Exception.)))
+                    (s/close! stream))
+                  (swap! procedure-map (fn [m]
+                                         (-> m
+                                             (assoc-in [k :stream] new-stream)
+                                             (assoc-in [k :async-flow] (delay (eval `(create-async-flow ~k))))))))))]
     (swap! procedures assoc pro-name pro)))

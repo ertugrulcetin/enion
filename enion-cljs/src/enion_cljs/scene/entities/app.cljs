@@ -62,7 +62,7 @@
                   (when-not dev?
                     (let [fill-mode-none (j/get-in js/window [:pc :FILLMODE_NONE])
                           fill-mode-aspect (j/get-in js/window [:pc :FILLMODE_KEEP_ASPECT])]
-                      (j/assoc! js/window :pc nil)
+                      (j/assoc! js/window :pc (seq {}))
                       (j/assoc-in! js/window [:pc :FILLMODE_NONE] fill-mode-none)
                       (j/assoc-in! js/window [:pc :FILLMODE_KEEP_ASPECT] fill-mode-aspect)))
                   (poki/init)
