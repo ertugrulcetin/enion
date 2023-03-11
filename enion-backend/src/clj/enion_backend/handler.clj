@@ -2,7 +2,11 @@
   (:require
     [enion-backend.env :refer [defaults]]
     [enion-backend.middleware :as middleware]
+    [enion-backend.routes.asas]
     [enion-backend.routes.home :refer [home-routes]]
+    [enion-backend.routes.mage]
+    [enion-backend.routes.priest]
+    [enion-backend.routes.warrior]
     [mount.core :as mount]
     [reitit.ring :as ring]))
 

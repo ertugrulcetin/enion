@@ -1,7 +1,6 @@
 (ns enion-backend.routes.home
   (:require
     [aleph.http :as http]
-    [clojure.java.io :as io]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
     [common.enion.skills :as common.skills]
@@ -52,25 +51,25 @@
 (defonce effects-stream (s/stream))
 (defonce killings-stream (s/stream))
 
-(defn- now []
+(defn now []
   (.toEpochMilli (Instant/now)))
 
-(defn- add-effect [effect data]
+(defn add-effect [effect data]
   (s/put! effects-stream {:effect effect
                           :data data}))
 
-(defn- add-killing [killer-id killed-id]
+(defn add-killing [killer-id killed-id]
   (s/put! killings-stream {:killer-id killer-id
                            :killed-id killed-id}))
 
-(defn- take-while-stream [pred stream]
+(defn take-while-stream [pred stream]
   (loop [result []]
     (let [value @(s/try-take! stream 0)]
       (if (pred value)
         (recur (conj result value))
         result))))
 
-(defn- create-effects->player-ids-mapping [effects]
+(defn create-effects->player-ids-mapping [effects]
   (->> effects
        (group-by :effect)
        (reduce-kv
@@ -81,7 +80,7 @@
   [request]
   (layout/render request "index.html"))
 
-(defn- send!
+(defn send!
   [player-id pro-id result]
   ;; TODO check if socket closed or not!
   (when result
@@ -152,10 +151,10 @@
     {:ping ping
      :online (count @world)}))
 
-(defn- get-orcs [players]
+(defn get-orcs [players]
   (filter (fn [[_ p]] (= "orc" (:race p))) players))
 
-(defn- get-humans [players]
+(defn get-humans [players]
   (filter (fn [[_ p]] (= "human" (:race p))) players))
 
 (reg-pro
@@ -179,14 +178,14 @@
       (when-let [players* (seq (concat orcs humans))]
         (map #(select-keys % [:id :race :class :bp]) players*)))))
 
-(defn- find-player-ids-by-race [players race]
+(defn find-player-ids-by-race [players race]
   (->> players
        (filter
          (fn [[_ v]]
            (= race (:race v))))
        (map first)))
 
-(defn- find-player-ids-by-party-id [players party-id]
+(defn find-player-ids-by-party-id [players party-id]
   (->> players
        (filter
          (fn [[_ v]]
@@ -195,7 +194,7 @@
 
 (def message-sent-too-often-msg {:error :message-sent-too-often})
 
-(defn- message-sent-too-often? [player]
+(defn message-sent-too-often? [player]
   (let [last-time (get-in player [:last-time :message-sent])
         now (now)]
     (and last-time (< (- now last-time) 1500))))
@@ -208,11 +207,10 @@
           player-ids (keys @world)
           message-sent-too-often? (message-sent-too-often? player)]
       (swap! players assoc-in [id :last-time :message-sent] (now))
-      (cond
-        message-sent-too-often? message-sent-too-often-msg
-        :else
-        (when (not (or (str/blank? msg)
-                       (> (count msg) 80)))
+      (if message-sent-too-often?
+        message-sent-too-often-msg
+        (when-not (or (str/blank? msg)
+                      (> (count msg) 80))
           (doseq [id* player-ids]
             (send! id* :global-message {:id id
                                         :msg msg})))))))
@@ -235,36 +233,36 @@
             (send! id :party-message {:id id
                                       :msg msg})))))))
 
-(defn- notify-players-for-new-join [id attrs]
+(defn notify-players-for-new-join [id attrs]
   (doseq [other-player-id (filter #(not= id %) (keys @world))]
     (println "Sending new join...")
     (send! other-player-id :player-join attrs)))
 
-(defn- notify-players-for-exit [id]
+(defn notify-players-for-exit [id]
   (doseq [other-player-id (filter #(not= id %) (keys @world))]
     (println "Sending exit notification...")
     (send! other-player-id :player-exit id)))
 
-(defn- prob? [prob]
+(defn prob? [prob]
   (< (rand) prob))
 
 (def race-set #{"orc" "human"})
 (def class-set #{"warrior" "mage" "asas" "priest"})
 
-(defn- get-usernames []
+(defn get-usernames []
   (->> @players
        vals
        (keep :username)
        (map str/lower-case)
        set))
 
-(defn- human-race-full? []
+(defn human-race-full? []
   (= max-number-of-same-race-players (count (filter (fn [[_ p]] (= "human" (:race p))) @players))))
 
-(defn- orc-race-full? []
+(defn orc-race-full? []
   (= max-number-of-same-race-players (count (filter (fn [[_ p]] (= "orc" (:race p))) @players))))
 
-(defn- full? []
+(defn full? []
   (let [players @players
         orcs (count (filter (fn [[_ p]] (= "orc" (:race p))) players))
         humans (count (filter (fn [[_ p]] (= "human" (:race p))) players))]
@@ -328,10 +326,10 @@
 (def not-enough-mana {:error :not-enough-mana})
 (def party-request-failed {:error :party-request-failed})
 
-(defn- alive? [state]
+(defn alive? [state]
   (> (:health state) 0))
 
-(defn- enough-mana? [skill state]
+(defn enough-mana? [skill state]
   (>= (:mana state) (-> common.skills/skills (get skill) :required-mana)))
 
 (defn asas? [id]
@@ -352,7 +350,7 @@
 (defn has-break-defense? [id]
   (get-in @players [id :effects :break-defense :result]))
 
-(defn- cooldown-finished? [skill player]
+(defn cooldown-finished? [skill player]
   (let [cooldown (if (and (= skill "fleetFoot") (asas? (:id player)))
                    (-> common.skills/skills (get skill) :cooldown-asas)
                    (-> common.skills/skills (get skill) :cooldown))
@@ -360,13 +358,13 @@
     (or (nil? last-time-skill-used)
         (>= (- (now) last-time-skill-used) cooldown))))
 
-(defn- get-required-mana [skill]
+(defn get-required-mana [skill]
   (-> common.skills/skills (get skill) :required-mana))
 
 (defn use-potion [health-or-mana value max]
   (Math/min ^long (+ health-or-mana value) ^long max))
 
-(defn- distance
+(defn distance
   ([x x1 z z1]
    (let [dx (- x x1)
          dz (- z z1)]
@@ -380,7 +378,7 @@
 (defmulti apply-skill (fn [{:keys [data]}]
                         (:skill data)))
 
-(defn- close-distance? [player-world-state other-player-world-state threshold]
+(defn close-distance? [player-world-state other-player-world-state threshold]
   (let [x (:px player-world-state)
         y (:py player-world-state)
         z (:pz player-world-state)
@@ -389,16 +387,16 @@
         z1 (:pz other-player-world-state)]
     (<= (distance x x1 y y1 z z1) threshold)))
 
-(defn- close-for-attack? [player-world-state other-player-world-state]
+(defn close-for-attack? [player-world-state other-player-world-state]
   (close-distance? player-world-state other-player-world-state (+ common.skills/close-attack-distance-threshold 0.4)))
 
-(defn- close-for-priest-skills? [player-world-state other-player-world-state]
+(defn close-for-priest-skills? [player-world-state other-player-world-state]
   (close-distance? player-world-state other-player-world-state (+ common.skills/priest-skills-distance-threshold 0.5)))
 
-(defn- close-for-attack-single? [player-world-state other-player-world-state]
+(defn close-for-attack-single? [player-world-state other-player-world-state]
   (close-distance? player-world-state other-player-world-state (+ common.skills/attack-single-distance-threshold 0.5)))
 
-(defn- attack-range-in-distance? [world-state x y z]
+(defn attack-range-in-distance? [world-state x y z]
   (try
     (let [{:keys [px py pz]} world-state]
       (<= (distance px x py y pz z) common.skills/attack-range-distance-threshold))
@@ -428,7 +426,7 @@
   (= (get-in @players [player-id :race])
      (get-in @players [selected-player-id :race])))
 
-(defn- square [n]
+(defn square [n]
   (Math/pow n 2))
 
 (defn inside-circle?
@@ -436,7 +434,7 @@
   [x z center-x center-z radius]
   (< (+ (square (- x center-x)) (square (- z center-z))) (square radius)))
 
-(defn- process-if-death [player-id enemy-id health-after-damage players*]
+(defn process-if-death [player-id enemy-id health-after-damage players*]
   (when (= 0 health-after-damage)
     (add-killing player-id enemy-id)
     (swap! players assoc-in [enemy-id :last-time :died] (now))
@@ -451,170 +449,16 @@
         (send! player-id :earned-bp bp)
         (swap! players update-in [player-id :bp] (fnil + 0) bp)))))
 
-(defn- ping-too-high? [ping]
+(defn ping-too-high? [ping]
   (> ping 5000))
 
-(defn- has-battle-fury? [players id]
+(defn has-battle-fury? [players id]
   (get-in players [id :effects :battle-fury :result]))
 
-(defn- increase-damage-if-has-battle-fury [damage players id]
+(defn increase-damage-if-has-battle-fury [damage players id]
   (if (has-battle-fury? players id)
-    (* damage 1.1)
+    (int (* damage 1.1))
     damage))
-
-;; TODO make asas hide false when he gets damage
-(defmethod apply-skill "attackOneHand" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when (get players* selected-player-id)
-        (let [w @world
-              player-world-state (get w id)
-              other-player-world-state (get w selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (warrior? id)) skill-failed
-            (not (enemy? id selected-player-id)) skill-failed
-            (not (alive? player-world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill player-world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (close-for-attack? player-world-state other-player-world-state)) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        ;; TODO update damage, player might have defense or poison etc.
-                        damage ((-> common.skills/skills (get skill) :damage-fn)
-                                (has-defense? selected-player-id)
-                                (has-break-defense? selected-player-id))
-                        damage (increase-damage-if-has-battle-fury damage players* id)
-                        health-after-damage (- (:health other-player-world-state) damage)
-                        health-after-damage (Math/max ^long health-after-damage 0)]
-                    (swap! world (fn [world]
-                                   (-> world
-                                       (update-in [id :mana] - required-mana)
-                                       (assoc-in [selected-player-id :health] health-after-damage))))
-                    (add-effect :attack-one-hand selected-player-id)
-                    (make-asas-appear-if-hidden selected-player-id)
-                    (swap! players assoc-in [id :last-time :skill skill] (now))
-                    (process-if-death id selected-player-id health-after-damage players*)
-                    (send! selected-player-id :got-attack-one-hand-damage {:damage damage
-                                                                           :player-id id})
-                    {:skill skill
-                     :damage damage
-                     :selected-player-id selected-player-id})))))))
-
-(defmethod apply-skill "attackSlowDown" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when (get players* selected-player-id)
-        (let [w @world
-              player-world-state (get w id)
-              other-player-world-state (get w selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (warrior? id)) skill-failed
-            (not (alive? player-world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enemy? id selected-player-id)) skill-failed
-            (not (enough-mana? skill player-world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (close-for-attack? player-world-state other-player-world-state)) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        ;; TODO update damage, player might have defense or poison etc.
-                        damage ((-> common.skills/skills (get skill) :damage-fn)
-                                (has-defense? selected-player-id)
-                                (has-break-defense? selected-player-id))
-                        damage (increase-damage-if-has-battle-fury damage players* id)
-                        health-after-damage (- (:health other-player-world-state) damage)
-                        health-after-damage (Math/max ^long health-after-damage 0)
-                        slow-down? (prob? 0.5)]
-                    (swap! world (fn [world]
-                                   (-> world
-                                       (update-in [id :mana] - required-mana)
-                                       (assoc-in [selected-player-id :health] health-after-damage))))
-                    (swap! players assoc-in [id :last-time :skill skill] (now))
-                    (process-if-death id selected-player-id health-after-damage players*)
-                    ;; TODO add scheduler for prob cure
-                    (send! selected-player-id :got-attack-slow-down-damage {:damage damage
-                                                                            :player-id id
-                                                                            :slow-down? slow-down?})
-                    (add-effect :attack-slow-down selected-player-id)
-                    (make-asas-appear-if-hidden selected-player-id)
-                    (when slow-down?
-                      (swap! players assoc-in [selected-player-id :last-time :skill "fleetFoot"] nil)
-                      (when-let [task (get-in @players [selected-player-id :effects :slow-down :task])]
-                        (tea/cancel! task))
-                      (let [tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                                            (bound-fn []
-                                              (when (get @players selected-player-id)
-                                                (swap! players (fn [players]
-                                                                 (-> players
-                                                                     (assoc-in [selected-player-id :effects :slow-down :result] false)
-                                                                     (assoc-in [selected-player-id :effects :slow-down :task] nil))))
-                                                (send! selected-player-id :cured-attack-slow-down-damage true))))]
-                        (swap! players (fn [players]
-                                         (-> players
-                                             (assoc-in [selected-player-id :effects :slow-down :result] true)
-                                             (assoc-in [selected-player-id :effects :slow-down :task] tea))))))
-                    {:skill skill
-                     :damage damage
-                     :selected-player-id selected-player-id})))))))
-
-(defmethod apply-skill "shieldWall" [{:keys [id ping] {:keys [skill]} :data}]
-  (when-let [player (get @players id)]
-    (when-let [world-state (get @world id)]
-      (cond
-        (ping-too-high? ping) ping-high
-        (not (warrior? id)) skill-failed
-        (not (alive? world-state)) skill-failed
-        (not (enough-mana? skill world-state)) not-enough-mana
-        (not (cooldown-finished? skill player)) skill-failed
-        :else (let [required-mana (get-required-mana skill)
-                    _ (when-let [task (get-in @players [id :effects :shield-wall :task])]
-                        (tea/cancel! task))
-                    tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                                    (bound-fn []
-                                      (when (get @players id)
-                                        (send! id :shield-wall-finished true)
-                                        (swap! players (fn [players]
-                                                         (-> players
-                                                             (assoc-in [id :effects :shield-wall :result] false)
-                                                             (assoc-in [id :effects :shield-wall :task] nil)))))))]
-                ;; TODO update here, after implementing party system
-                (swap! world update-in [id :mana] - required-mana)
-                (swap! players (fn [players]
-                                 (-> players
-                                     (assoc-in [id :last-time :skill skill] (now))
-                                     (assoc-in [id :effects :shield-wall :result] true)
-                                     (assoc-in [id :effects :shield-wall :task] tea))))
-                {:skill skill})))))
-
-(defmethod apply-skill "battleFury" [{:keys [id ping] {:keys [skill]} :data}]
-  (when-let [player (get @players id)]
-    (when-let [world-state (get @world id)]
-      (cond
-        (ping-too-high? ping) ping-high
-        (not (warrior? id)) skill-failed
-        (not (alive? world-state)) skill-failed
-        (not (enough-mana? skill world-state)) not-enough-mana
-        (not (cooldown-finished? skill player)) skill-failed
-        :else (let [required-mana (get-required-mana skill)
-                    _ (when-let [task (get-in @players [id :effects :battle-fury :task])]
-                        (tea/cancel! task))
-                    tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                                    (bound-fn []
-                                      (when (get @players id)
-                                        (send! id :shield-wall-finished true)
-                                        (swap! players (fn [players]
-                                                         (-> players
-                                                             (assoc-in [id :effects :battle-fury :result] false)
-                                                             (assoc-in [id :effects :battle-fury :task] nil)))))))]
-                ;; TODO update here, after implementing party system
-                (swap! world update-in [id :mana] - required-mana)
-                (swap! players (fn [players]
-                                 (-> players
-                                     (assoc-in [id :last-time :skill skill] (now))
-                                     (assoc-in [id :effects :battle-fury :result] true)
-                                     (assoc-in [id :effects :battle-fury :task] tea))))
-                {:skill skill})))))
 
 (defmethod apply-skill "attackR" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
   (let [players* @players]
@@ -703,446 +547,9 @@
                 (add-effect :mp-potion id)
                 {:skill skill})))))
 
-(defmethod apply-skill "attackDagger" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when (get players* selected-player-id)
-        (let [w @world
-              player-world-state (get w id)
-              other-player-world-state (get w selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (asas? id)) skill-failed
-            (not (enemy? id selected-player-id)) skill-failed
-            (not (alive? player-world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill player-world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (close-for-attack? player-world-state other-player-world-state)) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        ;; TODO update damage, player might have defense or poison etc.
-                        damage ((-> common.skills/skills (get skill) :damage-fn)
-                                (has-defense? selected-player-id)
-                                (has-break-defense? selected-player-id))
-                        health-after-damage (- (:health other-player-world-state) damage)
-                        health-after-damage (Math/max ^long health-after-damage 0)]
-                    (swap! world (fn [world]
-                                   (-> world
-                                       (update-in [id :mana] - required-mana)
-                                       (assoc-in [selected-player-id :health] health-after-damage))))
-                    (add-effect :attack-dagger selected-player-id)
-                    (make-asas-appear-if-hidden id)
-                    (make-asas-appear-if-hidden selected-player-id)
-                    (swap! players assoc-in [id :last-time :skill skill] (now))
-                    (process-if-death id selected-player-id health-after-damage players*)
-                    (send! selected-player-id :got-attack-dagger-damage {:damage damage
-                                                                         :player-id id})
-                    {:skill skill
-                     :damage damage
-                     :selected-player-id selected-player-id})))))))
-
-(defmethod apply-skill "attackStab" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when (get players* selected-player-id)
-        (let [w @world
-              player-world-state (get w id)
-              other-player-world-state (get w selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (asas? id)) skill-failed
-            (not (enemy? id selected-player-id)) skill-failed
-            (not (alive? player-world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill player-world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (close-for-attack? player-world-state other-player-world-state)) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        ;; TODO update damage, player might have defense or poison etc.
-                        damage ((-> common.skills/skills (get skill) :damage-fn)
-                                (has-defense? selected-player-id)
-                                (has-break-defense? selected-player-id))
-                        health-after-damage (- (:health other-player-world-state) damage)
-                        health-after-damage (Math/max ^long health-after-damage 0)]
-                    (swap! world (fn [world]
-                                   (-> world
-                                       (update-in [id :mana] - required-mana)
-                                       (assoc-in [selected-player-id :health] health-after-damage))))
-                    (add-effect :attack-stab selected-player-id)
-                    (make-asas-appear-if-hidden id)
-                    (make-asas-appear-if-hidden selected-player-id)
-                    (swap! players assoc-in [id :last-time :skill skill] (now))
-                    (process-if-death id selected-player-id health-after-damage players*)
-                    (send! selected-player-id :got-attack-stab-damage {:damage damage
-                                                                       :player-id id})
-                    {:skill skill
-                     :damage damage
-                     :selected-player-id selected-player-id})))))))
-
-;; write the same function of shieldWall defmethod but for asas class and for skill phantomVision
-(defmethod apply-skill "phantomVision" [{:keys [id ping] {:keys [skill]} :data}]
-  (when-let [player (get @players id)]
-    (when-let [world-state (get @world id)]
-      (cond
-        (ping-too-high? ping) ping-high
-        (not (asas? id)) skill-failed
-        (not (alive? world-state)) skill-failed
-        (not (enough-mana? skill world-state)) not-enough-mana
-        (not (cooldown-finished? skill player)) skill-failed
-        :else (let [required-mana (get-required-mana skill)
-                    _ (when-let [task (get-in @players [id :effects :phantom-vision :task])]
-                        (tea/cancel! task))
-                    tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                                    (bound-fn []
-                                      (when (get @players id)
-                                        (send! id :phantom-vision-finished true)
-                                        (swap! players (fn [players]
-                                                         (-> players
-                                                             (assoc-in [id :effects :phantom-vision :result] false)
-                                                             (assoc-in [id :effects :phantom-vision :task] nil)))))))]
-                ;; TODO update here, after implementing party system
-                (swap! world update-in [id :mana] - required-mana)
-                (swap! players (fn [players]
-                                 (-> players
-                                     (assoc-in [id :last-time :skill skill] (now))
-                                     (assoc-in [id :effects :phantom-vision :result] true)
-                                     (assoc-in [id :effects :phantom-vision :task] tea))))
-                {:skill skill})))))
-
-(defmethod apply-skill "hide" [{:keys [id ping] {:keys [skill]} :data}]
-  (when-let [player (get @players id)]
-    (when-let [world-state (get @world id)]
-      (cond
-        (ping-too-high? ping) ping-high
-        (not (asas? id)) skill-failed
-        (not (alive? world-state)) skill-failed
-        (not (enough-mana? skill world-state)) not-enough-mana
-        (not (cooldown-finished? skill player)) skill-failed
-        :else (let [required-mana (get-required-mana skill)]
-                (swap! world update-in [id :mana] - required-mana)
-                (swap! players (fn [players]
-                                 (-> players
-                                     (assoc-in [id :last-time :skill skill] (now))
-                                     (assoc-in [id :effects :hide :result] true))))
-                (add-effect :hide id)
-                (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                            (bound-fn []
-                              (when (get @players id)
-                                (send! id :hide-finished true)
-                                (swap! players assoc-in [id :effects :hide :result] false)
-                                (add-effect :appear id))))
-                {:skill skill})))))
-
-;; write a function like shieldWall defmethod but for priest class and for skill heal that increases selected ally health by 480
-;; make sure selected player is an ally and use `ally?` function, also ally should be alive too
-;; when selected-player-id i nil that means the player heals himself
-(defmethod apply-skill "heal" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when-let [world-state (get @world id)]
-        (when-let [other-player-world-state (get @world selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (priest? id)) skill-failed
-            (not (ally? id selected-player-id)) skill-failed
-            (not (alive? world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (and (not= id selected-player-id)
-                 (not (close-for-priest-skills? world-state other-player-world-state))) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        health (get other-player-world-state :health)
-                        total-health (get-in players* [selected-player-id :health])
-                        health-after-heal (+ health (-> common.skills/skills (get skill) :hp))
-                        health-after-heal (Math/min ^long health-after-heal total-health)]
-                    (swap! world (fn [world]
-                                   (-> world
-                                       (update-in [id :mana] - required-mana)
-                                       (assoc-in [selected-player-id :health] health-after-heal))))
-                    (add-effect :heal selected-player-id)
-                    (when-not (= id selected-player-id)
-                      (send! selected-player-id :got-heal true))
-                    (swap! players assoc-in [id :last-time :skill skill] (now))
-                    {:skill skill
-                     :selected-player-id selected-player-id})))))))
-
-;; write a functione like heal but for cure skill that removes poison effect from selected ally
-(defmethod apply-skill "cure" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when-let [world-state (get @world id)]
-        (when-let [other-player-world-state (get @world selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (priest? id)) skill-failed
-            (not (ally? id selected-player-id)) skill-failed
-            (not (alive? world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (and (not= id selected-player-id)
-                 (not (close-for-priest-skills? world-state other-player-world-state))) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        _ (when-let [task (get-in players* [selected-player-id :effects :break-defense :task])]
-                            (tea/cancel! task))
-                        _ (swap! players (fn [players]
-                                           (-> players
-                                               (assoc-in [selected-player-id :effects :break-defense :result] false)
-                                               (assoc-in [selected-player-id :effects :break-defense :task] nil))))]
-                    (swap! world update-in [id :mana] - required-mana)
-                    (add-effect :cure selected-player-id)
-                    (when-not (= id selected-player-id)
-                      (send! selected-player-id :got-cure true))
-                    (swap! players assoc-in [id :last-time :skill skill] (now))
-                    {:skill skill
-                     :selected-player-id selected-player-id})))))))
-
-;; write a function for "defenseBreak" skill that breaks the defense of the selected enemy by 25% for 10 seconds
-;; make sure selected player is an enemy and use `enemy?` function, also enemy should be alive too
-(defmethod apply-skill "breakDefense" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when-let [world-state (get @world id)]
-        (when-let [other-player-world-state (get @world selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (priest? id)) skill-failed
-            (not (enemy? id selected-player-id)) skill-failed
-            (not (alive? world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (close-for-priest-skills? world-state other-player-world-state)) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        _ (when-let [task (get-in players* [selected-player-id :effects :break-defense :task])]
-                            (tea/cancel! task))
-                        _ (when-let [task (get-in @players [id :effects :shield-wall :task])]
-                            (tea/cancel! task))
-                        tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                                        (bound-fn []
-                                          (when (get @players selected-player-id)
-                                            (swap! players (fn [players]
-                                                             (-> players
-                                                                 (assoc-in [selected-player-id :effects :break-defense :result] false)
-                                                                 (assoc-in [selected-player-id :effects :break-defense :task] nil)
-                                                                 (assoc-in [selected-player-id :effects :shield-wall :result] false)
-                                                                 (assoc-in [selected-player-id :effects :shield-wall :task] nil))))
-                                            (send! selected-player-id :cured-defense-break true))))]
-                    (swap! players (fn [players]
-                                     (-> players
-                                         (assoc-in [selected-player-id :effects :break-defense :result] true)
-                                         (assoc-in [selected-player-id :effects :break-defense :task] tea)
-                                         (assoc-in [id :last-time :skill skill] (now)))))
-                    (swap! world update-in [id :mana] - required-mana)
-                    (add-effect :break-defense selected-player-id)
-                    (send! selected-player-id :got-defense-break true)
-                    {:skill skill
-                     :selected-player-id selected-player-id})))))))
-
-(defmethod apply-skill "attackPriest" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when (get players* selected-player-id)
-        (let [w @world
-              player-world-state (get w id)
-              other-player-world-state (get w selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (priest? id)) skill-failed
-            (not (enemy? id selected-player-id)) skill-failed
-            (not (alive? player-world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill player-world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (close-for-attack? player-world-state other-player-world-state)) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        damage ((-> common.skills/skills (get skill) :damage-fn)
-                                (has-defense? selected-player-id)
-                                (has-break-defense? selected-player-id))
-                        health-after-damage (- (:health other-player-world-state) damage)
-                        health-after-damage (Math/max ^long health-after-damage 0)]
-                    (swap! world (fn [world]
-                                   (-> world
-                                       (update-in [id :mana] - required-mana)
-                                       (assoc-in [selected-player-id :health] health-after-damage))))
-                    (add-effect :attack-priest selected-player-id)
-                    (make-asas-appear-if-hidden id)
-                    (make-asas-appear-if-hidden selected-player-id)
-                    (swap! players assoc-in [id :last-time :skill skill] (now))
-                    (process-if-death id selected-player-id health-after-damage players*)
-                    (send! selected-player-id :got-attack-priest-damage {:damage damage
-                                                                         :player-id id})
-                    {:skill skill
-                     :damage damage
-                     :selected-player-id selected-player-id})))))))
-
-;; TODO attack-range-in-distance? NPE veriyor, ve birkac kisiyi vursam da tek kisi gozukuyor
-(defmethod apply-skill "attackRange" [{:keys [id ping] {:keys [skill x y z]} :data}]
-  (let [players* @players
-        w* @world]
-    (when-let [player (get players* id)]
-      (when-let [world-state (get w* id)]
-        (cond
-          (ping-too-high? ping) ping-high
-          (not (mage? id)) skill-failed
-          (not (alive? world-state)) skill-failed
-          (not (enough-mana? skill world-state)) not-enough-mana
-          (not (cooldown-finished? skill player)) skill-failed
-          (not (attack-range-in-distance? world-state x y z)) skill-failed
-          :else (let [required-mana (get-required-mana skill)
-                      _ (swap! players assoc-in [id :last-time :skill skill] (now))
-                      _ (swap! world update-in [id :mana] - required-mana)
-                      _ (add-effect :attack-range {:id id
-                                                   :x x
-                                                   :y y
-                                                   :z z})
-                      damaged-enemies (doall
-                                        (for [enemy-id (keys players*)
-                                              :let [enemy-world-state (get w* enemy-id)]
-                                              :when (and enemy-world-state
-                                                         (enemy? id enemy-id)
-                                                         (alive? enemy-world-state)
-                                                         (inside-circle? (:px enemy-world-state) (:pz enemy-world-state) x z 2.25))]
-                                          (let [damage ((-> common.skills/skills (get skill) :damage-fn)
-                                                        (has-defense? enemy-id)
-                                                        (has-break-defense? enemy-id))
-                                                health-after-damage (- (:health enemy-world-state) damage)
-                                                health-after-damage (Math/max ^long health-after-damage 0)]
-                                            (make-asas-appear-if-hidden enemy-id)
-                                            (swap! world assoc-in [enemy-id :health] health-after-damage)
-                                            (process-if-death id enemy-id health-after-damage players*)
-                                            (send! enemy-id :got-attack-range {:damage damage
-                                                                               :player-id id})
-                                            {:id enemy-id
-                                             :damage damage})))]
-                  {:skill skill
-                   :x x
-                   :y y
-                   :z z
-                   :damages damaged-enemies}))))))
-
-(defmethod apply-skill "attackSingle" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players
-        w* @world]
-    (when-let [player (get players* id)]
-      (when-let [world-state (get w* id)]
-        (when-let [other-player-world-state (get w* selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (mage? id)) skill-failed
-            (not (enemy? id selected-player-id)) skill-failed
-            (not (alive? world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (close-for-attack-single? world-state other-player-world-state)) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        _ (swap! players assoc-in [id :last-time :skill skill] (now))
-                        _ (swap! world update-in [id :mana] - required-mana)
-                        damage ((-> common.skills/skills (get skill) :damage-fn)
-                                (has-defense? selected-player-id)
-                                (has-break-defense? selected-player-id))
-                        health-after-damage (- (:health other-player-world-state) damage)
-                        health-after-damage (Math/max ^long health-after-damage 0)]
-                    (make-asas-appear-if-hidden selected-player-id)
-                    (process-if-death id selected-player-id health-after-damage players*)
-                    (swap! world assoc-in [selected-player-id :health] health-after-damage)
-                    (send! selected-player-id :got-attack-single {:damage damage
-                                                                  :player-id id})
-                    (add-effect :attack-single selected-player-id)
-                    {:skill skill
-                     :selected-player-id selected-player-id
-                     :damage damage})))))))
-
-(defmethod apply-skill "attackIce" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players
-        w* @world]
-    (when-let [player (get players* id)]
-      (when-let [world-state (get w* id)]
-        (when-let [other-player-world-state (get w* selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (mage? id)) skill-failed
-            (not (enemy? id selected-player-id)) skill-failed
-            (not (alive? world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (close-for-attack-single? world-state other-player-world-state)) too-far
-            :else (let [required-mana (get-required-mana skill)
-                        _ (swap! players assoc-in [id :last-time :skill skill] (now))
-                        _ (swap! world update-in [id :mana] - required-mana)
-                        damage ((-> common.skills/skills (get skill) :damage-fn)
-                                (has-defense? selected-player-id)
-                                (has-break-defense? selected-player-id))
-                        health-after-damage (- (:health other-player-world-state) damage)
-                        health-after-damage (Math/max ^long health-after-damage 0)
-                        ice-slow-down? (prob? 0.2)]
-                    (make-asas-appear-if-hidden selected-player-id)
-                    (process-if-death id selected-player-id health-after-damage players*)
-                    (swap! world assoc-in [selected-player-id :health] health-after-damage)
-                    (send! selected-player-id :got-attack-ice {:damage damage
-                                                               :player-id id
-                                                               :ice-slow-down? ice-slow-down?})
-                    (add-effect :attack-ice selected-player-id)
-                    (when ice-slow-down?
-                      (swap! players assoc-in [selected-player-id :last-time :skill "fleetFoot"] nil)
-                      (when-let [task (get-in @players [selected-player-id :effects :attack-ice :task])]
-                        (tea/cancel! task))
-                      (let [tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                                            (bound-fn []
-                                              (when (get @players selected-player-id)
-                                                (swap! players (fn [players]
-                                                                 (-> players
-                                                                     (assoc-in [selected-player-id :effects :attack-ice :result] false)
-                                                                     (assoc-in [selected-player-id :effects :attack-ice :task] nil))))
-                                                (send! selected-player-id :cured-attack-ice-damage true))))]
-                        (swap! players (fn [players]
-                                         (-> players
-                                             (assoc-in [selected-player-id :effects :attack-ice :result] true)
-                                             (assoc-in [selected-player-id :effects :attack-ice :task] tea))))))
-                    {:skill skill
-                     :selected-player-id selected-player-id
-                     :damage damage})))))))
-
-(defn- already-in-the-party? [player other-player]
-  (and (:party-id other-player)
-       (= (:party-id player) (:party-id other-player))))
-
-(defmethod apply-skill "teleport" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
-  (let [players* @players
-        w* @world]
-    (when-let [player (get players* id)]
-      (when-let [world-state (get w* id)]
-        (when-let [other-player-world-state (get w* selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (mage? id)) skill-failed
-            (not (ally? id selected-player-id)) skill-failed
-            (not (alive? world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enough-mana? skill world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (already-in-the-party? player (get players* selected-player-id))) skill-failed
-            (= id selected-player-id) skill-failed
-            :else (let [required-mana (get-required-mana skill)
-                        current-time (now)
-                        new-pos {:x (:px world-state)
-                                 :y (:py world-state)
-                                 :z (:pz world-state)}
-                        _ (send! selected-player-id :teleported new-pos)
-                        _ (swap! players (fn [players]
-                                           (-> players
-                                               (assoc-in [id :last-time :skill skill] current-time)
-                                               (assoc-in [selected-player-id :last-time :teleported] current-time))))
-                        _ (swap! world update-in [id :mana] - required-mana)]
-                    (add-effect :teleport selected-player-id)
-                    {:skill skill})))))))
-
 (def re-spawn-failed {:error :re-spawn-failed})
 
-(defn- re-spawn-duration-finished? [player]
+(defn re-spawn-duration-finished? [player]
   (> (- (now) (get-in player [:last-time :died])) common.skills/re-spawn-duration-in-milli-secs))
 
 (reg-pro
@@ -1260,49 +667,15 @@
 (defmulti process-party-request (fn [{:keys [data]}]
                                   (:type data)))
 
-(defn party-full? [player players]
-  (let [party-id (:party-id player)]
-    (and party-id
-         (= (count (filter #(= party-id (:party-id %)) (vals players))) max-number-of-party-members))))
-
 (defn leader? [player]
   (:party-leader? player))
 
-(defn already-in-another-party? [player other-player]
+(defn already-in-the-party? [player other-player]
   (and (:party-id other-player)
-       (not= (:party-id player) (:party-id other-player))))
-
-(defn blocked-party-requests? [other-player]
-  (:party-requests-blocked? other-player))
-
-(defn- asked-to-join-too-often? [id selected-player-id]
-  (let [last-time (get-in @players [id :last-time :add-to-party-request selected-player-id])]
-    (and (not (nil? last-time))
-         (<= (- (now) last-time) common.skills/party-request-duration-in-milli-secs))))
-
-(defmethod process-party-request :add-to-party [{:keys [id ping] {:keys [selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when-let [other-player (get players* selected-player-id)]
-        (cond
-          (ping-too-high? ping) ping-high
-          (= id selected-player-id) party-request-failed
-          (not (ally? id selected-player-id)) party-request-failed
-          (party-full? player players*) party-request-failed
-          (already-in-the-party? player other-player) party-request-failed
-          (already-in-another-party? player other-player) party-request-failed
-          ;; TODO implement later
-          (blocked-party-requests? other-player) party-request-failed
-          (asked-to-join-too-often? id selected-player-id) party-request-failed
-          :else (do
-                  (swap! players assoc-in [id :last-time :add-to-party-request selected-player-id] (now))
-                  (send! selected-player-id :party {:type :party-request
-                                                    :player-id id})
-                  {:type :add-to-party
-                   :selected-player-id selected-player-id}))))))
+       (= (:party-id player) (:party-id other-player))))
 
 ;; TODO bug, human exit yapinca orc'ta partyden cikti diyor
-(defn- remove-from-party [{:keys [players* id selected-player-id exit?]}]
+(defn remove-from-party [{:keys [players* id selected-player-id exit?]}]
   (when (not (and exit? (not (get-in players* [id :party-id]))))
     (let [player (get players* id)
           party-id (:party-id player)
@@ -1350,81 +723,6 @@
          :player-id selected-player-id
          :party-cancelled? party-cancelled?}))))
 
-(defmethod process-party-request :remove-from-party [{:keys [id ping] {:keys [selected-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when-let [other-player (get players* selected-player-id)]
-        (cond
-          (ping-too-high? ping) ping-high
-          (not (leader? player)) party-request-failed
-          (not (already-in-the-party? player other-player)) party-request-failed
-          :else (remove-from-party {:players* players*
-                                    :player player
-                                    :id id
-                                    :selected-player-id selected-player-id}))))))
-
-(defmethod process-party-request :exit-from-party [{:keys [id ping]}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (cond
-        (ping-too-high? ping) ping-high
-        (not (:party-id player)) party-request-failed
-        :else (remove-from-party {:id id
-                                  :players* players*
-                                  :exit? true})))))
-
-(defn- accepts-or-rejects-party-request-on-time? [other-player id]
-  (let [last-time (get-in other-player [:last-time :add-to-party-request id])]
-    (and last-time (<= (- (now) last-time) common.skills/party-request-duration-in-milli-secs))))
-
-(defmethod process-party-request :accept-party-request [{:keys [id ping] {:keys [requested-player-id]} :data}]
-  (let [players* @players]
-    (when-let [player (get players* id)]
-      (when-let [other-player (get players* requested-player-id)]
-        (cond
-          (ping-too-high? ping) ping-high
-          (not (accepts-or-rejects-party-request-on-time? other-player id)) party-request-failed
-          (party-full? other-player players*) party-request-failed
-          (already-in-another-party? other-player player) party-request-failed
-          (already-in-the-party? other-player player) party-request-failed
-          (blocked-party-requests? other-player) party-request-failed
-          :else (let [party-id (or (:party-id other-player) (swap! party-id-generator inc))]
-                  (swap! players (fn [players]
-                                   (-> players
-                                       (assoc-in [requested-player-id :party-id] party-id)
-                                       (assoc-in [requested-player-id :party-leader?] true)
-                                       (assoc-in [id :party-id] party-id)
-                                       (assoc-in [id :last-time :accepted-party] (now)))))
-
-                  (send! requested-player-id :party {:type :accepted-party-request
-                                                     :player-id id})
-                  (doseq [[player-id attrs] @players
-                          :when (and (not= id player-id)
-                                     (not= requested-player-id player-id)
-                                     (= party-id (:party-id attrs)))]
-                    (send! player-id :party {:type :joined-party
-                                             :player-id id}))
-                  {:type :accept-party-request
-                   :party-members-ids (cons requested-player-id
-                                            (->> @players
-                                                 (filter (fn [[_ attrs]]
-                                                           (and (= party-id (:party-id attrs)) (not (leader? attrs)))))
-                                                 (sort-by (comp :accepted-party :last-time second))
-                                                 (map first)))}))))))
-
-(defmethod process-party-request :reject-party-request [{:keys [id ping] {:keys [requested-player-id]} :data}]
-  (let [players* @players]
-    (when (get players* id)
-      (when-let [other-player (get players* requested-player-id)]
-        (cond
-          (ping-too-high? ping) ping-high
-          (not (accepts-or-rejects-party-request-on-time? other-player id)) party-request-failed
-          :else (do
-                  (send! requested-player-id :party {:type :party-request-rejected
-                                                     :player-id id})
-                  {:type :reject-party-request
-                   :requested-player-id requested-player-id}))))))
-
 (reg-pro
   :party
   (fn [opts]
@@ -1440,12 +738,12 @@
                             :throwable e})
         party-request-failed))))
 
-(defn- reset-states []
+(defn reset-states []
   (reset! world {})
   (reset! players {})
   (reset! id-generator 0))
 
-(defn- ws-handler
+(defn ws-handler
   [req]
   (-> (http/websocket-connection req)
       (d/chain
@@ -1482,6 +780,8 @@
                   (dispatch (:pro payload) {:id id
                                             :data (:data payload)
                                             :ping ping
+                                            :current-players @players
+                                            :current-world @world
                                             :req req
                                             :socket socket
                                             :send-fn (fn [socket {:keys [id result]}]

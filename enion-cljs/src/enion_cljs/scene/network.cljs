@@ -438,8 +438,8 @@
 (defn- on-ws-open []
   (when dev?
     (dispatch-pro :init {:username (str "NeaTBuSTeR_" (int (rand 99)))
-                         :race "orc"
-                         :class "warrior"}))
+                         :race "human"
+                         :class "mage"}))
   (dispatch-pro :get-server-stats)
   (fire :ui-ws-connected))
 
