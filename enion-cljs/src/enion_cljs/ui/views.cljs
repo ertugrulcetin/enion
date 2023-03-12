@@ -846,31 +846,60 @@
             :on-click #(dispatch [::events/close-settings-modal])}
            "Exit"]]))}))
 
-(defn server-stats []
+(defn- get-server-name-and-ping [server-name ping]
+  (str server-name " (" (if ping (str ping "ms") "N/A") ")"))
+
+(defn- server [server-name server-attrs _ _ _]
   (r/create-class
-    {:component-will-unmount #(dispatch [::events/cancel-request-server-stats])
+    {:component-did-mount #(dispatch [::events/fetch-server-stats server-name (:stats-url server-attrs)])
      :reagent-render
-     (fn []
-       (let [{:keys [number-of-players
-                     max-number-of-players
-                     max-number-of-same-race-players
+     (fn [server-name server-attrs username race class]
+       (let [{:keys [ping
+                     orcs
                      humans
-                     orcs] :as server-stats} @(subscribe [::subs/server-stats])]
-         [:div (styles/server-stats-container)
-          [:table (styles/server-stats-table)
-           [:thead
-            [:tr
-             [:th (styles/server-stats-orc-cell) "Orcs"]
-             [:th (styles/server-stats-human-cell) "Humans"]
-             [:th (styles/server-stats-total-cell) "Total"]]]
-           [:tbody
-            [:tr
-             [:td (styles/server-stats-orc-cell)
-              (if server-stats (str orcs "/" max-number-of-same-race-players) "~/~")]
-             [:td (styles/server-stats-human-cell)
-              (if server-stats (str humans "/" max-number-of-same-race-players) "~/~")]
-             [:td (styles/server-stats-total-cell)
-              (if server-stats (str number-of-players "/" max-number-of-players) "~/~")]]]]]))}))
+                     number-of-players
+                     max-number-of-same-race-players
+                     max-number-of-players
+                     ws-url]} server-attrs
+             connecting-server @(subscribe [::subs/connecting-to-server])]
+         [:tr
+          [:td (styles/server-stats-orc-cell)
+           (if orcs (str orcs "/" max-number-of-same-race-players) "~/~")]
+          [:td (styles/server-stats-human-cell)
+           (if humans (str humans "/" max-number-of-same-race-players) "~/~")]
+          [:td (styles/server-stats-total-cell)
+           (if number-of-players (str number-of-players "/" max-number-of-players) "~/~")]
+          [:td (styles/server-name-cell)
+           (get-server-name-and-ping server-name ping)]
+          [:td
+           [:button
+            {:class [(styles/init-modal-connect-button) (when (= connecting-server server-name) "connecting")]
+             :disabled (or (= number-of-players max-number-of-players)
+                           connecting-server)
+             :on-click #(dispatch [::events/connect-to-server
+                                   server-name
+                                   ws-url
+                                   @username
+                                   @race
+                                   @class])}
+            (if (= connecting-server server-name)
+              "Connecting..."
+              "Connect")]]]))}))
+
+(defn- server-list [username race class]
+  [:div (styles/server-stats-container)
+   [:table (styles/server-stats-table)
+    [:thead
+     [:tr
+      [:th (styles/server-stats-orc-cell) "Orcs"]
+      [:th (styles/server-stats-human-cell) "Humans"]
+      [:th (styles/server-stats-total-cell) "Total"]
+      [:th (styles/server-name-cell) "Server"]
+      [:th]]]
+    [:tbody
+     (for [[k v] @(subscribe [::subs/servers])]
+       ^{:key k}
+       [server k v username race class])]]])
 
 (defn- username-input [username]
   [:input
@@ -915,15 +944,6 @@
       :on-click #(reset! class "asas")}
      "Assassin"]]])
 
-(defn- enter [username race class]
-  [:button
-   {:class (styles/init-modal-enter-button)
-    :disabled (not @(subscribe [::subs/ready-to-enter?]))
-    :on-click #(dispatch [::events/init-game @username @race @class])}
-   (if @(subscribe [::subs/init-modal-loading?])
-     "Loading..."
-     "Enter")])
-
 (defn- error-popup [err]
   [:div (styles/error-popup-modal)
    [:p (styles/error-popup-message) err]
@@ -949,11 +969,9 @@
           [select-race race]
           [select-class class race]
           [:hr (styles/init-modal-hr)]
-          [server-stats]
-          [:hr (styles/init-modal-hr)]
+          [server-list username race class]
           (when-let [err @(subscribe [::subs/init-modal-error])]
-            [error-popup err])
-          [enter username race class]])})))
+            [error-popup err])])})))
 
 (defn- mobile-user-modal []
   [:div (styles/init-modal)
@@ -1051,7 +1069,7 @@
                                                    (do
                                                      (.preventDefault e)
                                                      (dispatch [::events/close-score-board]))))))
-       (on :ui-set-current-player #(dispatch [::events/set-current-player %]))
+       (on :ui-init-game #(dispatch [::events/init-game %]))
        (on :ui-set-as-party-leader #(dispatch [::events/set-as-party-leader %]))
        (on :init-skills #(dispatch [::events/init-skills %]))
        (on :ui-send-msg #(dispatch [::events/add-message-to-info-box %]))

@@ -14,6 +14,7 @@
     [msgpack-cljs.core :as msg]))
 
 (defonce socket (atom nil))
+(defonce server-name (atom nil))
 (defonce open? (atom false))
 (defonce world nil)
 (defonce current-player-id nil)
@@ -69,23 +70,25 @@
 
 (defmethod dispatch-pro-response :init [params]
   (if-let [error (-> params :init :error)]
-    (fire :ui-init-modal-error
-          (case error
-            :invalid-username (str "Username must be between 2 and 20 characters long and can only contain "
-                                   "letters, numbers, and underscores.")
-            :username-taken "Username is already taken."
-            :invalid-race "Race is not selected."
-            :invalid-class "Class is not selected."
-            :server-full "Server is full. Please wait a bit and try again."
-            :orc-race-full "Orc race is full. Please wait a bit and try again."
-            :human-race-full "Human race is full. Please wait a bit and try again."))
+    (do
+      (j/call @socket :close 3001 "init-error")
+      (fire :ui-init-modal-error
+            (case error
+              :invalid-username (str "Username must be between 2 and 20 characters long and can only contain "
+                                     "letters, numbers, and underscores.")
+              :username-taken "Username is already taken."
+              :invalid-race "Race is not selected."
+              :invalid-class "Class is not selected."
+              :server-full "Server is full. Please wait a bit and try again."
+              :orc-race-full "Orc race is full. Please wait a bit and try again."
+              :human-race-full "Human race is full. Please wait a bit and try again.")))
     (let [potions (get-potions)
           tutorials (get-tutorials)
           data (merge (:init params) potions {:tutorials tutorials})]
       (fire :close-init-modal)
       (fire :init data)
       (set! current-player-id (-> params :init :id))
-      (fire :ui-set-current-player data)
+      (fire :ui-init-game (assoc data :server-name @server-name))
       (fire :ui-init-tutorial-data data)
       (chest/register-chest-trigger-events (not (:what-is-the-first-quest? tutorials)))
       (poki/gameplay-start))))
@@ -435,20 +438,17 @@
     (when (seq players)
       (fire :create-players players))))
 
-(defn- on-ws-open []
-  (when dev?
-    (dispatch-pro :init {:username (str "NeaTBuSTeR_" (int (rand 99)))
-                         :race "human"
-                         :class "mage"}))
-  (dispatch-pro :get-server-stats)
+(defn- on-ws-open [params]
+  (reset! server-name (:server-name params))
+  (dispatch-pro :init (select-keys params [:username :race :class]))
   (fire :ui-ws-connected))
 
 (defn- on-ws-close []
   (fire :ui-init-modal-error "Connection closed! Please refresh the page.")
   (fire :ui-set-connection-lost))
 
-(on :start-ws
-    (fn []
+(on :connect-to-server
+    (fn [{:keys [ws-url] :as params}]
       (connect {:url ws-url
                 :on-message (fn [event]
                               (dispatch-pro-response (msg/unpack (j/get event :data))))
@@ -456,29 +456,24 @@
                            (println "WS connection established.")
                            (j/assoc! st/settings :ws-connected? true)
                            (reset! open? true)
-                           (on-ws-open))
-                :on-close (fn []
-                            (j/assoc! st/settings
-                                      :ws-connected? false
-                                      :ws-closed? false)
-                            (println "WS connection closed.")
-                            (reset! open? false)
-                            (on-ws-close))
+                           (on-ws-open params))
+                :on-close (fn [e]
+                            (when-not (= (j/get e :reason) "init-error")
+                              (j/assoc! st/settings
+                                        :ws-connected? false
+                                        :ws-closed? false)
+                              (println "WS connection closed.")
+                              (reset! open? false)
+                              (on-ws-close)))
                 :on-error (fn []
+                            (fire :ui-init-modal-error "Couldn't connect to server! Please refresh the page.")
                             (println "WS error occurred!")
                             (reset! open? false))})))
-
-(when-not dev?
-  (on :init-game #(dispatch-pro :init %)))
 
 (on :connect-to-world-state #(dispatch-pro :connect-to-world-state))
 (on :send-global-message #(dispatch-pro :send-global-message {:msg %}))
 (on :send-party-message #(dispatch-pro :send-party-message {:msg %}))
-(on :get-server-stats #(dispatch-pro :get-server-stats))
 (on :get-score-board #(dispatch-pro :get-score-board))
-
-(defmethod dispatch-pro-response :get-server-stats [params]
-  (fire :ui-set-server-stats (:get-server-stats params)))
 
 (defmethod dispatch-pro-response :get-score-board [params]
   (let [players (:get-score-board params)

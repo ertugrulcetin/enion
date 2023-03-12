@@ -8,4 +8,3 @@
 (defn- clean [text]
   (when-not (str/blank? text)
     (.clean bad-words-filter text)))
-

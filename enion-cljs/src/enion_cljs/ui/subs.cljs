@@ -288,3 +288,13 @@
   ::show-ui-panel?
   (fn [db]
     (:show-ui-panel? db)))
+
+(reg-sub
+  ::servers
+  (fn [db]
+    (-> db :servers :list)))
+
+(reg-sub
+  ::connecting-to-server
+  (fn [db]
+    (-> db :servers :connecting)))

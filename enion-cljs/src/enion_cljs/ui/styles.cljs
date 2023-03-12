@@ -632,22 +632,24 @@
 
 (defclass init-modal []
   {:composes [(party-request-modal)]
-   :width "40%"
-   :max-width "50%"
+   :width "45%"
+   :max-width "70%"
    :max-height "80%"
-   :overflow-y :auto})
+   :overflow-y :auto}
+  (at-media {:max-width "1250px"}
+            {:width "70% !important"}))
 
 (defclass init-modal-username-input []
   {:color "white"
    :width "300px"
-   :height "30px"
+   :height "20px"
    :font-family "IMMORTAL"
    :border-radius "5px"
    :border "1px solid black"
    :background-color "#10131dcc"
    :outline :none
    :padding "5px"
-   :font-size "20px"
+   :font-size "18px"
    :text-align :center})
 
 (defattrs init-modal-race-container []
@@ -660,7 +662,8 @@
   {:composes [(init-modal-race-container)]})
 
 (defclass init-modal-button [race selected?]
-  {:composes [(re-spawn-button)]}
+  {:composes [(re-spawn-button)]
+   :height "30px"}
   [:&:disabled {:opacity 0.5
                 :cursor :not-allowed
                 :color "grey !important"
@@ -727,11 +730,19 @@
 
 (defattrs server-stats-container []
   {:display "flex"
-   :justify-content "center"})
+   :justify-content "center"
+   :max-height "200px"
+   :overflow-y :scroll}
+  scroll-bar
+  scroll-bar-thumb)
 
 (defattrs server-stats-table []
   {:border-collapse "collapse"
-   :margin-top "10px"})
+   :margin-top "10px"}
+  [:tbody
+   {:font-size "16px"
+    :max-height "100px"
+    :overflow-y :scroll}])
 
 (defattrs server-stats-orc-cell []
   {:padding-right "30px"
@@ -742,7 +753,18 @@
    :color "#2691b2ff"})
 
 (defattrs server-stats-total-cell []
-  {:color "#ffc301c8"})
+  {:padding-right "30px"
+   :color "#ffc301c8"})
+
+(defattrs server-name-cell []
+  {:color "white"})
 
 (defattrs server-stats-refresh-message []
   {:font-size "15px"})
+
+(defclass init-modal-connect-button []
+  {:composes [(init-modal-button nil nil)]
+   :margin-left "10px"
+   :height "30px"}
+  [:&.connecting
+   {:font-size "14px"}])

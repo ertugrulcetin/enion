@@ -160,14 +160,14 @@
 (reg-pro
   :get-server-stats
   (fn [_]
-    (let [players @players]
-      (let [orcs (count (get-orcs players))
-            humans (count (get-humans players))]
-        {:number-of-players (+ orcs humans)
-         :orcs orcs
-         :humans humans
-         :max-number-of-same-race-players max-number-of-same-race-players
-         :max-number-of-players max-number-of-players}))))
+    (let [players @players
+          orcs (count (get-orcs players))
+          humans (count (get-humans players))]
+      {:number-of-players (+ orcs humans)
+       :orcs orcs
+       :humans humans
+       :max-number-of-same-race-players max-number-of-same-race-players
+       :max-number-of-players max-number-of-players})))
 
 (reg-pro
   :get-score-board
@@ -796,9 +796,24 @@
   ;; Routing lib expects some sort of HTTP response, so just give it `nil`
   nil)
 
+(defn- stats [req]
+  (let [now (Instant/now)
+        ping (- (.toEpochMilli now) (-> req :params :timestamp))
+        players @players
+        orcs (count (get-orcs players))
+        humans (count (get-humans players))]
+    {:status 200
+     :body {:ping ping
+            :number-of-players (+ orcs humans)
+            :orcs orcs
+            :humans humans
+            :max-number-of-same-race-players max-number-of-same-race-players
+            :max-number-of-players max-number-of-players}}))
+
 (defn home-routes
   []
   [""
    {:middleware [middleware/wrap-formats]}
    ["/" {:get home-page}]
+   ["/stats" {:post stats}]
    ["/ws" {:get ws-handler}]])

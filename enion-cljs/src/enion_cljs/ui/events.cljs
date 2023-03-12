@@ -1,8 +1,10 @@
 (ns enion-cljs.ui.events
   (:require
+    [ajax.core :as ajax]
     [applied-science.js-interop :as j]
     [cljs.reader :as reader]
     [clojure.string :as str]
+    [day8.re-frame.http-fx :as http-fx]
     [enion-cljs.common :as common :refer [fire]]
     [enion-cljs.ui.db :as db]
     [enion-cljs.ui.utils :as ui.utils]
@@ -31,6 +33,15 @@
   (fn [[k v]]
     (when-let [ls (common.utils/get-local-storage)]
       (.setItem ls k v))))
+
+(reg-fx
+  :http
+  (fn [params]
+    (http-fx/http-effect (merge
+                           {:timeout 30000
+                            :format (ajax/json-request-format)
+                            :response-format (ajax/json-response-format {:keywords? true})}
+                           params))))
 
 (reg-cofx
   ::settings
@@ -319,8 +330,8 @@
     (assoc-in db [:party :selected-member] id)))
 
 (reg-event-db
-  ::set-current-player
-  (fn [db [_ {:keys [id username race class hp-potions mp-potions tutorials]}]]
+  ::init-game
+  (fn [db [_ {:keys [id username race class hp-potions mp-potions tutorials server-name]}]]
     (-> db
         (assoc-in [:player :id] id)
         (assoc-in [:player :username] username)
@@ -328,6 +339,7 @@
         (assoc-in [:player :class] class)
         (assoc-in [:player :hp-potions] hp-potions)
         (assoc-in [:player :mp-potions] mp-potions)
+        (assoc-in [:servers :current-server] server-name)
         (assoc :tutorials tutorials))))
 
 (reg-event-db
@@ -354,16 +366,6 @@
       {:dispatch-n (mapv (fn [skill]
                            [::clear-cooldown skill]) cooldowns)})))
 
-(reg-event-fx
-  ::init-game
-  (fn [{:keys [db]} [_ username race class]]
-    {:db (-> db
-             (assoc-in [:init-modal :error] nil)
-             (assoc-in [:init-modal :loading?] true))
-     :fx [[::fire [:init-game {:username username
-                               :race race
-                               :class class}]]]}))
-
 (reg-event-db
   ::close-init-modal
   (fn [db]
@@ -375,25 +377,8 @@
   ::set-init-modal-error
   (fn [db [_ error]]
     (-> db
-        (assoc-in [:init-modal :loading?] false)
+        (assoc-in [:servers :connecting] nil)
         (assoc-in [:init-modal :error] error))))
-
-(reg-event-fx
-  ::get-server-stats
-  (fn [_]
-    {::fire [:get-server-stats]}))
-
-(reg-event-fx
-  ::set-server-stats
-  (fn [{:keys [db]} [_ stats]]
-    (cond-> {:db (assoc db :server-stats stats)}
-      (:request-server-stats? db) (assoc :dispatch-later [{:ms 2000
-                                                           :dispatch [::get-server-stats]}]))))
-
-(reg-event-db
-  ::cancel-request-server-stats
-  (fn [db]
-    (assoc db :request-server-stats? false)))
 
 (reg-event-fx
   ::open-score-board
@@ -486,3 +471,32 @@
   ::clear-init-modal-error
   (fn [db]
     (assoc-in db [:init-modal :error] nil)))
+
+(reg-event-fx
+  ::fetch-server-stats
+  (fn [{:keys [db]} [_ server-name stats-url]]
+    (when (-> db :servers :current-server nil?)
+      {:http {:method :post
+              :uri stats-url
+              :params {:timestamp (js/Date.now)}
+              :on-success [::fetch-server-stats-on-success server-name stats-url]
+              :on-failure [:dispatch-later [{:ms 2000
+                                             :dispatch [::fetch-server-stats server-name stats-url]}]]}})))
+
+(reg-event-fx
+  ::fetch-server-stats-on-success
+  (fn [{:keys [db]} [_ server-name stats-url response]]
+    {:db (update-in db [:servers :list server-name] merge response)
+     :dispatch-later [{:ms 2000
+                       :dispatch [::fetch-server-stats server-name stats-url]}]}))
+
+(reg-event-fx
+  ::connect-to-server
+  (fn [{:keys [db]} [_ server-name ws-url username race class]]
+    (when-not (-> db :servers :connecting?)
+      {:db (assoc-in db [:servers :connecting] server-name)
+       ::fire [:connect-to-server {:server-name server-name
+                                   :ws-url ws-url
+                                   :username username
+                                   :race race
+                                   :class class}]})))

@@ -34,7 +34,6 @@
 
 (on :notify-ui-is-ready
   (fn []
-    (fire :start-ws)
     (poki/game-loading-finished)))
 
 (defn visibility-props []
