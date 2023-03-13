@@ -768,3 +768,17 @@
    :height "30px"}
   [:&.connecting
    {:font-size "14px"}])
+
+(defclass discord []
+  {:width "65px"
+   :height "50px"
+   :position "absolute"
+   :top "10px"
+   :right "10px"
+   :z-index 99
+   :border-radius "5px"
+   :background-color "#10131dcc"
+   :padding "10px"}
+  (at-media {:max-width "1250px"}
+            {:width "40px"
+             :height "30px"}))

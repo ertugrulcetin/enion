@@ -961,17 +961,24 @@
        :component-will-unmount #(fire :on-ui-element? false)
        :reagent-render
        (fn []
-         [:div
-          {:class (styles/init-modal)
-           :on-mouse-over #(fire :on-ui-element? true)
-           :on-mouse-out #(fire :on-ui-element? false)}
-          [username-input username]
-          [select-race race]
-          [select-class class race]
-          [:hr (styles/init-modal-hr)]
-          [server-list username race class]
-          (when-let [err @(subscribe [::subs/init-modal-error])]
-            [error-popup err])])})))
+         [:<>
+          [:a
+           {:href "https://discord.gg/xV4Q2ncz"
+            :target "_blank"}
+           [:img
+            {:src "img/dc.png"
+             :class (styles/discord)}]]
+          [:div
+           {:class (styles/init-modal)
+            :on-mouse-over #(fire :on-ui-element? true)
+            :on-mouse-out #(fire :on-ui-element? false)}
+           [username-input username]
+           [select-race race]
+           [select-class class race]
+           [:hr (styles/init-modal-hr)]
+           [server-list username race class]
+           (when-let [err @(subscribe [::subs/init-modal-error])]
+             [error-popup err])]])})))
 
 (defn- mobile-user-modal []
   [:div (styles/init-modal)
