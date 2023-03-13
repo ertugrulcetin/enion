@@ -140,7 +140,8 @@
    (> (j/get-in other-players [player-id :health]) 0)))
 
 (defn distance-to [player-id]
-  (pc/distance (pc/get-pos (get-player-entity)) (pc/get-pos (get-other-player-entity player-id))))
+  (pc/distance (pc/get-pos (get-player-entity))
+               (pc/get-pos (get-other-player-entity player-id))))
 
 (defn add-player [player]
   (if player

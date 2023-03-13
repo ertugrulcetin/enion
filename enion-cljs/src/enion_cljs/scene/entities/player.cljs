@@ -416,6 +416,22 @@
        "asas" (create-asas-skill-fns state other-player?)
        nil))))
 
+(defn- add-player-id-to-char-meshes [{:keys [id class race]} model-entity template-entity state]
+  (let [lod-0 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_0"))
+        lod-1 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_1"))
+        lod-2 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_2"))
+        id (str id)]
+    (j/assoc! lod-0 :player_id id)
+    (j/assoc! lod-1 :player_id id)
+    (j/assoc! lod-2 :player_id id)
+    (j/assoc! state
+              :armature (pc/find-by-name model-entity "Armature")
+              :char-name (pc/find-by-name template-entity "char_name")
+              :lod-0 lod-0
+              :lod-1 lod-1
+              :lod-2 lod-2
+              :anim-component (j/get model-entity :anim))))
+
 (defn create-player [{:keys [id username class race pos health mana] :as opts}]
   (when-not id
     (throw (ex-info "Id does not exist for player!" {})))
@@ -456,6 +472,7 @@
                     clj->js)]
       (create-username-text (assoc params :template-entity template-entity))
       (create-skill-fns state true)
+      (add-player-id-to-char-meshes params model-entity template-entity state)
       (if enemy?
         (j/call-in entity [:rigidbody :teleport] x y z)
         (pc/set-pos entity x y z))

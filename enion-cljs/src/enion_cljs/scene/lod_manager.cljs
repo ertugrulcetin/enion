@@ -4,7 +4,7 @@
     [clojure.set :as set]
     [enion-cljs.common :refer [on]]
     [enion-cljs.scene.pc :as pc :refer [app]]
-    [enion-cljs.scene.states :refer [player get-player-entity]]
+    [enion-cljs.scene.states :as st :refer [player get-player-entity]]
     [goog.functions :as functions]))
 
 ;; TODO ranges for other player
@@ -79,6 +79,75 @@
                               (first (set/intersection #{"lod-0" "lod-1" "lod-2"} tags-set)) c)))))
                     (into {})))))))
 
+(let [lod-selection {:lod-0 #{:lod-1 :lod-2}
+                     :lod-1 #{:lod-0 :lod-2}
+                     :lod-2 #{:lod-0 :lod-1}}]
+  (defn- set-lod [lod player-id]
+    (j/assoc-in! st/other-players [player-id lod :enabled] true)
+    (doseq [lod-to-disable (lod-selection lod)]
+      (j/assoc-in! st/other-players [player-id lod-to-disable :enabled] false))))
+
+(let [lods #{:lod-0 :lod-1 :lod-2}]
+  (defn- disable-player [player-id]
+    (doseq [l lods]
+      (j/assoc-in! st/other-players [player-id l :enabled] false))
+    (j/assoc-in! st/other-players [player-id :armature :enabled] false)))
+
+(defn- enable-player [player-id]
+  (j/assoc-in! st/other-players [player-id :armature :enabled] true))
+
+(defn- enable-username [player-id]
+  (j/assoc-in! st/other-players [player-id :char-name :enabled] true))
+
+(defn- disable-username [player-id]
+  (j/assoc-in! st/other-players [player-id :char-name :enabled] false))
+
+(def distances #js {})
+(def lod-0-threshold 1.5)
+(def lod-1-threshold 5)
+(def lod-2-threshold 25)
+(def animation-on-threshold 20)
+
+(defonce visible-player-ids (js/Set.))
+(defonce non-visible-player-ids (js/Set.))
+
+(defn- process-players [world-layer]
+  (j/call visible-player-ids :clear)
+  (j/call non-visible-player-ids :clear)
+  (doseq [mesh-instances (j/get world-layer :transparentMeshInstances)]
+    (when-let [player-id (and (j/get mesh-instances :visibleThisFrame)
+                              (j/get-in mesh-instances [:node :player_id]))]
+      (j/call visible-player-ids :add player-id))
+    (when-let [player-id (and (not (j/get mesh-instances :visibleThisFrame))
+                              (j/get-in mesh-instances [:node :player_id]))]
+      (j/call non-visible-player-ids :add player-id)))
+  (doseq [id (js/Object.keys st/other-players)
+          :let [distance (st/distance-to id)]]
+    (when-not (= (j/get distances id) distance)
+      (j/assoc! distances id distance)
+      (let [username-distance (if (st/enemy? id) 10 5)]
+        (cond
+          (< distance lod-0-threshold) (set-lod :lod-0 id)
+          (< distance lod-1-threshold) (set-lod :lod-1 id)
+          (< distance lod-2-threshold) (set-lod :lod-2 id)
+          :else (disable-player id))
+        (when (< distance lod-2-threshold)
+          (enable-player id))
+        (if (<= distance username-distance)
+          (enable-username id)
+          (disable-username id))
+
+        (cond
+          (j/call non-visible-player-ids :has id)
+          (j/assoc-in! st/other-players [id :anim-component :enabled] false)
+
+          (and  (j/call visible-player-ids :has id)
+                (<= distance animation-on-threshold))
+          (j/assoc-in! st/other-players [id :anim-component :enabled] true)
+
+          :else
+          (j/assoc-in! st/other-players [id :anim-component :enabled] false))))))
+
 (let [find-fn (fn [t] (lod-keys t))]
   (defn- process-mesh-instance [mesh-instance]
     (when ^boolean (j/get mesh-instance :visibleThisFrame)
@@ -118,13 +187,22 @@
   (let [world-layer (j/call-in app [:scene :layers :getLayerByName] "World")]
     (j/assoc! world-layer :onPostCull (functions/throttle
                                         (fn [_]
-                                          (.forEach (j/get world-layer :opaqueMeshInstances) process-mesh-instance))
+                                          (.forEach (j/get world-layer :opaqueMeshInstances) process-mesh-instance)
+                                          (process-players world-layer))
                                         500))))
+
+(defn- check-distances-map []
+  (js/setInterval
+    (fn []
+      (when (> (count (js/Object.keys st/other-players)) 100)
+        (set! distances #js {})))
+    60000))
 
 (defn init []
   (println "LOD manager starting...")
   (create-template-indexes)
-  (process-on-post-cull))
+  (process-on-post-cull)
+  (check-distances-map))
 
 (on :start-lod-manager #(init))
 

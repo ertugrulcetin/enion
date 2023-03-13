@@ -1,5 +1,6 @@
 (ns enion-cljs.ui.db
   (:require
+    [enion-cljs.common :refer [dev?]]
     [enion-cljs.ui.ring-buffer :as rb]))
 
 (def default-db
@@ -22,13 +23,16 @@
    :congrats-text? false
    :player {:skills []
             :skill-move nil}
-   :servers {:list {"EU-1" {:ws-url "wss://enion-eu-1.fly.dev:443/ws"
-                            :stats-url "https://enion-eu-1.fly.dev/stats"}
-                    "EU-2" {:ws-url "wss://enion-eu-2.fly.dev:443/ws"
-                            :stats-url "https://enion-eu-2.fly.dev/stats"}
-                    "EU-3" {:ws-url "wss://enion-eu-3.fly.dev:443/ws"
-                            :stats-url "https://enion-eu-3.fly.dev/stats"}
-                    "BR-1" {:ws-url "wss://enion-br-1.fly.dev:443/ws"
-                            :stats-url "https://enion-br-1.fly.dev/stats"}
-                    "BR-2" {:ws-url "wss://enion-br-2.fly.dev:443/ws"
-                            :stats-url "https://enion-br-2.fly.dev/stats"}}}})
+   :servers {:list (if dev?
+                     {"local" {:ws-url "ws://localhost:3000/ws"
+                               :stats-url "http://localhost:3000/stats"}}
+                     {"EU-1" {:ws-url "wss://enion-eu-1.fly.dev:443/ws"
+                              :stats-url "https://enion-eu-1.fly.dev/stats"}
+                      "EU-2" {:ws-url "wss://enion-eu-2.fly.dev:443/ws"
+                              :stats-url "https://enion-eu-2.fly.dev/stats"}
+                      "EU-3" {:ws-url "wss://enion-eu-3.fly.dev:443/ws"
+                              :stats-url "https://enion-eu-3.fly.dev/stats"}
+                      "BR-1" {:ws-url "wss://enion-br-1.fly.dev:443/ws"
+                              :stats-url "https://enion-br-1.fly.dev/stats"}
+                      "BR-2" {:ws-url "wss://enion-br-2.fly.dev:443/ws"
+                              :stats-url "https://enion-br-2.fly.dev/stats"}})}})
