@@ -7,6 +7,7 @@
     [enion-backend.routes.mage]
     [enion-backend.routes.priest]
     [enion-backend.routes.warrior]
+    [enion-backend.routes.party]
     [mount.core :as mount]
     [reitit.ring :as ring]))
 
