@@ -135,18 +135,17 @@
           (enable-player id))
         (if (<= distance username-distance)
           (enable-username id)
-          (disable-username id))
+          (disable-username id))))
+    (cond
+      (j/call non-visible-player-ids :has id)
+      (j/assoc-in! st/other-players [id :anim-component :enabled] false)
 
-        (cond
-          (j/call non-visible-player-ids :has id)
-          (j/assoc-in! st/other-players [id :anim-component :enabled] false)
+      (and (j/call visible-player-ids :has id)
+           (<= distance animation-on-threshold))
+      (j/assoc-in! st/other-players [id :anim-component :enabled] true)
 
-          (and  (j/call visible-player-ids :has id)
-                (<= distance animation-on-threshold))
-          (j/assoc-in! st/other-players [id :anim-component :enabled] true)
-
-          :else
-          (j/assoc-in! st/other-players [id :anim-component :enabled] false))))))
+      :else
+      (j/assoc-in! st/other-players [id :anim-component :enabled] false))))
 
 (let [find-fn (fn [t] (lod-keys t))]
   (defn- process-mesh-instance [mesh-instance]
