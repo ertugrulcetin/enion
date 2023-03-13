@@ -1060,9 +1060,7 @@
                                                        (dispatch [::events/open-score-board]))
 
                                                      (= code "Space")
-                                                     (do
-                                                       (.preventDefault e)
-                                                       (tutorial/next-intro))
+                                                     (tutorial/next-intro)
 
                                                      (= code "Escape")
                                                      (do
