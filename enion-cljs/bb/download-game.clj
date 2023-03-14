@@ -82,10 +82,11 @@
 
 (def index-html-path (str project-dir "/index.html"))
 (def index-html (slurp index-html-path))
+(def title "<title>Enion Online - The Epic PvP Battle between Orcs and Humans</title>")
 
 (with-open [w (io/writer index-html-path)]
   (-> index-html
-      (str/replace #"<title>enion</title>" "<title>Enion Online</title>")
+      (str/replace #"<title>enion</title>" title)
       (str/replace #"</head>" "<script src=\"https://game-cdn.poki.com/scripts/v2/poki-sdk.js\"></script>\n</head>")
       (str/replace #"<script src=\"playcanvas-stable.min.js\"></script>" "")
       (str/replace #"<script src=\"__settings__.js\"></script>" "")
