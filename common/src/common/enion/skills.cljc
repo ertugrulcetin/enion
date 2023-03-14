@@ -142,8 +142,8 @@
               :cooldown 200
               :damage-fn (create-damage-fn 20 50)}
 
-   "fleetFoot" {:cooldown 26000
-                :cooldown-asas 13000
+   "fleetFoot" {:cooldown 26500
+                :cooldown-asas 13500
                 :name "Fleet Foot"
                 :description (str "Increases your character's running speed by 30% for 25 seconds. "
                                   "(Assassins receive a 50% increase for 12 seconds)")

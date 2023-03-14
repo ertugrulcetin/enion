@@ -981,7 +981,7 @@
              [error-popup err])]])})))
 
 (defn- mobile-user-modal []
-  [:div (styles/init-modal)
+  [:div {:class (styles/init-modal)}
    [:p "This game is not supported on mobile and tablet devices yet"]
    [:p "Please use a desktop computer to play"]])
 

@@ -5,9 +5,9 @@
     [enion-backend.routes.asas]
     [enion-backend.routes.home :refer [home-routes]]
     [enion-backend.routes.mage]
+    [enion-backend.routes.party]
     [enion-backend.routes.priest]
     [enion-backend.routes.warrior]
-    [enion-backend.routes.party]
     [mount.core :as mount]
     [reitit.ring :as ring]))
 

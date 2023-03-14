@@ -24,8 +24,7 @@
            :output-dir "resources/public/js/compiled"
            :asset-path "/js/compiled"
            :modules {:app {:init-fn enion-cljs.core/init
-                           :prepend-js "if (window.location.hostname !== \"enion.io\" &&
-                                        window.location.hostname !== \"localhost\")
+                           :prepend-js "if (window.location.hostname.endsWith(\".fly.dev\"))
                                         {window.location.href = \"https://enion.io\";}"}}
            :devtools {:preloads [day8.re-frame-10x.preload]
                       ;:autoload false
