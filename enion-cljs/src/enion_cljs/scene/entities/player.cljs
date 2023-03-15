@@ -139,6 +139,7 @@
 (defn- look-at-&-run-towards-selected-player [e]
   (when (and (st/alive?) (= "KeyR" (j/get-in e [:event :code])))
     (when-let [selected-player (some-> (st/get-selected-player-id) (st/get-other-player-entity))]
+      (st/process-running)
       (let [selected-player-pos (pc/get-pos selected-player)
             x (j/get selected-player-pos :x)
             y (j/get selected-player-pos :y)
