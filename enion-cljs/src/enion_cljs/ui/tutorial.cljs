@@ -24,6 +24,7 @@
                                          (reset! current-intro nil)
                                          (js/setTimeout #(j/assoc! st/settings :tutorial? false) 200)
                                          (fire :ui-show-panel? true)
+                                         (fire :on-ui-element? false)
                                          (when on-exit (on-exit))))
            intro (j/call intro :setOptions
                          (clj->js
@@ -32,6 +33,7 @@
                             (clj->js steps)}))]
        (j/call intro :start)
        (j/assoc! st/settings :tutorial? true)
+       (fire :on-ui-element? true)
        (when-not show-ui-panel?
          (fire :ui-show-panel? false))))))
 
@@ -47,7 +49,8 @@
 
 (defn how-to-rotate-camera []
   [{:title "How to rotate the camera?"
-    :intro (str "<b>Click</b> and <b>hold</b> the <b>RIGHT MOUSE</b> button to adjust the camera rotation.<br/>"
+    :intro (str "<b>Click</b> and <b>hold</b> the <b>RIGHT MOUSE</b> button to adjust the camera rotation. "
+                "Or use <b>Q</b> and <b>E</b> keys.<br/>"
                 "<img src=\"img/rightmousebutton.jpeg\" style=\"position: relative;left: calc(50% - 45px);top: 20px;\">")}])
 
 (defn how-to-run-faster []

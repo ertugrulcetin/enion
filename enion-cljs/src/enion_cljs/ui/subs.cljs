@@ -1,5 +1,6 @@
 (ns enion-cljs.ui.subs
   (:require
+    [breaking-point.core :as bp]
     [common.enion.skills :as common.skills]
     [enion-cljs.ui.tutorial :as tutorials]
     [re-frame.core :refer [reg-sub]]))
@@ -264,8 +265,10 @@
   (fn [db [_ tutorial]]
     (if tutorial
       (-> db :tutorials (get tutorial))
-      (let [finished-tutorials (set (keys (:tutorials db)))]
-        (take 3 (remove #(finished-tutorials (first %)) tutorials/tutorials-order))))))
+      (let [finished-tutorials (set (keys (:tutorials db)))
+            screen-height (-> db ::bp/breakpoints :screen-height)
+            num-of-tutorials-to-show (if (< screen-height 500) 2 3)]
+        (take num-of-tutorials-to-show (remove #(finished-tutorials (first %)) tutorials/tutorials-order))))))
 
 (reg-sub
   ::congrats-text?
@@ -293,6 +296,11 @@
   ::servers
   (fn [db]
     (-> db :servers :list)))
+
+(reg-sub
+  ::current-server
+  (fn [db]
+    (-> db :servers :current-server)))
 
 (reg-sub
   ::connecting-to-server

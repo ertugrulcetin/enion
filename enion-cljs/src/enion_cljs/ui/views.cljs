@@ -689,22 +689,26 @@
   (let [settings @(subscribe [::subs/settings])
         ping? (:ping? settings)
         fps? (:fps? settings)
-        online @(subscribe [::subs/online])]
+        online @(subscribe [::subs/online])
+        server @(subscribe [::subs/current-server])]
     [:button
      {:class (styles/online-counter ping? fps?)}
-     (str "Online: " (or online "-"))]))
+     (str "Online: " (or online "-") " (" server ")")]))
 
 (defn- tutorials []
-  [:div (styles/tutorial-container)
-   [:div {:style {:display :flex
-                  :flex-direction :column
-                  :gap "5px"}}
-    (for [[t title f show-ui-panel?] @(subscribe [::subs/tutorials])]
-      ^{:key t}
-      [:button
-       {:class (styles/tutorials)
-        :on-click #(tutorial/start-intro (f) nil show-ui-panel?)}
-       title])]])
+  (let [settings @(subscribe [::subs/settings])
+        ping? (:ping? settings)
+        fps? (:fps? settings)]
+    [:div (styles/tutorial-container (and ping? fps?))
+     [:div {:style {:display :flex
+                    :flex-direction :column
+                    :gap "5px"}}
+      (for [[t title f show-ui-panel?] @(subscribe [::subs/tutorials])]
+        ^{:key t}
+        [:button
+         {:class (styles/tutorials)
+          :on-click #(tutorial/start-intro (f) nil show-ui-panel?)}
+         title])]]))
 
 (defn- temp-container-for-fps-ping-online []
   [:div#temp-container-for-fps-ping-online

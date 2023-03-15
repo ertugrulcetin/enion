@@ -600,10 +600,10 @@
           (and (not ping?) fps?) "50px")}
   [:&:hover {:border "2px solid #10131dcc"}])
 
-(defattrs tutorial-container []
+(defattrs tutorial-container [ping-and-fps?]
   {:position :absolute
    :left "5px"
-   :top "115px"
+   :top (if ping-and-fps? "135px" "115px")
    :z-index 5})
 
 (defclass tutorials []
