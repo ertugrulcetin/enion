@@ -119,19 +119,19 @@
                   :description (str "Powerful fire-based attack that unleashes a burst "
                                     "of intense flames in a certain radius")
                   :required-mana 300
-                  :damage-fn (create-damage-fn 300 400)}
+                  :damage-fn (create-damage-fn 350 450)}
    "attackSingle" {:cooldown 2000
                    :name "Flame Strike"
                    :description (str "Long range fire-based attack that unleashes a "
                                      "devastating blast of flame on a single enemy")
                    :required-mana 150
-                   :damage-fn (create-damage-fn 150 200)}
+                   :damage-fn (create-damage-fn 200 275)}
    "attackIce" {:cooldown 4000
                 :name "Frostfall"
                 :description (str "Ice skill has a 20% chance of freezing enemies. "
                                   "Slows the target's movement speed for 2.5 seconds")
                 :required-mana 200
-                :damage-fn (create-damage-fn 100 175)
+                :damage-fn (create-damage-fn 150 250)
                 :effect-duration 2500}
    "teleport" {:cooldown 1000
                :name "Teleport"
