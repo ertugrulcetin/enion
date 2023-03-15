@@ -30,6 +30,33 @@ pc.script.createLoadingScreen(function (app) {
         bar.id = 'progress-bar';
         container.appendChild(bar);
 
+        var para = document.createElement("p");
+        var node = document.createTextNode("For the best experience, please use a Chrome-based browser");
+        para.appendChild(node);
+        splash.appendChild(para);
+        para.style.color = "white";
+        para.style.fontSize = "24px";
+        para.style.fontWeight = "bold";
+        para.style.textAlign = "center";
+        para.style.marginTop = "15px";
+        para.style.marginBottom = "15px";
+
+        var container = document.createElement('div');
+        container.style.position = 'relative';
+        container.style.width = '100%';
+        container.style.height = '50px'; // match the height of the image
+
+        var chrome = document.createElement('img');
+        chrome.src = 'img/chrome.png';
+        chrome.style.display = 'block';
+        chrome.style.width = '75px';
+        chrome.style.height = '75px';
+        chrome.style.position = 'absolute';
+        chrome.style.left = '50%';
+        chrome.style.transform = 'translateX(-50%)';
+
+        container.appendChild(chrome);
+        splash.appendChild(container);
     };
 
     var hideSplash = function () {
