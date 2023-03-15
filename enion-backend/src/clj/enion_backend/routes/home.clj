@@ -1,6 +1,7 @@
 (ns enion-backend.routes.home
   (:require
     [aleph.http :as http]
+    [clojure.set :as set]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
     [common.enion.skills :as common.skills]
@@ -268,9 +269,20 @@
         humans (count (filter (fn [[_ p]] (= "human" (:race p))) players))]
     (= max-number-of-players (+ orcs humans))))
 
+(defn- find-least-repetitive-class [race current-players]
+  (let [players (filter #(= race (:race %)) (vals current-players))]
+    (or (first (shuffle (set/difference class-set (set (keep :class players)))))
+        (->> players
+             (group-by :class)
+             (vals)
+             (sort-by count)
+             ffirst
+             :class)
+        (-> class-set shuffle first))))
+
 (reg-pro
   :init
-  (fn [{id :id {:keys [username race class]} :data}]
+  (fn [{:keys [id current-players] {:keys [username race class]} :data}]
     (cond
       (full?) {:error :server-full}
       (and (= race "human") (human-race-full?)) {:error :human-race-full}
@@ -278,19 +290,23 @@
       (not (common.skills/username? username)) {:error :invalid-username}
       (or ((get-usernames) (str/lower-case username))
           (= "system" (str/lower-case username))) {:error :username-taken}
-      (not (race-set race)) {:error :invalid-race}
-      (not (class-set class)) {:error :invalid-class}
       :else (do
               (println "Player joining...")
-              (let [pos (if (= "orc" race)
+              (let [orcs-count (count (get-orcs current-players))
+                    humans-count (count (get-humans current-players))
+                    race (or race (cond
+                                    (human-race-full?) "orc"
+                                    (orc-race-full?) "human"
+                                    (< humans-count orcs-count) "human"
+                                    :else "orc"))
+                    class (or class (find-least-repetitive-class race current-players))
+                    pos (if (= "orc" race)
                           (common.skills/random-pos-for-orc)
                           (common.skills/random-pos-for-human))
                     health (get-in common.skills/classes [class :health])
                     mana (get-in common.skills/classes [class :mana])
                     attrs {:id id
-                           ;; :username (str username "_" id)
                            :username username
-                           ;; :race (if (odd? id) "human" "orc")
                            :race race
                            :class class
                            :health health
