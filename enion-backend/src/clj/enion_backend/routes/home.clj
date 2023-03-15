@@ -590,7 +590,7 @@
 
 (reg-pro
   :re-spawn
-  (fn [{:keys [id]}]
+  (fn [{:keys [id data]}]
     (let [players* @players
           w* @world]
       (when-let [player (get players* id)]
@@ -602,6 +602,10 @@
                         new-pos (if (= "orc" (:race player))
                                   (common.skills/random-pos-for-orc)
                                   (common.skills/random-pos-for-human))
+                        {:keys [px py pz]} world-state
+                        new-pos (if (:commercial-break-rewarded data)
+                                  [px py pz]
+                                  new-pos)
                         [x y z] new-pos]
                     (doseq [t effect-tasks]
                       (tea/cancel! t))

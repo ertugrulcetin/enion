@@ -434,11 +434,14 @@
 
 (defattrs re-spawn-modal []
   {:composes [(party-request-modal)]
-   :width "30%"})
+   :width "30%"
+   :z-index 20})
 
 (defattrs re-spawn-button-container []
   {:display :flex
    :justify-content :center
+   :align-items :center
+   :flex-direction :column
    :margin-top "20px"})
 
 (defclass re-spawn-button []
@@ -789,3 +792,8 @@
   (at-media {:max-width "1250px"}
             {:width "40px"
              :height "30px"}))
+
+(defclass re-spawn-ad-button []
+  {:composes [(get-hp-mp-potions-for-free)]
+   :font-size "18px"
+   :left :unset})

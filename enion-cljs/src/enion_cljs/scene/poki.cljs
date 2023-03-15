@@ -26,11 +26,11 @@
     (-> (j/call-in js/window [:PokiSDK :commercialBreak])
         (.then #(gameplay-start)))))
 
-(defn rewarded-break []
+(defn rewarded-break [ad-type]
   (when (j/get js/window :PokiSDK)
     (-> (j/call-in js/window [:PokiSDK :rewardedBreak])
         (.then #(if %
-                  (fire :rewarded-break-potions)
+                  (fire ad-type)
                   (do
                     (println "No reward due to ad blocker!")
                     (fire :ui-show-adblock-warning-text)))))))

@@ -3,8 +3,6 @@
     ["bad-words" :as bad-words]
     ["react-device-detect" :as device-dec]
     [applied-science.js-interop :as j]
-    [breaking-point.core :as bp]
-    [clojure.string :as str]
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on]]
     [enion-cljs.ui.events :as events]
@@ -17,6 +15,9 @@
 
 (def mouse-x (r/atom nil))
 (def mouse-y (r/atom nil))
+
+(def how-often-to-show-ad 3)
+(def death-count (atom -1))
 
 (defn- img->img-url [img]
   (str "img/" img))
@@ -197,7 +198,7 @@
        [skill i s])
      @(subscribe [::subs/skills]))])
 
-(defn- get-hp-&-mp-potions-ad []
+(defn- create-ad-button [_]
   (let [f (fn [e]
             (when (= "Space" (j/get e :code))
               (.preventDefault e)))
@@ -206,12 +207,18 @@
       {:component-did-mount (fn [] (some-> @ref (.addEventListener "keydown" f false)))
        :component-will-unmount (fn [] (some-> @ref (.removeEventListener "keydown" f false)))
        :reagent-render
-       (fn []
+       (fn [{:keys [class on-click text disabled]}]
          [:button
           {:ref #(reset! ref %)
-           :class (styles/get-hp-mp-potions-for-free)
-           :on-click #(dispatch [::events/show-hp-mp-potions-ads])}
-          "Get Hp & Mp potions for Free! \uD83C\uDFAC"])})))
+           :disabled disabled
+           :class class
+           :on-click on-click}
+          text])})))
+
+(defn- get-hp-&-mp-potions-ad []
+  [create-ad-button {:class (styles/get-hp-mp-potions-for-free)
+                     :on-click #(dispatch [::events/show-ad :rewarded-break-potions])
+                     :text "Get Hp & Mp potions for Free! \uD83C\uDFAC"}])
 
 (defn- actions-section []
   [:div (styles/actions-container)
@@ -546,7 +553,8 @@
                                                            result (if (<= result 0) 0 result)]
                                                        (reset! countdown-seconds result)))
                                                    500)]
-                                (reset! interval-id interval-id*)))
+                                (reset! interval-id interval-id*)
+                                (swap! death-count inc)))
        :component-did-update (fn []
                                (when (= 0 @countdown-seconds)
                                  (some-> @interval-id js/clearInterval)))
@@ -554,15 +562,25 @@
                          [:div (styles/re-spawn-modal)
                           (if (> @countdown-seconds 0)
                             [:p (str "You need to wait " (int @countdown-seconds) " seconds to re-spawn")]
-                            [:p "Press OK to return back to the re-spawn location"])
-                          [:div (styles/re-spawn-button-container)
-                           [:button
-                            {:disabled (> @countdown-seconds 0)
-                             :class (styles/re-spawn-button)
-                             :on-click #(do
-                                          (js/clearInterval @interval-id)
-                                          (on-ok))}
-                            "OK"]]])})))
+                            [:p "Press OK to return to the respawn point at the base"])
+                          (when-not (> @countdown-seconds 0)
+                            [:div (styles/re-spawn-button-container)
+                             [:button
+                              {:disabled (> @countdown-seconds 0)
+                               :class (styles/re-spawn-button)
+                               :on-click #(do
+                                            (js/clearInterval @interval-id)
+                                            (on-ok))}
+                              "OK"]
+                             (when (and (= (mod @death-count how-often-to-show-ad) 0)
+                                        (not (> @countdown-seconds 0)))
+                               [:<>
+                                [:p "Or watch an Ad to respawn here"]
+                                [create-ad-button {:class (styles/re-spawn-ad-button)
+                                                   :on-click #(do
+                                                                (js/clearInterval @interval-id)
+                                                                (dispatch [::events/show-ad :rewarded-break-re-spawn]))
+                                                   :text "Watch Ad to respawn here! \uD83C\uDFAC"}]])])])})))
 
 (defn re-spawn-modal []
   (let [{:keys [open? on-ok time]} @(subscribe [::subs/re-spawn-modal])]
@@ -1047,15 +1065,16 @@
   (when @(subscribe [::subs/adblock-warning-text?])
     [:div
      {:style {:position :absolute
+              :background-color :black
+              :border-radius "5px"
+              :padding "10px"
               :top "20%"
-              :left "calc(50% + 35px)"
+              :left "calc(50%)"
               :transform "translate(-50%, -50%)"
               :font-size "32px"
               :z-index 99
               :color :white}}
-     [:span
-      {:style {:text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}}
-      "You need to disable your Adblock in order to get free potions!"]]))
+     [:span "You need to disable Adblock!"]]))
 
 ;; TODO when game is ready then show HUD
 (defn main-panel []

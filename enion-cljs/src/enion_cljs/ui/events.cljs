@@ -434,9 +434,9 @@
                        :dispatch [::hide-congrats-text]}]}))
 
 (reg-event-fx
-  ::show-hp-mp-potions-ads
-  (fn []
-    {::fire [:rewarded-break]}))
+  ::show-ad
+  (fn [_ [_ ad-type]]
+    {::fire [:rewarded-break ad-type]}))
 
 (reg-event-fx
   ::reset-tutorials
@@ -452,7 +452,7 @@
 
 (reg-event-fx
   ::show-adblock-warning-text
-  (fn [{:keys [db]} _]
+  (fn [{:keys [db]}]
     {:db (assoc db :adblock-warning-text? true)
      :dispatch-later [{:ms 5000
                        :dispatch [::hide-adblock-warning-text]}]}))

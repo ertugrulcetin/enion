@@ -255,6 +255,10 @@
         (st/set-health health)
         (st/set-mana mana)))))
 
+(on :rewarded-break-re-spawn
+    (fn []
+      (dispatch-pro :re-spawn {:commercial-break-rewarded true})))
+
 (let [skills-effects-before-response #{"heal" "cure" "breakDefense" "attackRange" "attackSingle" "attackIce"}
       temp-pos (pc/vec3)]
   (defn- process-world-snapshot [world]
@@ -526,7 +530,8 @@
         (fire :clear-all-cooldowns)
         (st/set-mana mana)
         (st/set-health health)
-        (pc/set-anim-int (st/get-model-entity) "health" 100)))))
+        (pc/set-anim-int (st/get-model-entity) "health" 100)
+        (st/cancel-target-pos)))))
 
 (comment
   (send-states-to-server)
