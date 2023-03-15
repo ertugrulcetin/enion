@@ -302,7 +302,7 @@
     (j/assoc-in! username-text-entity [:element :color] st/username-color)
     (when enemy?
       (j/assoc-in! username-text-entity [:element :color] st/username-enemy-color))
-    (j/assoc-in! username-text-entity [:element :outlineThickness] 1.5)
+    (j/assoc-in! username-text-entity [:element :outlineThickness] 0.5)
     (pc/add-child template-entity username-text-entity)
     (when (and (= race "orc")
                (or (= class "priest")

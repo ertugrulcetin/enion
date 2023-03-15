@@ -1,6 +1,8 @@
 (ns enion-backend.routes.home
   (:require
     [aleph.http :as http]
+    [clojure.edn :as edn]
+    [clojure.java.io :as io]
     [clojure.set :as set]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
@@ -25,6 +27,11 @@
       ExecutorService
       Executors
       TimeUnit)))
+
+(def usernames-map (edn/read-string (slurp (io/resource "usernames.edn"))))
+
+;; Usage example:
+;; (slurp-edn-file "yourfile.edn")
 
 ;; TODO enable ping checks...
 
@@ -280,16 +287,28 @@
              :class)
         (-> class-set shuffle first))))
 
+(defn- generate-username [username race class current-players]
+  (if (str/blank? username)
+    (let [taken-usernames (->> current-players
+                               (filter (fn [[_ p]] (= race (:race p))))
+                               (map (fn [[_ p]] (:username p)))
+                               set)]
+      (-> (set/difference (usernames-map class) taken-usernames) shuffle first))
+    username))
+
 (reg-pro
   :init
   (fn [{:keys [id current-players] {:keys [username race class]} :data}]
     (cond
+      ;; TODO add ping check here, because users could wait others...
       (full?) {:error :server-full}
       (and (= race "human") (human-race-full?)) {:error :human-race-full}
       (and (= race "orc") (orc-race-full?)) {:error :orc-race-full}
-      (not (common.skills/username? username)) {:error :invalid-username}
-      (or ((get-usernames) (str/lower-case username))
-          (= "system" (str/lower-case username))) {:error :username-taken}
+      (and (not (str/blank? username))
+           (not (common.skills/username? username))) {:error :invalid-username}
+      (and (not (str/blank? username))
+           (or ((get-usernames) (str/lower-case username))
+               (= "system" (str/lower-case username)))) {:error :username-taken}
       :else (do
               (println "Player joining...")
               (let [orcs-count (count (get-orcs current-players))
@@ -305,6 +324,7 @@
                           (common.skills/random-pos-for-human))
                     health (get-in common.skills/classes [class :health])
                     mana (get-in common.skills/classes [class :mana])
+                    username (generate-username username race class current-players)
                     attrs {:id id
                            :username username
                            :race race

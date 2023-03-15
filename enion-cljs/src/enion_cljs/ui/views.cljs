@@ -884,7 +884,7 @@
                                    @class])}
             (if (= connecting-server server-name)
               "Connecting..."
-              "Connect")]]]))}))
+              "Play")]]]))}))
 
 (defn- server-list [username race class]
   [:div (styles/server-stats-container)
@@ -907,13 +907,31 @@
     :value @username
     :on-change #(reset! username (-> % .-target .-value))
     :on-blur #(swap! username ui.utils/clean)
-    :placeholder "Enter your username"
+    :placeholder "Enter username, leave empty for random one"
     :class (styles/init-modal-username-input)}])
 
 (defn- select-race [race]
   [:<>
    [:p "Select race"]
    [:div (styles/init-modal-race-container)
+    [:img
+     {:style {:width "30%"
+              :height :auto
+              :position :absolute
+              :left "35px"
+              :top "55px"
+              :cursor :pointer}
+      :src "img/orcs.png"
+      :on-click #(reset! race "orc")}]
+    [:img
+     {:style {:width "30%"
+              :height :auto
+              :position :absolute
+              :right "35px"
+              :top "55px"
+              :cursor :pointer}
+      :src "img/humans.png"
+      :on-click #(reset! race "human")}]
     [:button
      {:class (styles/init-modal-orc-button (= "orc" @race))
       :on-click #(reset! race "orc")}

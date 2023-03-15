@@ -641,7 +641,7 @@
 
 (defclass init-modal-username-input []
   {:color "white"
-   :width "300px"
+   :width "350px"
    :height "20px"
    :font-family "IMMORTAL"
    :border-radius "5px"
@@ -649,7 +649,7 @@
    :background-color "#10131dcc"
    :outline :none
    :padding "5px"
-   :font-size "18px"
+   :font-size "16px"
    :text-align :center})
 
 (defattrs init-modal-race-container []
@@ -663,7 +663,8 @@
 
 (defclass init-modal-button [race selected?]
   {:composes [(re-spawn-button)]
-   :height "30px"}
+   :height "30px"
+   :cursor :pointer}
   [:&:disabled {:opacity 0.5
                 :cursor :not-allowed
                 :color "grey !important"
@@ -684,7 +685,10 @@
     (list
       [:& {:color "white"}]
       [:&:hover {:color "white !important"
-                 :border "2px solid white"}])))
+                 :border "2px solid white"}]
+      (when selected?
+        [:& {:color "white"
+             :border "2px solid white"}]))))
 
 (defclass init-modal-orc-button [selected?]
   {:composes [(init-modal-button nil nil)]}
@@ -729,6 +733,8 @@
              :color "white !important"}])
 
 (defattrs server-stats-container []
+  (at-media {:max-width "1250px"}
+            {:max-height "150px"})
   {:display "flex"
    :justify-content "center"
    :max-height "200px"
@@ -764,6 +770,7 @@
 
 (defclass init-modal-connect-button []
   {:composes [(init-modal-button nil nil)]
+   :background "linear-gradient(to bottom, #32cd32, #006400)"
    :margin-left "10px"
    :height "30px"}
   [:&.connecting
