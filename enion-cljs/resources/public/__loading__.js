@@ -31,7 +31,7 @@ pc.script.createLoadingScreen(function (app) {
         container.appendChild(bar);
 
         var para = document.createElement("p");
-        var node = document.createTextNode("For the best experience, please use a Chrome-based browser");
+        var node = document.createTextNode("For the best experience, please use a Chrome based browser");
         para.appendChild(node);
         splash.appendChild(para);
         para.style.color = "white";
