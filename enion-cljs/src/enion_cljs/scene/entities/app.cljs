@@ -9,7 +9,8 @@
    [enion-cljs.scene.pc :as pc]
    [enion-cljs.scene.poki :as poki]
    [enion-cljs.scene.simulation :as simulation]
-   [enion-cljs.scene.entities.portal :as portal])
+   [enion-cljs.scene.entities.portal :as portal]
+   [enion-cljs.scene.states :as st])
   (:require-macros
    [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -46,6 +47,35 @@
                                       :visibility-change "webkitvisibilitychange"}
     :else (js/console.warn "visibility prop not found in visibility-props fn")))
 
+(defn- optimize-animation-on-update []
+  (j/call-in pc/app [:systems :off] "animationUpdate")
+  (j/call-in pc/app [:systems :on] "animationUpdate"
+    (fn [dt]
+      (let [components (j/get-in pc/app [:systems :anim :store])]
+        (doseq [id (js/Object.keys components)]
+          (when (j/call components :hasOwnProperty id)
+            (let [player-id (j/get-in components [id :entity :player_id])
+                  entity (j/get-in components [id :entity])
+                  component (j/get entity :anim)
+                  component-data (j/get component :data)]
+              (when (and (j/get component-data :enabled) (j/get-in component [:entity :enabled]) (j/get component :playing))
+                (if player-id
+                  (let [distance (st/distance-to player-id)
+                        fixed-timestep (cond
+                                         (< distance 5) 0
+                                         (< distance 8) 0.05
+                                         (< distance 10) 0.1
+                                         (< distance 12) 0.15
+                                         (< distance 15) 0.2
+                                         (< distance 17) 0.25)
+                        fixed-timer (j/get component :fixedTimer 0.0)
+                        _ (j/assoc! component :fixedTimer (+ fixed-timer dt))
+                        fixed-timer (j/get component :fixedTimer)]
+                    (when (>= fixed-timer fixed-timestep)
+                      (j/call component :update fixed-timer)
+                      (j/assoc! component :fixedTimer 0.0)))
+                  (j/call component :update dt))))))))))
+
 ;;TODO when unfocus - another tab etc, then show count down from 5 seconds and block everything...
 (defn init [init-ui]
   (pc/create-script :app
@@ -67,4 +97,5 @@
                   (poki/init)
                   (let [{:keys [hidden visibility-change]} (visibility-props)]
                     (when hidden
-                     (js/document.addEventListener visibility-change #(fire :tab-hidden (not (j/get js/document hidden)))))))}))
+                      (js/document.addEventListener visibility-change #(fire :tab-hidden (not (j/get js/document hidden))))))
+                  (optimize-animation-on-update))}))

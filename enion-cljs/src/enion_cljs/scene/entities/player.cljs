@@ -422,6 +422,7 @@
         lod-1 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_1"))
         lod-2 (pc/find-by-name model-entity (str race "_" class "_mesh_lod_2"))
         id (str id)]
+    (j/assoc! model-entity :player_id id)
     (j/assoc! lod-0 :player_id id)
     (j/assoc! lod-1 :player_id id)
     (j/assoc! lod-2 :player_id id)
@@ -657,69 +658,3 @@
                                   :class "warrior"
                                   :mana 100
                                   :health 100}))))
-
-(comment
-  (js/console.log player)
-  (init {:id 0
-         :username "0000000"
-         :race "orc"
-         :class "mage"
-         :mana 100
-         :health 100})
-  (js/console.log (j/get-in (st/get-player-entity) [:c :sound :slots "run_1"]))
-
-
-  (do
-
-    )
-  (j/call-in (st/get-player-entity) [:c :sound :slots "Slot 1" :play])
-  (j/call-in (st/get-player-entity) [:c :sound :slots "Slot 2" :play])
-  (j/call-in (st/get-player-entity) [:c :sound :slots "Slot 3" :play])
-  (j/call-in (st/get-player-entity) [:c :sound :slots "Slot 4" :play])
-
-
-  (pc/enable (j/get-in player [:effects :attack_r :entity]))
-  (let [[player player2 p3] [(create-player {:id 1
-                                             :username "0000000"
-                                             :race "human"
-                                             :class "asas"
-                                             ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
-                                             :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
-                                             })
-                             (create-player {:id 2
-                                             :username "Gandalf"
-                                             :race "human"
-                                             :class "mage"
-                                             ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
-                                             :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
-                                             })
-                             (create-player {:id 3
-                                             :username "Orc_Warrior"
-                                             :race "orc"
-                                             :class "asas"
-                                             ;:pos [39.0690803527832 0.550000011920929 -42.08248596191406]
-                                             :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
-                                             })]]
-    (j/assoc! other-players (j/get player :id) player)
-    (j/assoc! other-players (j/get player2 :id) player2)
-    (j/assoc! other-players (j/get p3 :id) p3)
-
-    (set! other-players other-players))
-
-  (st/destroy-players)
-  (j/assoc! player :phantom-vision? false)
-  (j/assoc! player :phantom-vision? true)
-
-  (create-skill-fns)
-
-  (j/call-in other-players [1 :entity :rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
-  (j/call-in other-players [2 :entity :setPosition] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
-
-  (skills.effects/apply-effect-attack-flame (j/get other-players 1))
-  (skills.effects/apply-effect-attack-dagger (j/get other-players 1))
-  (move-player (j/get-in other-players [1 :entity]))
-
-  (j/call-in player [:skills :hide])
-  (j/call-in player [:skills :appear])
-  (j/get-in player [:skills :hide])
-  )
