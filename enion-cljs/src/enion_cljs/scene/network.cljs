@@ -282,7 +282,6 @@
         (do
           (st/enable-player-collision id)
           (pc/set-anim-int (st/get-model-entity id) "health" health)
-          ;; TODO remove 'constantly' for prod
           (when-let [tw (j/get-in st/other-players [id :tween :interpolation])]
             (if dev? (j/call (tw) :stop) (j/call tw :stop)))
 
@@ -392,7 +391,6 @@
         effects (dissoc effects :attack-range)]
     (set! world ws)
     (process-world-snapshot-for-player (get ws current-player-id))
-    ;; TODO when tab is not focused, send that data to server and server makes the state idle for this player to other players
     (process-world-snapshot (dissoc ws current-player-id))
     (process-effects effects)
     (process-attack-ranges attack-ranges)

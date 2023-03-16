@@ -12,8 +12,6 @@
   (:require-macros
     [enion-cljs.scene.macros :as m]))
 
-;; TODO current state leftover in idle mode but was able to run at the same time
-;; TODO  move attackR to common-states
 (def events
   (concat
     skills/common-states

@@ -36,11 +36,6 @@
   [x z center-x center-z radius]
   (< (+ (square (- x center-x)) (square (- z center-z))) (square radius)))
 
-;; TODO also need to check is char dead or alive to be able to do that
-;; TODO when char at the corner of the map, set-target-position does not work due to map wall collision
-;;  this.ray.origin.copy(this.cameraEntity.getPosition());
-;;  this.ray.direction.sub(this.ray.origin).normalize();
-
 (defn- get-selected-ally-id [e]
   (let [x (j/get e :x)
         y (j/get e :y)
@@ -72,7 +67,6 @@
 (defn- get-position []
   (pc/get-pos (st/get-player-entity)))
 
-;; TODO also update UI as well
 (defn- show-player-selection-circle []
   (if-let [selected-player-id (j/get player :selected-player-id)]
     (if-let [other-player (j/get other-players selected-player-id)]

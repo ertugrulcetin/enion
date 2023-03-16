@@ -246,7 +246,6 @@
   (fn [db [_ id skill]]
     (assoc-in db [:player :cooldown skill :timeout-id] id)))
 
-;; TODO add throttle to it
 (reg-event-db
   ::set-selected-player
   (fn [db [_ player]]

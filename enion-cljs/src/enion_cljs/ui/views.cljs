@@ -262,7 +262,6 @@
              (scroll-to-bottom elem)))
          (scroll-to-bottom elem)))))
 
-;; TODO when on hover disable character zoom in/out
 (defn- chat-message-box []
   (let [ref (atom nil)]
     (r/create-class
@@ -505,7 +504,6 @@
             (reset! esc-key-pressed? false)
             (js/clearTimeout @esc-key-pressed-timeout-id))))))
 
-;; TODO component starts to countdown when the tab is focused, so it should be started when the action is taken
 (defn- party-request-modal* [username on-accept on-reject time]
   (let [party-request-duration (- common.skills/party-request-duration-in-milli-secs 1000)
         countdown-seconds (r/atom (/ party-request-duration 1000))
@@ -1078,7 +1076,6 @@
               :color :white}}
      [:span "You need to disable Adblock!"]]))
 
-;; TODO when game is ready then show HUD
 (defn main-panel []
   (r/create-class
     {:component-did-mount
