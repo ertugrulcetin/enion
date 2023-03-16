@@ -17,7 +17,7 @@
 (def mouse-y (r/atom nil))
 
 (def how-often-to-show-ad 3)
-(def death-count (atom -1))
+(def death-count (atom 0))
 
 (defn- img->img-url [img]
   (str "img/" img))
@@ -554,7 +554,9 @@
                                                        (reset! countdown-seconds result)))
                                                    500)]
                                 (reset! interval-id interval-id*)
-                                (swap! death-count inc)))
+                                (swap! death-count inc)
+                                (when (not= (mod @death-count how-often-to-show-ad) 0)
+                                  (fire :commercial-break))))
        :component-did-update (fn []
                                (when (= 0 @countdown-seconds)
                                  (some-> @interval-id js/clearInterval)))

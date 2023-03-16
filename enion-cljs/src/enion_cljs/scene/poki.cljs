@@ -36,6 +36,7 @@
                     (fire :ui-show-adblock-warning-text)))))))
 
 (on :rewarded-break rewarded-break)
+(on :commercial-break #(js/setTimeout commercial-break 1000))
 
 (comment
   (init)

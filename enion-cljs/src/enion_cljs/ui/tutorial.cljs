@@ -49,8 +49,7 @@
 
 (defn how-to-rotate-camera []
   [{:title "How to rotate the camera?"
-    :intro (str "<b>Click</b> and <b>hold</b> the <b>RIGHT MOUSE</b> button to adjust the camera rotation. "
-                "Or use <b>Q</b> and <b>E</b> keys.<br/>"
+    :intro (str "<b>Click</b> and <b>hold</b> the <b>RIGHT MOUSE</b> button to adjust the camera rotation.<br/>"
                 "<img src=\"img/rightmousebutton.jpeg\" style=\"position: relative;left: calc(50% - 45px);top: 20px;\">")}])
 
 (defn how-to-run-faster []
@@ -91,8 +90,18 @@
                     "<img src=\"img/enemy_orc.jpeg\" style=\"position: relative;left: calc(50% - 90px);top: 20px;\">"))
       :element (j/call js/document :getElementById (str "skill-" skill))}]))
 
+(defn how-to-rotate-camera-to-the-left []
+  [{:title "How to rotate the camera to the left?"
+    :intro "Press the <b>Q</b> key to rotate the camera to the left."}])
+
+(defn how-to-rotate-camera-to-the-right []
+  [{:title "How to rotate the camera to the right?"
+    :intro "Press the <b>E</b> key to rotate the camera to the right."}])
+
 (def tutorials-order
   [[:how-to-rotate-camera? "Adjust your camera rotation" how-to-rotate-camera]
+   [:rotate-camera-to-the-left "Rotate the camera to the left" how-to-rotate-camera-to-the-left]
+   [:rotate-camera-to-the-right "Rotate the camera to the right" how-to-rotate-camera-to-the-right]
    [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster true]
    [:how-to-use-portal? "Use portal to teleport to the forest" how-to-use-portal]
    [:how-to-cast-skills? "Use your skills to defeat enemies" how-to-cast-skills true]

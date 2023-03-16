@@ -247,8 +247,7 @@
         (st/set-mana mana)
         (pc/set-anim-int (st/get-model-entity) "health" 0)
         (fire :show-re-spawn-modal #(dispatch-pro :re-spawn))
-        (poki/gameplay-stop)
-        (js/setTimeout poki/commercial-break 2000))
+        (poki/gameplay-stop))
 
       (not (and (= health 0) (= 0 current-health)))
       (do
