@@ -610,10 +610,10 @@
 (on :init
     (fn [player-data]
       (if player-script
-        (init-fn player-script player-data)
         (do
           (entity.camera/register-camera-mouse-events)
-          (init player-data)))
+          (init-fn player-script player-data))
+        (init player-data))
       (fire :connect-to-world-state)))
 
 (on :settings-updated
