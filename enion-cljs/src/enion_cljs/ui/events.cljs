@@ -478,12 +478,12 @@
       {:http {:method :post
               :uri stats-url
               :params {:timestamp (js/Date.now)}
-              :on-success [::fetch-server-stats-on-success server-name stats-url]
+              :on-success [::fetch-server-stats-success server-name stats-url]
               :on-failure [:dispatch-later [{:ms 2000
                                              :dispatch [::fetch-server-stats server-name stats-url]}]]}})))
 
 (reg-event-fx
-  ::fetch-server-stats-on-success
+  ::fetch-server-stats-success
   (fn [{:keys [db]} [_ server-name stats-url response]]
     {:db (update-in db [:servers :list server-name] merge response)
      :dispatch-later [{:ms 2000
@@ -499,3 +499,25 @@
                                    :username username
                                    :race race
                                    :class class}]})))
+
+(reg-event-fx
+  ::fetch-server-list
+  (fn []
+    {:http {:method :get
+            :uri "https://enion.io/servers"
+            :on-success [::fetch-server-list-success]
+            :on-failure [::fetch-server-list-failure]}}))
+
+(defn- update-keys [f m]
+  (into {} (map (fn [[k v]] [(f k) v]) m)))
+
+(reg-event-db
+  ::fetch-server-list-success
+  (fn [db [_ response]]
+    (assoc-in db [:servers :list] (update-keys name response))))
+
+(reg-event-fx
+  ::fetch-server-list-failure
+  (fn []
+    {:dispatch-later [{:ms 2000
+                       :dispatch [::fetch-server-list]}]}))

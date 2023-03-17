@@ -4,7 +4,7 @@
     ["react-device-detect" :as device-dec]
     [applied-science.js-interop :as j]
     [common.enion.skills :as common.skills]
-    [enion-cljs.common :refer [fire on]]
+    [enion-cljs.common :refer [fire on dev?]]
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
@@ -909,19 +909,22 @@
               "Play")]]]))}))
 
 (defn- server-list [username race class]
-  [:div (styles/server-stats-container)
-   [:table (styles/server-stats-table)
-    [:thead
-     [:tr
-      [:th (styles/server-stats-orc-cell) "Orcs"]
-      [:th (styles/server-stats-human-cell) "Humans"]
-      [:th (styles/server-stats-total-cell) "Total"]
-      [:th (styles/server-name-cell) "Server"]
-      [:th]]]
-    [:tbody
-     (for [[k v] @(subscribe [::subs/servers])]
-       ^{:key k}
-       [server k v username race class])]]])
+  (let [servers @(subscribe [::subs/servers])]
+    [:div (styles/server-stats-container)
+     (if (empty? servers)
+       [:span "Fetching servers list..."]
+       [:table (styles/server-stats-table)
+        [:thead
+         [:tr
+          [:th (styles/server-stats-orc-cell) "Orcs"]
+          [:th (styles/server-stats-human-cell) "Humans"]
+          [:th (styles/server-stats-total-cell) "Total"]
+          [:th (styles/server-name-cell) "Server"]
+          [:th]]]
+        [:tbody
+         (for [[k v] servers]
+           ^{:key k}
+           [server k v username race class])]])]))
 
 (defn- username-input [username]
   [:input
@@ -998,6 +1001,7 @@
         class (r/atom nil)]
     (r/create-class
       {:component-did-mount #(dispatch [::events/notify-ui-is-ready])
+       :component-will-mount #(when-not dev? (dispatch [::events/fetch-server-list]))
        :component-will-unmount #(fire :on-ui-element? false)
        :reagent-render
        (fn []
