@@ -193,6 +193,8 @@
    :bottom "10px"})
 
 (defattrs chat []
+  (at-media {:max-width "1250px"}
+            {:font-size "12px"})
   {:width "100%"
    :border-radius "5px"
    :text-align :left
@@ -221,6 +223,7 @@
    :line-height "1.65em"
    ;; For Firefox
    :overflow-y :auto
+   :word-wrap :break-word
    :scrollbar-width :none
    :-ms-overflow-style :none}
   scroll-bar
@@ -256,6 +259,8 @@
   {:color "rgb(15 188 3)"})
 
 (defclass chat-input []
+  (at-media {:max-width "1250px"}
+            {:font-size "12px"})
   {:width "calc(100% - 20px)"
    :height "28px"
    :background-color "#10131dcc"
