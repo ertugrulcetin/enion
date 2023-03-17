@@ -3,6 +3,8 @@
     [applied-science.js-interop :as j]
     [enion-cljs.common :refer [dev? on fire]]))
 
+(def game-loading-finished? (atom false))
+
 (defn init []
   (when (j/get js/window :PokiSDK)
     (-> (j/call-in js/window [:PokiSDK :init])
@@ -10,7 +12,8 @@
         (.catch #(js/console.log "Initialized, but the user likely has adblock")))))
 
 (defn game-loading-finished []
-  (when (j/get js/window :PokiSDK)
+  (when (and (not @game-loading-finished?) (j/get js/window :PokiSDK))
+    (reset! game-loading-finished? true)
     (j/call-in js/window [:PokiSDK :gameLoadingFinished])))
 
 (defn gameplay-start []
