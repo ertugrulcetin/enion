@@ -20,6 +20,7 @@
 (defonce current-player-id nil)
 
 (defonce send-state-interval-id (atom nil))
+(defonce get-ping-interval-id (atom nil))
 
 (def sending-states-to-server-tick-rate (/ 1000 30))
 
@@ -35,7 +36,7 @@
   ([pro]
    (dispatch-pro pro nil))
   ([pro data]
-   (if @open?
+   (if (and @open? @socket)
      (j/call @socket :send (msg/pack {:pro pro
                                       :data data
                                       :timestamp (js/Date.now)}))
@@ -92,6 +93,12 @@
       (fire :ui-init-tutorial-data data)
       (chest/register-chest-trigger-events (not (:what-is-the-first-quest? tutorials)))
       (poki/gameplay-start))))
+
+(on :close-socket-for-re-init
+    (fn []
+      (poki/gameplay-stop)
+      (poki/commercial-break)
+      (some-> @socket (j/call :close 3001 "re-init"))))
 
 (defmethod dispatch-pro-response :player-join [params]
   (dlog "new join" (:player-join params))
@@ -411,11 +418,13 @@
   (reset! send-state-interval-id nil))
 
 (defn- create-ping-interval []
-  (js/setInterval
-    ;; TODO online counter icin surekli atma, birileri girip cikinca at
-    #(when (utils/tab-visible?)
-       (dispatch-pro :ping))
-    1000))
+  (if-let [id @get-ping-interval-id]
+    (js/clearInterval id)
+    (reset! get-ping-interval-id (js/setInterval
+                                   ;; TODO online counter icin surekli atma, birileri girip cikinca at
+                                   #(when (utils/tab-visible?)
+                                      (dispatch-pro :ping))
+                                   1000))))
 
 (defmethod dispatch-pro-response :ping [params]
   (fire :ui-update-ping (:ping params)))
@@ -448,6 +457,8 @@
   (fire :ui-init-modal-error "Connection closed! Please refresh the page.")
   (fire :ui-set-connection-lost))
 
+(def states-to-not-dc #{"init-error" "re-init"})
+
 (on :connect-to-server
     (fn [{:keys [ws-url] :as params}]
       (connect {:url ws-url
@@ -459,13 +470,16 @@
                            (reset! open? true)
                            (on-ws-open params))
                 :on-close (fn [e]
-                            (when-not (= (j/get e :reason) "init-error")
+                            (when (= (j/get e :reason) "re-init")
+                              (fire :socket-closed-for-re-init))
+                            (when-not (states-to-not-dc (j/get e :reason))
                               (j/assoc! st/settings
                                         :ws-connected? false
                                         :ws-closed? false)
-                              (println "WS connection closed.")
-                              (reset! open? false)
-                              (on-ws-close)))
+                              (on-ws-close))
+                            (println "WS connection closed.")
+                            (reset! open? false)
+                            (reset! socket nil))
                 :on-error (fn []
                             (fire :ui-init-modal-error "Couldn't connect to server! Please refresh the page.")
                             (println "WS error occurred!")
@@ -528,7 +542,8 @@
         (st/set-mana mana)
         (st/set-health health)
         (pc/set-anim-int (st/get-model-entity) "health" 100)
-        (st/cancel-target-pos)))))
+        (st/cancel-target-pos)
+        (poki/gameplay-start)))))
 
 (comment
   (send-states-to-server)

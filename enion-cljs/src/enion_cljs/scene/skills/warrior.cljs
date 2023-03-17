@@ -181,7 +181,6 @@
   (j/assoc! player :speed 550)
   player
   (pc/update-anim-speed (st/get-model-entity) "run" 2)
-  (fire :re-init)
 
   (skills.effects/apply-effect-got-defense-break player)
   (skills.effects/apply-effect-hp-potion player)

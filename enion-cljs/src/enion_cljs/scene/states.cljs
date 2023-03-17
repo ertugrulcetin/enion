@@ -10,22 +10,25 @@
 (def speed-fleet-foot 750)
 (def speed-fleet-foot-asas 900)
 
-(defonce player (clj->js {:speed speed
-                          :x 0
-                          :z 0
-                          :target-y nil
-                          :eulers (pc/vec3)
-                          :temp-dir (pc/vec3)
-                          :world-dir (pc/vec3)
-                          :mouse-left-locked? false
-                          :target-pos (pc/vec3)
-                          :target-pos-available? false
-                          :skill-locked? false
-                          :can-r-attack-interrupt? false
-                          :ray (pc/ray)
-                          :hit-position (pc/vec3)
-                          :fleet-foot? false
-                          :sound-run-elapsed-time 0}))
+(def default-player-state
+  {:speed speed
+   :x 0
+   :z 0
+   :target-y nil
+   :eulers (pc/vec3)
+   :temp-dir (pc/vec3)
+   :world-dir (pc/vec3)
+   :mouse-left-locked? false
+   :target-pos (pc/vec3)
+   :target-pos-available? false
+   :skill-locked? false
+   :can-r-attack-interrupt? false
+   :ray (pc/ray)
+   :hit-position (pc/vec3)
+   :fleet-foot? false
+   :sound-run-elapsed-time 0})
+
+(defonce player (clj->js default-player-state))
 
 (defonce other-players #js {})
 (defonce settings #js {})
@@ -38,10 +41,6 @@
 (comment
   (j/assoc! player :speed 900)
   )
-
-(on :tab-hidden
-    (fn [hidden?]
-      (j/assoc! settings :tab-hidden hidden?)))
 
 (on :on-ui-element?
     (fn [on-ui-element?]
@@ -294,12 +293,13 @@
   (not (j/get player :chat-open?)))
 
 (defn process-running []
-  (if (or (and (chat-closed?) (pressing-wasd-or-has-target?))
-          (and (chat-open?)
-               (j/get player :target-pos-available?)
-               (pressing-wasd-or-has-target?)))
-    (pc/set-anim-boolean (get-model-entity) "run" true)
-    (pc/set-anim-boolean (get-model-entity) "run" false)))
+  (when-let [model-entity (get-model-entity)]
+    (if (or (and (chat-closed?) (pressing-wasd-or-has-target?))
+            (and (chat-open?)
+                 (j/get player :target-pos-available?)
+                 (pressing-wasd-or-has-target?)))
+      (pc/set-anim-boolean model-entity "run" true)
+      (pc/set-anim-boolean model-entity "run" false))))
 
 (defn cancel-target-pos []
   (j/assoc! player :target-pos-available? false)
@@ -317,7 +317,26 @@
       (pc/look-at model-entity x (j/get char-pos :y) z true))))
 
 (defn play-sound [track]
-  (j/call-in (get-player-entity) [:c :sound :slots track :play]))
+  (some-> (get-player-entity) (j/call-in [:c :sound :slots track :play])))
 
 (defn stop-sound [track]
-  (j/call-in (get-player-entity) [:c :sound :slots track :stop]))
+  (some-> (get-player-entity) (j/call-in [:c :sound :slots track :stop])))
+
+(on :tab-hidden
+    (fn [hidden?]
+      (process-running)
+      (j/assoc! settings :tab-hidden hidden?)))
+
+(on :re-init
+    (fn []
+      (fire :close-socket-for-re-init)))
+
+(on :socket-closed-for-re-init
+    (fn []
+      (destroy-players)
+      (j/call (j/get player :template-entity) :destroy)
+      (set! other-players #js {})
+      (set! settings #js {})
+      (set! player (clj->js default-player-state))
+      (pc/off-all-keyboard-events)
+      (pc/off-all-mouse-events)))

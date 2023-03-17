@@ -75,15 +75,18 @@
         z 3.5]
     (pc/set-loc-pos ray-end (j/get ray-pos :x) (j/get ray-pos :y) z)))
 
+(defn register-camera-mouse-events []
+  (pc/on-mouse :EVENT_MOUSEMOVE mouse-move)
+  (pc/on-mouse :EVENT_MOUSEWHEEL mouse-wheel)
+  (pc/on-mouse :EVENT_MOUSEDOWN mouse-down)
+  (pc/on-mouse :EVENT_MOUSEUP mouse-up))
+
 (defn- init-fn [this]
   (j/assoc! state :ray-end (pc/find-by-name "ray_end"))
   (set-default-ray-end-z)
   (set! entity (j/get this :entity))
   (set! st/camera-entity entity)
-  (pc/on-mouse :EVENT_MOUSEMOVE mouse-move)
-  (pc/on-mouse :EVENT_MOUSEWHEEL mouse-wheel)
-  (pc/on-mouse :EVENT_MOUSEDOWN mouse-down)
-  (pc/on-mouse :EVENT_MOUSEUP mouse-up)
+  (register-camera-mouse-events)
   (j/call js/document :addEventListener "mouseout" mouse-out)
   (j/call js/document :addEventListener "mouseover" mouse-over)
   (-> js/document

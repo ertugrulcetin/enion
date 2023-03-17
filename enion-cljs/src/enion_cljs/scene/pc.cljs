@@ -152,6 +152,12 @@
 (defn on-keyboard [key f]
   (j/call-in app [:keyboard :on] (key key->code) f))
 
+(defn off-all-keyboard-events []
+  (j/call-in app [:keyboard :off]))
+
+(defn off-all-mouse-events []
+  (j/call-in app [:mouse :off]))
+
 (defn key? [e k]
   (= (j/get e :key) (k key->code)))
 

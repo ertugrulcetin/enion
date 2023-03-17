@@ -27,6 +27,11 @@
     (-> db :settings-modal :open?)))
 
 (reg-sub
+  ::change-server-modal-open?
+  (fn [db]
+    (-> db :change-server-modal :open?)))
+
+(reg-sub
   ::ping?
   (fn [db]
     (-> db :settings :ping?)))

@@ -84,6 +84,16 @@
   (fn [db _]
     (assoc-in db [:settings-modal :open?] false)))
 
+(reg-event-db
+  ::open-change-server-modal
+  (fn [db _]
+    (assoc-in db [:change-server-modal :open?] true)))
+
+(reg-event-db
+  ::close-change-server-modal
+  (fn [db _]
+    (assoc-in db [:change-server-modal :open?] false)))
+
 (reg-fx
   ::dispatch-throttle
   (fn [[id event-vec milli-secs]]
@@ -521,3 +531,9 @@
   (fn []
     {:dispatch-later [{:ms 2000
                        :dispatch [::fetch-server-list]}]}))
+
+(reg-event-fx
+  ::re-init-game
+  (fn []
+    {:dispatch [::initialize-db]
+     ::fire [:re-init]}))

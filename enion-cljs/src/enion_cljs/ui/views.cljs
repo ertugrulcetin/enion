@@ -689,12 +689,22 @@
 (defn- settings-button []
   (let [minimap-open? @(subscribe [::subs/minimap?])
         open? @(subscribe [::subs/settings-modal-open?])]
-    [:button#settings-button
+    [:button
      {:class (styles/settings-button minimap-open?)
       :on-click (if open?
                   #(dispatch [::events/close-settings-modal])
                   #(dispatch [::events/open-settings-modal]))}
      "Settings"]))
+
+(defn- change-server-button []
+  (let [minimap-open? @(subscribe [::subs/minimap?])
+        open? @(subscribe [::subs/change-server-modal-open?])]
+    [:button
+     {:class (styles/change-server-button minimap-open?)
+      :on-click (if open?
+                  #(dispatch [::events/close-change-server-modal])
+                  #(dispatch [::events/open-change-server-modal]))}
+     "Change server"]))
 
 (defn- ping-counter []
   (let [fps? (:fps? @(subscribe [::subs/settings]))
@@ -731,6 +741,23 @@
 (defn- temp-container-for-fps-ping-online []
   [:div#temp-container-for-fps-ping-online
    (styles/temp-container-for-fps-ping-online)])
+
+(defn- change-server-modal []
+  (r/create-class
+    {:component-will-unmount #(fire :on-ui-element? false)
+     :reagent-render
+     (fn []
+       [:div (styles/party-request-modal)
+        [:p "Do you want to exit the game and select a different server?"]
+        [:div (styles/party-request-buttons-container)
+         [:button
+          {:class (styles/party-request-accept-button)
+           :on-click #(dispatch [::events/re-init-game])}
+          "Yes"]
+         [:button
+          {:class (styles/party-request-reject-button)
+           :on-click #(dispatch [::events/close-change-server-modal])}
+          "No"]]])}))
 
 (defn- settings-modal []
   (r/create-class
@@ -1176,9 +1203,12 @@
                [ping-counter])
              [online-counter]
              [tutorials]
+             [change-server-button]
              [settings-button]
              (when @(subscribe [::subs/settings-modal-open?])
                [settings-modal])
+             (when @(subscribe [::subs/change-server-modal-open?])
+               [change-server-modal])
              [selected-player]
              (when @(subscribe [::subs/minimap?])
                [minimap])

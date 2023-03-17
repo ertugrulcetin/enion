@@ -15,8 +15,7 @@
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
-(when dev?
-  (defonce player-default player))
+(defonce player-script nil)
 
 (def char-selection-distance-threshold 35)
 
@@ -229,11 +228,11 @@
   (when (st/mage?)
     (pc/on-mouse :EVENT_MOUSEDOWN
                  (fn [e]
-                   (when (pc/button? e :MOUSEBUTTON_LEFT)
+                   (when (and (st/mage?) (pc/button? e :MOUSEBUTTON_LEFT))
                      (skills.mage/throw-nova e))))
     (pc/on-mouse :EVENT_MOUSEMOVE
                  (fn [e]
-                   (when-not (j/get player :mouse-left-locked?)
+                   (when (and (st/mage?) (not (j/get player :mouse-left-locked?)))
                      (st/show-nova-circle e)))))
 
   (pc/on-mouse :EVENT_MOUSEUP
@@ -508,7 +507,6 @@
     (create-skill-fns player)
     (register-keyboard-events)
     (register-mouse-events)
-    (register-collision-events player-entity)
     (update-fleet-foot-cooldown-if-asas (j/get player :class))
     (fire :init-skills (keyword (j/get player :class)))
     (set-default-camera-angle)
@@ -516,7 +514,9 @@
                           (doseq [p players]
                             (st/add-player (create-player p)))))
     (on :cooldown-ready? (fn [{:keys [ready? skill]}]
-                           (st/set-cooldown ready? skill)))))
+                           (st/set-cooldown ready? skill)))
+    (when-not dev?
+      (j/assoc! (st/get-player-entity) :name (str (random-uuid))))))
 
 (defn- play-running-sound [dt model-entity]
   (when (and (= "run" (pc/get-anim-state model-entity))
@@ -597,31 +597,23 @@
   (process-movement dt this)
   (show-player-selection-circle))
 
-(defn re-init-player [{:keys [id username race class]}]
-  (let [this (j/get player :this)]
-    (j/call-in player [:template-entity :destroy])
-    (set! player player-default)
-    (init-fn this {:id id
-                   :username username
-                   :race race
-                   :class class
-                   :mana 100
-                   :health 100
-                   ;; :pos [(+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4)))]
-                   })))
-
 (defn init [player-data]
   (pc/create-script :player
-                    {:init (fnt (init-fn this player-data))
+                    {:init (fnt
+                             (set! player-script this)
+                             (init-fn this player-data))
                      :update (fnt (update-fn dt this))
                      :post-init (fnt
-                                  (when-not dev?
-                                    (j/assoc! (st/get-player-entity) :name (str (random-uuid))))
+                                  (register-collision-events (j/get this :entity))
                                   (fire :start-lod-manager))}))
 
 (on :init
     (fn [player-data]
-      (init player-data)
+      (if player-script
+        (init-fn player-script player-data)
+        (do
+          (entity.camera/register-camera-mouse-events)
+          (init player-data)))
       (fire :connect-to-world-state)))
 
 (on :settings-updated
@@ -643,12 +635,3 @@
       (j/assoc! st/player :tutorials tutorials)
       (utils/set-item "tutorials" (pr-str tutorials))
       (j/assoc! entity.camera/state :right-mouse-dragged? false)))
-
-(when dev?
-  (on :re-init (fn []
-                 (re-init-player {:id 0
-                                  :username "0000000"
-                                  :race "orc"
-                                  :class "warrior"
-                                  :mana 100
-                                  :health 100}))))

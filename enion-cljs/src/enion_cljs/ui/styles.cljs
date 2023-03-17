@@ -575,6 +575,10 @@
    :opacity 0.75
    :z-index 5})
 
+(defclass change-server-button [minimap?]
+  {:composes [(settings-button minimap?)]
+   :right (if minimap? "257px" "232px")})
+
 (defclass ping-counter [fps? ping]
   {:composes [(settings-button false)]
    :left "5px"

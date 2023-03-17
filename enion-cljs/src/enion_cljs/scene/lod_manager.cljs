@@ -4,7 +4,7 @@
     [clojure.set :as set]
     [enion-cljs.common :refer [on]]
     [enion-cljs.scene.pc :as pc :refer [app]]
-    [enion-cljs.scene.states :as st :refer [player get-player-entity]]
+    [enion-cljs.scene.states :as st]
     [goog.functions :as functions]))
 
 ;; TODO ranges for other player
@@ -97,7 +97,8 @@
   (j/assoc-in! st/other-players [player-id :armature :enabled] true))
 
 (defn- enable-username [player-id]
-  (j/assoc-in! st/other-players [player-id :char-name :enabled] true))
+  (when-not (and (st/enemy? player-id) (j/get (st/get-other-player player-id) :hide?))
+    (j/assoc-in! st/other-players [player-id :char-name :enabled] true)))
 
 (defn- disable-username [player-id]
   (j/assoc-in! st/other-players [player-id :char-name :enabled] false))
@@ -153,34 +154,35 @@
       (let [entity (.-node mesh-instance)
             tags (.list ^js/Object (.-tags entity))]
         (when (> (count tags) 0)
-          (when-let [entity-type (some find-fn tags)]
-            (let [lod-0-range (get-lod-range entity-type "lod-0")
-                  lod-1-range (get-lod-range entity-type "lod-1")
-                  lod-2-range (get-lod-range entity-type "lod-2")
-                  parent-guid (pc/get-guid (.-parent entity))
-                  lod-0 (parent->entity-attr parent-guid "lod-0")
-                  lod-1 (parent->entity-attr parent-guid "lod-1")
-                  lod-2 (parent->entity-attr parent-guid "lod-2")
-                  distance (pc/distance (pc/get-pos (get-player-entity))
-                                        (parent->entity-attr parent-guid "position"))]
-              (cond
-                (< distance (inc lod-0-range))
-                (do
-                  (j/assoc! lod-0 :enabled true)
-                  (j/assoc! lod-1 :enabled false)
-                  (j/assoc! lod-2 :enabled false))
+          (when-let [player-entity (st/get-player-entity)]
+            (when-let [entity-type (some find-fn tags)]
+              (let [lod-0-range (get-lod-range entity-type "lod-0")
+                    lod-1-range (get-lod-range entity-type "lod-1")
+                    lod-2-range (get-lod-range entity-type "lod-2")
+                    parent-guid (pc/get-guid (.-parent entity))
+                    lod-0 (parent->entity-attr parent-guid "lod-0")
+                    lod-1 (parent->entity-attr parent-guid "lod-1")
+                    lod-2 (parent->entity-attr parent-guid "lod-2")
+                    distance (pc/distance (pc/get-pos player-entity)
+                                          (parent->entity-attr parent-guid "position"))]
+                (cond
+                  (< distance (inc lod-0-range))
+                  (do
+                    (j/assoc! lod-0 :enabled true)
+                    (j/assoc! lod-1 :enabled false)
+                    (j/assoc! lod-2 :enabled false))
 
-                (< lod-0-range distance (inc lod-1-range))
-                (do
-                  (j/assoc! lod-0 :enabled false)
-                  (j/assoc! lod-1 :enabled true)
-                  (j/assoc! lod-2 :enabled false))
+                  (< lod-0-range distance (inc lod-1-range))
+                  (do
+                    (j/assoc! lod-0 :enabled false)
+                    (j/assoc! lod-1 :enabled true)
+                    (j/assoc! lod-2 :enabled false))
 
-                (< lod-1-range distance (inc lod-2-range))
-                (do
-                  (j/assoc! lod-0 :enabled false)
-                  (j/assoc! lod-1 :enabled false)
-                  (j/assoc! lod-2 :enabled true))))))))))
+                  (< lod-1-range distance (inc lod-2-range))
+                  (do
+                    (j/assoc! lod-0 :enabled false)
+                    (j/assoc! lod-1 :enabled false)
+                    (j/assoc! lod-2 :enabled true)))))))))))
 
 (defn- process-on-post-cull []
   (let [world-layer (j/call-in app [:scene :layers :getLayerByName] "World")]
