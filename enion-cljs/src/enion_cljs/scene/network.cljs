@@ -94,12 +94,6 @@
       (chest/register-chest-trigger-events (not (:what-is-the-first-quest? tutorials)))
       (poki/gameplay-start))))
 
-(on :close-socket-for-re-init
-    (fn []
-      (poki/gameplay-stop)
-      (poki/commercial-break)
-      (some-> @socket (j/call :close 3001 "re-init"))))
-
 (defmethod dispatch-pro-response :player-join [params]
   (dlog "new join" (:player-join params))
   (fire :create-players [(:player-join params)]))
@@ -426,6 +420,10 @@
                                       (dispatch-pro :ping))
                                    1000))))
 
+(defn cancel-ping-interval []
+  (some-> @get-ping-interval-id js/clearInterval)
+  (reset! get-ping-interval-id nil))
+
 (defmethod dispatch-pro-response :ping [params]
   (fire :ui-update-ping (:ping params)))
 
@@ -545,8 +543,10 @@
         (st/cancel-target-pos)
         (poki/gameplay-start)))))
 
-(comment
-  (send-states-to-server)
-  (cancel-sending-states-to-server)
-
-  )
+(on :close-socket-for-re-init
+    (fn []
+      (poki/gameplay-stop)
+      (poki/commercial-break)
+      (some-> @socket (j/call :close 3001 "re-init"))
+      (cancel-sending-states-to-server)
+      (cancel-ping-interval)))
