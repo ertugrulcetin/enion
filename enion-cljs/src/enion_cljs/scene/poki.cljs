@@ -25,7 +25,7 @@
     (j/call-in js/window [:PokiSDK :gameplayStop])))
 
 (defn commercial-break []
-  (when (j/get js/window :PokiSDK)
+  (when (and (not dev?) (j/get js/window :PokiSDK))
     (j/call-in js/window [:PokiSDK :commercialBreak])))
 
 (defn rewarded-break [ad-type]

@@ -1,0 +1,4 @@
+Component overlap when there is a party, and no minimap shown
+Upon entering another race's base, the player takes damage every second.
+If a player remains out of battle for at least 10 seconds, their health will start regenerating.
+Make an indicator that shows players got poisoned.

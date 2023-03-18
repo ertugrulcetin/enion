@@ -93,31 +93,57 @@
           (not (enough-mana? skill world-state)) not-enough-mana
           (not (cooldown-finished? skill player)) skill-failed
           (not (close-for-priest-skills? world-state other-player-world-state)) too-far
-          :else (let [required-mana (get-required-mana skill)
-                      _ (when-let [task (get-in current-players [selected-player-id :effects :break-defense :task])]
-                          (tea/cancel! task))
-                      _ (when-let [task (get-in @players [id :effects :shield-wall :task])]
-                          (tea/cancel! task))
-                      tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                                      (bound-fn []
-                                        (when (get @players selected-player-id)
-                                          (swap! players (fn [players]
-                                                           (-> players
-                                                               (assoc-in [selected-player-id :effects :break-defense :result] false)
-                                                               (assoc-in [selected-player-id :effects :break-defense :task] nil)
-                                                               (assoc-in [selected-player-id :effects :shield-wall :result] false)
-                                                               (assoc-in [selected-player-id :effects :shield-wall :task] nil))))
-                                          (send! selected-player-id :cured-defense-break true))))]
+          :else
+          (let [required-mana (get-required-mana skill)
+                _ (when-let [task (get-in current-players [selected-player-id :effects :break-defense :task])]
+                    (tea/cancel! task))
+                _ (when-let [task (get-in current-players [selected-player-id :effects :shield-wall :task])]
+                    (tea/cancel! task))
+                tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
+                                (bound-fn []
+                                  (when (get @players selected-player-id)
+                                    (swap! players (fn [players]
+                                                     (-> players
+                                                         (assoc-in [selected-player-id :effects :break-defense :result] false)
+                                                         (assoc-in [selected-player-id :effects :break-defense :task] nil)
+                                                         (assoc-in [selected-player-id :effects :shield-wall :result] false)
+                                                         (assoc-in [selected-player-id :effects :shield-wall :task] nil))))
+                                    (send! selected-player-id :cured-defense-break true))))]
+            (swap! players (fn [players]
+                             (-> players
+                                 (assoc-in [selected-player-id :effects :break-defense :result] true)
+                                 (assoc-in [selected-player-id :effects :break-defense :task] tea)
+                                 (assoc-in [id :last-time :skill skill] (now)))))
+            (swap! world update-in [id :mana] - required-mana)
+            (add-effect :break-defense selected-player-id)
+            (send! selected-player-id :got-defense-break true)
+            {:skill skill
+             :selected-player-id selected-player-id}))))))
+
+(comment
+  (let [current-players @players
+        selected-player-id 3
+        _ (when-let [task (get-in current-players [selected-player-id :effects :break-defense :task])]
+            (tea/cancel! task))
+        _ (when-let [task (get-in current-players [selected-player-id :effects :shield-wall :task])]
+            (tea/cancel! task))
+        tea (tea/after! 3000
+              (bound-fn []
+                (when (get @players selected-player-id)
                   (swap! players (fn [players]
                                    (-> players
-                                       (assoc-in [selected-player-id :effects :break-defense :result] true)
-                                       (assoc-in [selected-player-id :effects :break-defense :task] tea)
-                                       (assoc-in [id :last-time :skill skill] (now)))))
-                  (swap! world update-in [id :mana] - required-mana)
-                  (add-effect :break-defense selected-player-id)
-                  (send! selected-player-id :got-defense-break true)
-                  {:skill skill
-                   :selected-player-id selected-player-id}))))))
+                                     (assoc-in [selected-player-id :effects :break-defense :result] false)
+                                     (assoc-in [selected-player-id :effects :break-defense :task] nil)
+                                     (assoc-in [selected-player-id :effects :shield-wall :result] false)
+                                     (assoc-in [selected-player-id :effects :shield-wall :task] nil))))
+                  (send! selected-player-id :cured-defense-break true))))]
+    (swap! players (fn [players]
+                     (-> players
+                       (assoc-in [selected-player-id :effects :break-defense :result] true)
+                       (assoc-in [selected-player-id :effects :break-defense :task] tea))))
+    (add-effect :break-defense selected-player-id)
+    (send! selected-player-id :got-defense-break true))
+  )
 
 (defmethod apply-skill "attackPriest" [{:keys [id ping current-players current-world]
                                         {:keys [skill selected-player-id]} :data}]
@@ -147,7 +173,7 @@
                   (add-effect :attack-priest selected-player-id)
                   (make-asas-appear-if-hidden selected-player-id)
                   (swap! players assoc-in [id :last-time :skill skill] (now))
-                  (process-if-death id selected-player-id health-after-damage current-players)
+                  (process-if-enemy-died id selected-player-id health-after-damage current-players)
                   (send! selected-player-id :got-attack-priest-damage {:damage damage
                                                                        :player-id id})
                   {:skill skill

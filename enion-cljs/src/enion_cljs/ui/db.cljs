@@ -22,7 +22,8 @@
    :connection-lost? false
    :congrats-text? false
    :player {:skills []
-            :skill-move nil}
+            :skill-move nil
+            :defense-break? false}
    :servers {:list (when dev?
                      {"local" {:ws-url "ws://localhost:3000/ws"
                                :stats-url "http://localhost:3000/stats"}})}})

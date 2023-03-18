@@ -75,17 +75,19 @@
   {:composes [(hp-bar)]
    :margin-top "4px"})
 
-(defattrs hp [health]
+(defattrs hp [health defense-break?]
   {:position :absolute
    :width (str health "%")
    :font-size "1.3em"
    :border-radius "1.5px"
    :height "100%"
-   :background "linear-gradient(0deg, #c0403f 0%, #af1a1b 49%, #c0403f 50%)"
+   :background (if defense-break?
+                 "linear-gradient(0deg, #ac4cd1 0%, #682a80 49%, #ac4cd1 50%)"
+                 "linear-gradient(0deg, #c0403f 0%, #af1a1b 49%, #c0403f 50%)")
    :transition "width .1s linear"})
 
 (defattrs mp [mana]
-  {:composes [(hp mana)]
+  {:composes [(hp mana nil)]
    :background "linear-gradient(0deg, #2a4fdf 0%, #1b27bd 49%, #2a4fdf 50%)"})
 
 (defattrs hp-hit [health]
@@ -496,8 +498,8 @@
    :height party-member-hp-mp-height
    :margin-bottom "3px"})
 
-(defattrs party-member-hp [health]
-  {:composes [(hp health)]
+(defattrs party-member-hp [health break-defense?]
+  {:composes [(hp health break-defense?)]
    :height party-member-hp-mp-height})
 
 (defattrs party-member-hp-hit [health]

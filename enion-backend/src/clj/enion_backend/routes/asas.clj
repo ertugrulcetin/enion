@@ -61,7 +61,7 @@
             (make-asas-appear-if-hidden id)
             (make-asas-appear-if-hidden selected-player-id)
             (swap! players assoc-in [id :last-time :skill skill] (now))
-            (process-if-death id selected-player-id health-after-damage current-players)
+            (process-if-enemy-died id selected-player-id health-after-damage current-players)
             (send! selected-player-id :got-attack-dagger-damage {:damage damage
                                                                  :player-id id})
             {:skill skill
@@ -96,7 +96,7 @@
             (make-asas-appear-if-hidden id)
             (make-asas-appear-if-hidden selected-player-id)
             (swap! players assoc-in [id :last-time :skill skill] (now))
-            (process-if-death id selected-player-id health-after-damage current-players)
+            (process-if-enemy-died id selected-player-id health-after-damage current-players)
             (send! selected-player-id :got-attack-stab-damage {:damage damage
                                                                :player-id id})
             {:skill skill

@@ -318,10 +318,16 @@
     (assoc-in db [:party :members] members)))
 
 (reg-event-db
-  ::update-party-member-healths
-  (fn [db [_ healths]]
-    (reduce-kv (fn [db id health]
-                 (assoc-in db [:party :members id :health] health)) db healths)))
+  ::update-party-members
+  (fn [db [_ {:keys [healths members-with-break-defense]}]]
+    (reduce-kv
+      (fn [db id health]
+        (let [db (assoc-in db [:party :members id :health] health)]
+          (if (and members-with-break-defense (members-with-break-defense id))
+            (assoc-in db [:party :members id :break-defense?] true)
+            (assoc-in db [:party :members id :break-defense?] false))))
+      db
+      healths)))
 
 (reg-event-db
   ::cancel-party
@@ -389,11 +395,10 @@
         (assoc-in [:servers :connecting] nil)
         (assoc-in [:init-modal :error] error))))
 
-(reg-event-fx
+(reg-event-db
   ::open-score-board
-  (fn [{:keys [db]}]
-    {:db (assoc-in db [:score-board :open?] true)
-     :fx [[::fire [:get-score-board]]]}))
+  (fn [db]
+    (assoc-in db [:score-board :open?] true)))
 
 (reg-event-db
   ::close-score-board
@@ -537,3 +542,20 @@
   (fn []
     {:dispatch [::initialize-db]
      ::fire [:re-init]}))
+
+(reg-event-db
+  ::got-defense-break
+  (fn [db]
+    (assoc-in db [:player :defense-break?] true)))
+
+(reg-event-db
+  ::cured
+  (fn [db]
+    (assoc-in db [:player :defense-break?] false)))
+
+(reg-event-fx
+  ::re-spawn
+  (fn [{:keys [db]}]
+    {:db (assoc-in db [:player :defense-break?] false)
+     :dispatch-n [[::close-re-spawn-modal]
+                  [::clear-all-cooldowns]]}))

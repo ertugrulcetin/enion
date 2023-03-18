@@ -97,5 +97,5 @@
                   (poki/init)
                   (let [{:keys [hidden visibility-change]} (visibility-props)]
                     (when hidden
-                      (js/document.addEventListener visibility-change #(fire :tab-hidden (not (j/get js/document hidden))))))
+                      (js/document.addEventListener visibility-change #(fire :tab-hidden (j/get js/document hidden)))))
                   (optimize-animation-on-update))}))

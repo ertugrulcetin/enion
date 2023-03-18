@@ -311,3 +311,8 @@
   ::connecting-to-server
   (fn [db]
     (-> db :servers :connecting)))
+
+(reg-sub
+  ::defense-break?
+  (fn [db]
+    (-> db :player :defense-break?)))

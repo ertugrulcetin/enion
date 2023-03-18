@@ -62,7 +62,7 @@
             (add-effect :attack-one-hand selected-player-id)
             (make-asas-appear-if-hidden selected-player-id)
             (swap! players assoc-in [id :last-time :skill skill] (now))
-            (process-if-death id selected-player-id health-after-damage current-players)
+            (process-if-enemy-died id selected-player-id health-after-damage current-players)
             (send! selected-player-id :got-attack-one-hand-damage {:damage damage
                                                                    :player-id id})
             {:skill skill
@@ -97,7 +97,7 @@
                                (update-in [id :mana] - required-mana)
                                (assoc-in [selected-player-id :health] health-after-damage))))
             (swap! players assoc-in [id :last-time :skill skill] (now))
-            (process-if-death id selected-player-id health-after-damage current-players)
+            (process-if-enemy-died id selected-player-id health-after-damage current-players)
             ;; TODO add scheduler for prob cure
             (send! selected-player-id :got-attack-slow-down-damage {:damage damage
                                                                     :player-id id

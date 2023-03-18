@@ -322,6 +322,10 @@
 (defn stop-sound [track]
   (some-> (get-player-entity) (j/call-in [:c :sound :slots track :stop])))
 
+(defn tab-visible? []
+  (let [tab-hidden? (j/get settings :tab-hidden)]
+    (or (nil? tab-hidden?) (not tab-hidden?))))
+
 (on :tab-hidden
     (fn [hidden?]
       (process-running)

@@ -158,7 +158,7 @@
         health-perc (/ (* 100 health) total-health)]
     [:div (styles/hp-bar)
      [:div (styles/hp-hit health-perc)]
-     [:div (styles/hp health-perc)]
+     [:div (styles/hp health-perc @(subscribe [::subs/defense-break?]))]
      [:span (styles/hp-mp-text) (str health "/" total-health)]]))
 
 (defn- mp-bar []
@@ -175,19 +175,20 @@
    [hp-bar]
    [mp-bar]])
 
-(defn- party-member-hp-bar [health total-health]
+(defn- party-member-hp-bar [health total-health break-defense?]
+  (println "A: " break-defense?)
   (let [health-perc (/ (* 100 health) total-health)]
     [:div (styles/party-member-hp-bar)
      [:div (styles/party-member-hp-hit health-perc)]
-     [:div (styles/party-member-hp health-perc)]]))
+     [:div (styles/party-member-hp health-perc break-defense?)]]))
 
-(defn- party-member-hp-mp-bars [id username health total-health]
+(defn- party-member-hp-mp-bars [id username health total-health break-defense?]
   [:div
    {:class (styles/party-member-hp-mp-container (= id @(subscribe [::subs/selected-party-member])))
     :on-click #(do
                  (fire :select-party-member id)
                  (dispatch [::events/select-party-member id]))}
-   [party-member-hp-bar health total-health]
+   [party-member-hp-bar health total-health break-defense?]
    [:span (styles/party-member-username) username]])
 
 (defn- skill-bar []
@@ -432,7 +433,7 @@
       username]
      [:div (styles/hp-bar-selected-player)
       [:div (styles/hp-hit health)]
-      [:div (styles/hp health)]]]))
+      [:div (styles/hp health nil)]]]))
 
 (defonce x (r/atom 0))
 (defonce z (r/atom 0))
@@ -613,7 +614,8 @@
 
 (defn- score-modal []
   (r/create-class
-    {:component-will-unmount #(fire :on-ui-element? false)
+    {:component-did-mount #(fire :get-score-board)
+     :component-will-unmount #(fire :on-ui-element? false)
      :reagent-render
      (fn []
        [:div
@@ -681,9 +683,9 @@
         [:button {:class (styles/party-action-button)
                   :on-click #(fire :exit-from-party)}
          "Exit from party"]))]
-   (for [{:keys [id username health total-health]} @(subscribe [::subs/party-members])]
+   (for [{:keys [id username health total-health break-defense?]} @(subscribe [::subs/party-members])]
      ^{:key id}
-     [party-member-hp-mp-bars id username health total-health])])
+     [party-member-hp-mp-bars id username health total-health break-defense?])])
 
 ;; TODO add general component that prevents space press to enable button
 (defn- settings-button []
@@ -1158,15 +1160,14 @@
        (on :ui-slow-down? #(dispatch-sync [::events/block-slow-down-skill %]))
        (on :ui-show-party-request-modal #(dispatch [::events/show-party-request-modal %]))
        (on :register-party-members #(dispatch [::events/register-party-members %]))
-       (on :update-party-member-healths #(dispatch [::events/update-party-member-healths %]))
+       (on :update-party-members #(dispatch [::events/update-party-members %]))
        (on :cancel-party #(dispatch [::events/cancel-party]))
        (on :add-global-message #(dispatch [::events/add-message-to-chat-all %]))
        (on :add-party-message #(dispatch [::events/add-message-to-chat-party %]))
        (on :ui-chat-error #(dispatch [::events/add-chat-error-msg %]))
        (on :show-re-spawn-modal #(dispatch [::events/show-re-spawn-modal %]))
-       (on :close-re-spawn-modal #(dispatch [::events/close-re-spawn-modal %]))
+       (on :ui-re-spawn #(dispatch [::events/re-spawn]))
        (on :close-party-request-modal #(dispatch [::events/close-party-request-modal]))
-       (on :clear-all-cooldowns #(dispatch [::events/clear-all-cooldowns]))
        (on :close-init-modal #(dispatch [::events/close-init-modal]))
        (on :ui-init-modal-error #(dispatch [::events/set-init-modal-error %]))
        (on :ui-set-server-stats #(dispatch [::events/set-server-stats %]))
@@ -1180,7 +1181,9 @@
        (on :ui-show-congrats-text #(dispatch [::events/show-congrats-text]))
        (on :ui-show-adblock-warning-text #(dispatch [::events/show-adblock-warning-text]))
        (on :ui-ws-connected #(dispatch [::events/set-ws-connected]))
-       (on :ui-show-panel? #(dispatch [::events/show-ui-panel? %])))
+       (on :ui-show-panel? #(dispatch [::events/show-ui-panel? %]))
+       (on :ui-got-defense-break #(dispatch [::events/got-defense-break %]))
+       (on :ui-cured #(dispatch [::events/cured])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

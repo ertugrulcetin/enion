@@ -11,7 +11,7 @@
     [enion-backend.layout :as layout]
     [enion-backend.middleware :as middleware]
     [enion-backend.teatime :as tea]
-    [enion-backend.utils :as utils]
+    [enion-backend.utils :as utils :refer [dev?]]
     [manifold.deferred :as d]
     [manifold.stream :as s]
     [mount.core :as mount :refer [defstate]]
@@ -30,11 +30,6 @@
 
 (def usernames-map (edn/read-string (slurp (io/resource "usernames.edn"))))
 
-;; Usage example:
-;; (slurp-edn-file "yourfile.edn")
-
-;; TODO enable ping checks...
-
 (def battle-points-by-party-size
   {1 72
    2 36
@@ -47,6 +42,8 @@
 
 (def send-snapshot-count 20)
 (def world-tick-rate (/ 1000 send-snapshot-count))
+
+(def afk-threshold-in-milli-secs (* 3 60 1000))
 
 (defonce id-generator (atom 0))
 (defonce party-id-generator (atom 0))
@@ -97,6 +94,20 @@
 
 (def comp-not-nil (comp not nil?))
 
+(defn- get-players-with-defense [players]
+  (->> players
+       (filter
+         (fn [[_ player]]
+           (and (get player :party-id)
+                (get-in player [:effects :break-defense :result]))))
+       (map (fn [[_ player]]
+              {:id (:id player)
+               :party-id (:party-id player)}))
+       (group-by :party-id)
+       (reduce-kv
+         (fn [acc k v]
+           (assoc acc k (vec (map :id v)))) {})))
+
 (defn- send-world-snapshots* []
   (let [effects (->> effects-stream
                      (take-while-stream comp-not-nil)
@@ -104,19 +115,38 @@
         kills (take-while-stream comp-not-nil killings-stream)
         w @world
         w (if (empty? effects) w (assoc w :effects effects))
-        w (if (empty? kills) w (assoc w :kills kills))]
-    (doseq [player-id (keys w)]
+        w (if (empty? kills) w (assoc w :kills kills))
+        current-players @players
+        party-id->players (get-players-with-defense current-players)]
+    (doseq [player-id (keys w)
+            :let [party-id (get-in current-players [player-id :party-id])
+                  w (if-let [members-ids (seq (get party-id->players party-id))]
+                      (assoc w :break-defense (set members-ids))
+                      w)]]
       (send! player-id :world-snapshot w))))
 
+(defn- create-single-thread-executor [millisecs f]
+  (doto (Executors/newSingleThreadScheduledExecutor)
+    (.scheduleAtFixedRate f 0 millisecs TimeUnit/MILLISECONDS)))
+
 (defn- send-world-snapshots []
-  (let [ec (Executors/newSingleThreadScheduledExecutor)]
-    (doto ec
-      (.scheduleAtFixedRate
-        (fn []
-          (send-world-snapshots*))
-        0
-        world-tick-rate
-        TimeUnit/MILLISECONDS))))
+  (create-single-thread-executor world-tick-rate send-world-snapshots*))
+
+(defn- check-afk-players* []
+  (doseq [[_ player] @players
+          :let [last-activity (get-in player [:last-time :activity])]
+          :when last-activity]
+    (try
+      (when (>= (- (now) last-activity) afk-threshold-in-milli-secs)
+        (println "Kicking AFK player... ")
+        (s/close! (:socket player)))
+      (catch Exception e
+        (println "Couldn't kick AFK player")
+        (log/error e)))))
+
+(defn- check-afk-players []
+  (when-not (dev?)
+    (create-single-thread-executor 1000 (fn [] (check-afk-players*)))))
 
 (defn- shutdown [^ExecutorService ec]
   (.shutdown ec)
@@ -132,6 +162,10 @@
   :start (send-world-snapshots)
   :stop (shutdown snapshot-sender))
 
+(defstate ^{:on-reload :noop} afk-player-checker
+  :start (check-afk-players)
+  :stop (shutdown afk-player-checker))
+
 (defstate ^{:on-reload :noop} teatime-pool
   :start (tea/start!)
   :stop (tea/stop!))
@@ -139,17 +173,21 @@
 (defstate register-procedures
   :start (easync/start-procedures))
 
-(defstate init-sentry
+(defstate ^{:on-reload :noop} init-sentry
   :start (sentry/init! "https://9080b8a52af24bdb9c637555f1a36a1b@o4504713579724800.ingest.sentry.io/4504731298693120"
                        {:traces-sample-rate 1.0}))
 
 (def selected-keys-of-set-state [:px :py :pz :ex :ey :ez :st])
 
+(defn- update-last-activity-time [id]
+  (when (get @players id)
+    (swap! players assoc-in [id :last-time :activity] (now))))
+
 (reg-pro
   :set-state
   (fn [{:keys [id data]}]
     (swap! world update id merge (select-keys data selected-keys-of-set-state))
-    (swap! players assoc-in [id :last-time :set-state] (now))
+    (update-last-activity-time id)
     nil))
 
 (reg-pro
@@ -179,7 +217,8 @@
 
 (reg-pro
   :get-score-board
-  (fn [_]
+  (fn [{:keys [id]}]
+    (update-last-activity-time id)
     (let [players @players
           orcs (map (fn [[_ p]] (assoc p :bp (or (:bp p) 0))) (get-orcs players))
           humans (map (fn [[_ p]] (assoc p :bp (or (:bp p) 0))) (get-humans players))]
@@ -210,6 +249,7 @@
 (reg-pro
   :send-global-message
   (fn [{:keys [id] {:keys [msg]} :data}]
+    (update-last-activity-time id)
     (let [players* @players
           player (players* id)
           player-ids (keys @world)
@@ -226,6 +266,7 @@
 (reg-pro
   :send-party-message
   (fn [{:keys [id] {:keys [msg]} :data}]
+    (update-last-activity-time id)
     (let [players* @players
           player (players* id)
           party-id (:party-id player)
@@ -470,9 +511,15 @@
   [x z center-x center-z radius]
   (< (+ (square (- x center-x)) (square (- z center-z))) (square radius)))
 
-(defn process-if-death [player-id enemy-id health-after-damage players*]
+(defn- cancel-all-tasks-of-player [player-id]
+  (when-let [player (get @players player-id)]
+    (doseq [t (->> player :effects vals (keep :task))]
+      (tea/cancel! t))))
+
+(defn process-if-enemy-died [player-id enemy-id health-after-damage players*]
   (when (= 0 health-after-damage)
     (add-killing player-id enemy-id)
+    (cancel-all-tasks-of-player enemy-id)
     (swap! players assoc-in [enemy-id :last-time :died] (now))
     (if-let [party-id (get-in players* [player-id :party-id])]
       (let [member-ids (find-player-ids-by-party-id players* party-id)
@@ -527,7 +574,7 @@
                     (add-effect :attack-r selected-player-id)
                     (make-asas-appear-if-hidden selected-player-id)
                     (make-asas-appear-if-hidden id)
-                    (process-if-death id selected-player-id health-after-damage players*)
+                    (process-if-enemy-died id selected-player-id health-after-damage players*)
                     (send! selected-player-id :got-attack-r-damage {:damage damage
                                                                     :player-id id})
                     {:skill skill
@@ -590,44 +637,41 @@
 
 (reg-pro
   :re-spawn
-  (fn [{:keys [id data]}]
-    (let [players* @players
-          w* @world]
-      (when-let [player (get players* id)]
-        (when-let [world-state (get w* id)]
-          (cond
-            (alive? world-state) re-spawn-failed
-            (not (re-spawn-duration-finished? player)) re-spawn-failed
-            :else (let [effect-tasks (->> player :effects vals (keep :task))
-                        new-pos (if (= "orc" (:race player))
-                                  (common.skills/random-pos-for-orc)
-                                  (common.skills/random-pos-for-human))
-                        {:keys [px py pz]} world-state
-                        new-pos (if (:commercial-break-rewarded data)
-                                  [px py pz]
-                                  new-pos)
-                        [x y z] new-pos]
-                    (doseq [t effect-tasks]
-                      (tea/cancel! t))
-                    (swap! players (fn [players]
-                                     (-> players
-                                         (utils/dissoc-in [id :effects])
-                                         (utils/dissoc-in [id :last-time :skill]))))
-                    (swap! world (fn [world]
-                                   (-> world
-                                       (assoc-in [id :health] (:health player))
-                                       (assoc-in [id :mana] (:mana player))
-                                       (assoc-in [id :st] "idle")
-                                       (assoc-in [id :px] x)
-                                       (assoc-in [id :py] y)
-                                       (assoc-in [id :pz] z))))
-                    {:pos new-pos
-                     :health (:health player)
-                     :mana (:mana player)})))))))
+  (fn [{:keys [id data current-players current-world]}]
+    (update-last-activity-time id)
+    (when-let [player (get current-players id)]
+      (when-let [world-state (get current-world id)]
+        (cond
+          (alive? world-state) re-spawn-failed
+          (not (re-spawn-duration-finished? player)) re-spawn-failed
+          :else (let [_ (cancel-all-tasks-of-player id)
+                      new-pos (if (= "orc" (:race player))
+                                (common.skills/random-pos-for-orc)
+                                (common.skills/random-pos-for-human))
+                      {:keys [px py pz]} world-state
+                      new-pos (if (:commercial-break-rewarded data)
+                                [px py pz]
+                                new-pos)
+                      [x y z] new-pos]
+                  (swap! players (fn [players]
+                                   (-> players
+                                       (utils/dissoc-in [id :effects])
+                                       (utils/dissoc-in [id :last-time :skill]))))
+                  (swap! world (fn [world]
+                                 (-> world
+                                     (assoc-in [id :health] (:health player))
+                                     (assoc-in [id :mana] (:mana player))
+                                     (assoc-in [id :st] "idle")
+                                     (assoc-in [id :px] x)
+                                     (assoc-in [id :py] y)
+                                     (assoc-in [id :pz] z))))
+                  {:pos new-pos
+                   :health (:health player)
+                   :mana (:mana player)}))))))
 
 (comment
 
-
+  (clojure.pprint/pprint @players)
   ;;close all connections, fetch :socket attribute and call s/close!
   (doseq [id (keys @players)]
     (s/close! (:socket (get @players id))))
@@ -683,14 +727,15 @@
   (clojure.pprint/pprint @world)
   (swap! world assoc-in [4 :pz] -39.04)
 
-  (mount/start)
-  (mount/stop)
+  (mount/start #'snapshot-sender)
+  (mount/stop #'snapshot-sender)
   )
 
 (reg-pro
   :skill
-  (fn [opts]
+  (fn [{:keys [id] :as opts}]
     (try
+      (update-last-activity-time id)
       (apply-skill opts)
       (catch Throwable e
         (log/error e
@@ -765,8 +810,9 @@
 
 (reg-pro
   :party
-  (fn [opts]
+  (fn [{:keys [id] :as opts}]
     (try
+      (update-last-activity-time id)
       (process-party-request opts)
       (catch Throwable e
         (log/error e
@@ -798,6 +844,7 @@
                                  (assoc-in [player-id :time] now*))))
             (s/on-closed socket
                          (fn []
+                           (cancel-all-tasks-of-player player-id)
                            (remove-from-party {:id player-id
                                                :players* @players
                                                :exit? true})

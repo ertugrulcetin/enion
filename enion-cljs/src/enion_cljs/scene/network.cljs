@@ -36,7 +36,7 @@
   ([pro]
    (dispatch-pro pro nil))
   ([pro data]
-   (if (and @open? @socket)
+   (if (and @open? @socket (st/tab-visible?))
      (j/call @socket :send (msg/pack {:pro pro
                                       :data data
                                       :timestamp (js/Date.now)}))
@@ -387,7 +387,8 @@
   (let [ws (:world-snapshot params)
         effects (:effects ws)
         kills (:kills ws)
-        ws (dissoc ws :effects :kills)
+        members-with-break-defense (:break-defense ws)
+        ws (dissoc ws :effects :kills :break-defense)
         attack-ranges (get effects :attack-range)
         effects (dissoc effects :attack-range)]
     (set! world ws)
@@ -397,8 +398,9 @@
     (process-attack-ranges attack-ranges)
     (process-kills kills)
     (when-let [ids (seq @party-member-ids)]
-      (fire :update-party-member-healths (reduce (fn [acc id]
-                                                   (assoc acc id (get-in ws [id :health]))) {} ids)))))
+      (fire :update-party-members {:healths (reduce (fn [acc id]
+                                                      (assoc acc id (get-in ws [id :health]))) {} ids)
+                                   :members-with-break-defense members-with-break-defense}))))
 
 (defn send-states-to-server []
   (if-let [id @send-state-interval-id]
@@ -535,8 +537,7 @@
             health (-> params :re-spawn :health)
             mana (-> params :re-spawn :mana)]
         (st/move-player pos)
-        (fire :close-re-spawn-modal)
-        (fire :clear-all-cooldowns)
+        (fire :ui-re-spawn)
         (st/set-mana mana)
         (st/set-health health)
         (pc/set-anim-int (st/get-model-entity) "health" 100)

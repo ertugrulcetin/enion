@@ -56,7 +56,7 @@
                                         health-after-damage (Math/max ^long health-after-damage 0)]
                                     (make-asas-appear-if-hidden enemy-id)
                                     (swap! world assoc-in [enemy-id :health] health-after-damage)
-                                    (process-if-death id enemy-id health-after-damage current-players)
+                                    (process-if-enemy-died id enemy-id health-after-damage current-players)
                                     (send! enemy-id :got-attack-range {:damage damage
                                                                        :player-id id})
                                     {:id enemy-id
@@ -89,7 +89,7 @@
                 health-after-damage (- (:health other-player-world-state) damage)
                 health-after-damage (Math/max ^long health-after-damage 0)]
             (make-asas-appear-if-hidden selected-player-id)
-            (process-if-death id selected-player-id health-after-damage current-players)
+            (process-if-enemy-died id selected-player-id health-after-damage current-players)
             (swap! world assoc-in [selected-player-id :health] health-after-damage)
             (send! selected-player-id :got-attack-single {:damage damage
                                                           :player-id id})
@@ -121,7 +121,7 @@
                 health-after-damage (Math/max ^long health-after-damage 0)
                 ice-slow-down? (prob? 0.2)]
             (make-asas-appear-if-hidden selected-player-id)
-            (process-if-death id selected-player-id health-after-damage current-players)
+            (process-if-enemy-died id selected-player-id health-after-damage current-players)
             (swap! world assoc-in [selected-player-id :health] health-after-damage)
             (send! selected-player-id :got-attack-ice {:damage damage
                                                        :player-id id

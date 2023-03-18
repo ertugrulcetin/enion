@@ -328,12 +328,14 @@
 (let [cure-msg {:cure true}]
   (defmethod net/dispatch-pro-response :got-cure [_]
     (skills.effects/apply-effect-got-cure st/player)
-    (fire :ui-send-msg cure-msg)))
+    (fire :ui-send-msg cure-msg)
+    (fire :ui-cured)))
 
 (let [defense-break-msg {:defense-break true}]
   (defmethod net/dispatch-pro-response :got-defense-break [_]
     (skills.effects/apply-effect-got-defense-break st/player)
-    (fire :ui-send-msg defense-break-msg)))
+    (fire :ui-send-msg defense-break-msg)
+    (fire :ui-got-defense-break)))
 
 (defmethod net/dispatch-pro-response :got-attack-priest-damage [params]
   (let [params (:got-attack-priest-damage params)
@@ -345,8 +347,7 @@
 
 ;; write for :cured-defense-break-damage
 (defmethod net/dispatch-pro-response :cured-defense-break [_]
-  ;; TODO implement
-  )
+  (fire :ui-cured))
 
 ;; write a function like got-attack-one-hand-damage but for :got-attack-range
 (defmethod net/dispatch-pro-response :got-attack-range [params]
