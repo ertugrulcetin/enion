@@ -148,22 +148,36 @@
   (when-not (dev?)
     (create-single-thread-executor 1000 (fn [] (check-afk-players*)))))
 
-(defn dispatch-in [pro-name {:keys [id data]}]
-  (let [current-players @players]
-    (when-let [socket (get-in current-players [id :socket])]
-      (try
-        (dispatch pro-name {:id id
-                            :ping 0
-                            :data data
-                            :req {}
-                            :current-players current-players
-                            :current-world @world
-                            :socket socket
-                            :send-fn (fn [socket {:keys [id result]}]
-                                       (when result
-                                         (s/put! socket (msg/pack (hash-map id result)))))})
-        (catch Exception e
-          (log/error e))))))
+(let [temp {}
+      temp-fn (fn [_ _])]
+  (defn dispatch-in [pro-name {:keys [id data]}]
+    (let [current-players @players]
+      (if id
+        (when-let [socket (get-in current-players [id :socket])]
+          (try
+            (dispatch pro-name {:id id
+                                :ping 0
+                                :data data
+                                :req temp
+                                :current-players current-players
+                                :current-world @world
+                                :socket socket
+                                :send-fn (fn [socket {:keys [id result]}]
+                                           (when result
+                                             (s/put! socket (msg/pack (hash-map id result)))))})
+            (catch Exception e
+              (log/error e))))
+        (try
+          (dispatch pro-name {:id nil
+                              :ping 0
+                              :data data
+                              :req temp
+                              :current-players current-players
+                              :current-world @world
+                              :socket temp
+                              :send-fn temp-fn})
+          (catch Exception e
+            (log/error e)))))))
 
 (defn- check-enemies-entered-base* []
   (try
@@ -186,8 +200,41 @@
       (println "Couldn't check enemies entered base")
       (log/error e))))
 
+(defn- check-leftover-player-states* []
+  (let [player-ids-to-remove (->> @players
+                                  (filter (fn [[_ p]] (str/blank? (:username p))))
+                                  (map first))]
+    (when (seq player-ids-to-remove)
+      (swap! players #(apply dissoc (cons % player-ids-to-remove))))
+    (when-let [player-ids-to-remove-from-world (seq (set/difference (set (keys @world)) (set (keys @players))))]
+      (swap! world #(apply dissoc (cons % player-ids-to-remove-from-world))))))
+
+(defn- restore-hp-&-mp-for-players-out-of-combat* []
+  (let [now (now)
+        current-world @world
+        players-to-restore-hp-&-mp (->> @players
+                                        (filter
+                                          (fn [[_ p]]
+                                            (and (>= (- now (get-in p [:last-time :combat] 0)) 10000)
+                                                 (> (get-in current-world [(:id p) :health] 0) 0))))
+                                        (map
+                                          (fn [[_ p]]
+                                            {:id (:id p)
+                                             :mp (int (* 0.02 (:mana p)))
+                                             :hp (int (* 0.02 (:health p)))})))]
+    (when (seq players-to-restore-hp-&-mp)
+      (dispatch-in :skill {:id nil
+                           :data {:skill "restoreHpMp"
+                                  :players-to-restore players-to-restore-hp-&-mp}}))))
+
 (defn- check-enemies-entered-base []
   (create-single-thread-executor 1000 (fn [] (check-enemies-entered-base*))))
+
+(defn- check-leftover-player-states []
+  (create-single-thread-executor 1000 (fn [] (check-leftover-player-states*))))
+
+(defn- restore-hp-&-mp-for-players-out-of-combat []
+  (create-single-thread-executor 5000 (fn [] (restore-hp-&-mp-for-players-out-of-combat*))))
 
 (defn- shutdown [^ExecutorService ec]
   (.shutdown ec)
@@ -211,6 +258,14 @@
   :start (check-enemies-entered-base)
   :stop (shutdown enemies-entered-base-checker))
 
+(defstate ^{:on-reload :noop} leftover-player-state-checker
+  :start (check-leftover-player-states)
+  :stop (shutdown leftover-player-state-checker))
+
+(defstate ^{:on-reload :noop} restore-hp-&-mp
+  :start (restore-hp-&-mp-for-players-out-of-combat)
+  :stop (shutdown restore-hp-&-mp))
+
 (defstate ^{:on-reload :noop} teatime-pool
   :start (tea/start!)
   :stop (tea/stop!))
@@ -227,6 +282,11 @@
 (defn- update-last-activity-time [id]
   (when (get @players id)
     (swap! players assoc-in [id :last-time :activity] (now))))
+
+(defn update-last-combat-time [& player-ids]
+  (doseq [id player-ids]
+    (when (get @players id)
+      (swap! players assoc-in [id :last-time :combat] (now)))))
 
 (reg-pro
   :set-state
@@ -603,7 +663,8 @@
             (not (enough-mana? skill player-world-state)) not-enough-mana
             (not (cooldown-finished? skill player)) skill-failed
             (not (close-for-attack? player-world-state other-player-world-state)) too-far
-            :else (let [required-mana (get-required-mana skill)
+            :else (let [_ (update-last-combat-time id selected-player-id)
+                        required-mana (get-required-mana skill)
                         ;; TODO update damage, player might have defense or poison etc.
                         damage ((-> common.skills/skills (get skill) :damage-fn)
                                 (has-defense? selected-player-id)
@@ -676,6 +737,7 @@
                 {:skill skill})))))
 
 (defmethod apply-skill "baseDamage" [{:keys [id current-world data]}]
+  (update-last-combat-time id)
   (let [damage (common.skills/rand-between 350 400)
         player-world-state (get current-world id)
         health-after-damage (- (:health player-world-state) damage)
@@ -688,6 +750,24 @@
       (swap! players assoc-in [id :in-enemy-base?] false))
     {:skill (:skill data)
      :damage damage}))
+
+(defmethod apply-skill "restoreHpMp" [{:keys [current-players]
+                                       {:keys [players-to-restore]} :data}]
+  (swap! world (fn [world]
+                 (reduce
+                   (fn [world {:keys [id hp mp]}]
+                     (let [total-hp (get-in current-players [id :health])
+                           total-mp (get-in current-players [id :mana])
+                           hp (+ hp (get-in world [id :health]))
+                           mp (+ mp (get-in world [id :mana]))
+                           hp (Math/min hp total-hp)
+                           mp (Math/min mp total-mp)]
+                       (-> world
+                           (assoc-in [id :health] hp)
+                           (assoc-in [id :mana] mp))))
+                   world
+                   players-to-restore)))
+  nil)
 
 (def re-spawn-failed {:error :re-spawn-failed})
 
@@ -735,8 +815,8 @@
     nil))
 
 (comment
-
   (clojure.pprint/pprint @players)
+  (clojure.pprint/pprint @world)
   ;;close all connections, fetch :socket attribute and call s/close!
   (doseq [id (keys @players)]
     (s/close! (:socket (get @players id))))
@@ -916,10 +996,7 @@
                                                :exit? true})
                            (swap! players dissoc player-id)
                            (swap! world dissoc player-id)
-                           ;; TODO update for party members
                            (future
-                             ;; TODO optimize in here, in between other players could attack etc. and update non existed player's state
-                             ;; like check again after 5 secs or so...
                              (Thread/sleep 1000)
                              (swap! world dissoc player-id)
                              (notify-players-for-exit player-id)))))

@@ -35,7 +35,8 @@
         (not (cooldown-finished? skill player)) skill-failed
         (not (attack-range-in-distance? world-state x y z)) skill-failed
         :else
-        (let [required-mana (get-required-mana skill)
+        (let [_ (update-last-combat-time id)
+              required-mana (get-required-mana skill)
               _ (swap! players assoc-in [id :last-time :skill skill] (now))
               _ (swap! world update-in [id :mana] - required-mana)
               _ (add-effect :attack-range {:id id
@@ -49,7 +50,8 @@
                                                  (enemy? id enemy-id)
                                                  (alive? enemy-world-state)
                                                  (inside-circle? (:px enemy-world-state) (:pz enemy-world-state) x z nova-radius))]
-                                  (let [damage ((-> common.skills/skills (get skill) :damage-fn)
+                                  (let [_ (update-last-combat-time enemy-id)
+                                        damage ((-> common.skills/skills (get skill) :damage-fn)
                                                 (has-defense? enemy-id)
                                                 (has-break-defense? enemy-id))
                                         health-after-damage (- (:health enemy-world-state) damage)
@@ -80,7 +82,8 @@
                                               :skill skill
                                               :player player})]
           err
-          (let [required-mana (get-required-mana skill)
+          (let [_ (update-last-combat-time id selected-player-id)
+                required-mana (get-required-mana skill)
                 _ (swap! players assoc-in [id :last-time :skill skill] (now))
                 _ (swap! world update-in [id :mana] - required-mana)
                 damage ((-> common.skills/skills (get skill) :damage-fn)
@@ -111,7 +114,8 @@
                                               :skill skill
                                               :player player})]
           err
-          (let [required-mana (get-required-mana skill)
+          (let [_ (update-last-combat-time id selected-player-id)
+                required-mana (get-required-mana skill)
                 _ (swap! players assoc-in [id :last-time :skill skill] (now))
                 _ (swap! world update-in [id :mana] - required-mana)
                 damage ((-> common.skills/skills (get skill) :damage-fn)

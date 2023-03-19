@@ -94,7 +94,8 @@
           (not (cooldown-finished? skill player)) skill-failed
           (not (close-for-priest-skills? world-state other-player-world-state)) too-far
           :else
-          (let [required-mana (get-required-mana skill)
+          (let [_ (update-last-combat-time id selected-player-id)
+                required-mana (get-required-mana skill)
                 _ (when-let [task (get-in current-players [selected-player-id :effects :break-defense :task])]
                     (tea/cancel! task))
                 _ (when-let [task (get-in current-players [selected-player-id :effects :shield-wall :task])]
@@ -135,7 +136,8 @@
           (not (enough-mana? skill player-world-state)) not-enough-mana
           (not (cooldown-finished? skill player)) skill-failed
           (not (close-for-attack? player-world-state other-player-world-state)) too-far
-          :else (let [required-mana (get-required-mana skill)
+          :else (let [_ (update-last-combat-time id selected-player-id)
+                      required-mana (get-required-mana skill)
                       damage ((-> common.skills/skills (get skill) :damage-fn)
                               (has-defense? selected-player-id)
                               (has-break-defense? selected-player-id))

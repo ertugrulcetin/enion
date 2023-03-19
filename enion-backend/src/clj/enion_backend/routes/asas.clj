@@ -47,7 +47,8 @@
                                                   :skill skill
                                                   :player player})]
           err
-          (let [required-mana (get-required-mana skill)
+          (let [_ (update-last-combat-time id selected-player-id)
+                required-mana (get-required-mana skill)
                 damage ((-> common.skills/skills (get skill) :damage-fn)
                         (has-defense? selected-player-id)
                         (has-break-defense? selected-player-id))
@@ -82,7 +83,8 @@
                                                   :skill skill
                                                   :player player})]
           err
-          (let [required-mana (get-required-mana skill)
+          (let [_ (update-last-combat-time id selected-player-id)
+                required-mana (get-required-mana skill)
                 damage ((-> common.skills/skills (get skill) :damage-fn)
                         (has-defense? selected-player-id)
                         (has-break-defense? selected-player-id))

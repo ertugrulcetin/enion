@@ -8,7 +8,7 @@
     [enion-cljs.scene.utils :as utils]))
 
 (defn- trigger-start [chest]
-  (let [earned-potions-count 30]
+  (let [earned-potions-count 50]
     (j/assoc! chest :enabled false)
     (potions/update-potions earned-potions-count earned-potions-count)
     (fire :ui-show-congrats-text earned-potions-count)
