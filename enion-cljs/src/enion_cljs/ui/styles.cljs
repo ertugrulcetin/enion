@@ -30,6 +30,8 @@
    :user-select :none})
 
 (defattrs actions-container []
+  (at-media {:max-width "1250px"}
+            {:transform "translateX(-50%) scale(0.8)"})
   {:position :absolute
    :transform "translateX(-50%)"
    :left "50%"
@@ -177,10 +179,10 @@
 
 (defclass chat-wrapper []
   (at-media {:max-width "1250px"}
-            {:width "20% !important"})
+            {:width "27% !important"})
   {:position :absolute
-   :width "30%"
-   :left "10px"
+   :width "31%"
+   :left "-5px"
    :margin-left :auto
    :height :auto
    :bottom "45px"
