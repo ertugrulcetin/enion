@@ -389,8 +389,7 @@
       (:member-exit-from-party message) (str (:member-exit-from-party message) " exit from the party")
       (:bp message) (str "Earned " (:bp message) " Battle Points (BP)")
       (:re-spawn-error message) (:re-spawn-error message)
-      (:cauldron message) (str "You took " (:cauldron-damage message)
-                               " damage from the cauldron at " (:cauldron message) " base"))))
+      (:cauldron message) (str "Restricted area: You took " (:cauldron message) " damage!"))))
 
 (defn- info-message [message]
   [:<>
