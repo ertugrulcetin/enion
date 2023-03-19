@@ -125,6 +125,9 @@
 (defn apply-effect-attack-r [state]
   (effect-opacity-fade-out (j/get-in state [:effects :attack_r]) 0.2))
 
+(defn apply-effect-attack-cauldron [state]
+  (effect-opacity-fade-out (j/get-in state [:effects :attack_cauldron]) 0.2))
+
 (defn apply-effect-attack-priest [state]
   (effect-opacity-fade-out (j/get-in state [:effects :attack_priest]) 0.1))
 

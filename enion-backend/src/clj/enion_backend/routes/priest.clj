@@ -120,31 +120,6 @@
             {:skill skill
              :selected-player-id selected-player-id}))))))
 
-(comment
-  (let [current-players @players
-        selected-player-id 3
-        _ (when-let [task (get-in current-players [selected-player-id :effects :break-defense :task])]
-            (tea/cancel! task))
-        _ (when-let [task (get-in current-players [selected-player-id :effects :shield-wall :task])]
-            (tea/cancel! task))
-        tea (tea/after! 3000
-              (bound-fn []
-                (when (get @players selected-player-id)
-                  (swap! players (fn [players]
-                                   (-> players
-                                     (assoc-in [selected-player-id :effects :break-defense :result] false)
-                                     (assoc-in [selected-player-id :effects :break-defense :task] nil)
-                                     (assoc-in [selected-player-id :effects :shield-wall :result] false)
-                                     (assoc-in [selected-player-id :effects :shield-wall :task] nil))))
-                  (send! selected-player-id :cured-defense-break true))))]
-    (swap! players (fn [players]
-                     (-> players
-                       (assoc-in [selected-player-id :effects :break-defense :result] true)
-                       (assoc-in [selected-player-id :effects :break-defense :task] tea))))
-    (add-effect :break-defense selected-player-id)
-    (send! selected-player-id :got-defense-break true))
-  )
-
 (defmethod apply-skill "attackPriest" [{:keys [id ping current-players current-world]
                                         {:keys [skill selected-player-id]} :data}]
   (when-let [player (get current-players id)]

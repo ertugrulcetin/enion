@@ -487,9 +487,13 @@
   {:composes [(hp-mp-container)]
    :text-align :center
    :border (if selected? "2px solid rgb(15 188 3)" "2px solid transparent")
-   :width "145px"
+   :width "165px"
    :height "35px"
    :margin-right "10px"
+   :white-space :nowrap
+   :overflow :hidden
+   :text-overflow :ellipsis
+   :color "white"
    :pointer-events :all}
   [:&:hover {:border "2px solid rgb(15 188 3)"}])
 
@@ -507,8 +511,9 @@
    :height party-member-hp-mp-height})
 
 (defattrs party-member-username []
-  {:color "white"
-   :margin-top "3px"})
+  {:margin-top "3px"
+   :font-size "14px"
+   :padding "5px"})
 
 (def score-table-padding "0.75em 2.75em")
 

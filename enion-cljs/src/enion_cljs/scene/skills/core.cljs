@@ -196,6 +196,13 @@
                         :hit damage})
     (st/play-sound "attackR")))
 
+(defmethod skill-response "baseDamage" [params]
+  (let [damage (-> params :skill :damage)]
+    (skills.effects/apply-effect-attack-cauldron player)
+    (fire :ui-send-msg {:cauldron (if (= "orc" (st/get-race)) "Human's" "Orc's")
+                        :cauldron-damage damage})
+    (st/play-sound "attackR")))
+
 (defn register-skill-events [events]
   (let [player-entity (get-player-entity)
         model-entity (get-model-entity)]

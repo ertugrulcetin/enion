@@ -344,6 +344,7 @@
       :attack-single (effects/apply-effect-attack-flame other-player-state)
       :attack-ice (effects/apply-effect-ice-spell other-player-state)
       :attack-priest (effects/apply-effect-attack-priest other-player-state)
+      :attack-base (effects/apply-effect-attack-cauldron other-player-state)
       :teleport (effects/apply-effect-teleport other-player-state)
       :hp-potion (effects/apply-effect-hp-potion other-player-state)
       :mp-potion (effects/apply-effect-mp-potion other-player-state)

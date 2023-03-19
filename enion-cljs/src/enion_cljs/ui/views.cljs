@@ -176,7 +176,6 @@
    [mp-bar]])
 
 (defn- party-member-hp-bar [health total-health break-defense?]
-  (println "A: " break-defense?)
   (let [health-perc (/ (* 100 health) total-health)]
     [:div (styles/party-member-hp-bar)
      [:div (styles/party-member-hp-hit health-perc)]
@@ -345,6 +344,7 @@
   (cond
     (:damage message) "damage"
     (:defense-break message) "damage"
+    (:cauldron message) "damage"
     (:hit message) "hit"
     (:bp message) "bp"
     (:skill message) "skill"
@@ -388,7 +388,9 @@
       (:party-cancelled message) "The party has been cancelled"
       (:member-exit-from-party message) (str (:member-exit-from-party message) " exit from the party")
       (:bp message) (str "Earned " (:bp message) " Battle Points (BP)")
-      (:re-spawn-error message) (:re-spawn-error message))))
+      (:re-spawn-error message) (:re-spawn-error message)
+      (:cauldron message) (str "You took " (:cauldron-damage message)
+                               " damage from the cauldron at " (:cauldron message) " base"))))
 
 (defn- info-message [message]
   [:<>

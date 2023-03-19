@@ -148,6 +148,47 @@
   (when-not (dev?)
     (create-single-thread-executor 1000 (fn [] (check-afk-players*)))))
 
+(defn dispatch-in [pro-name {:keys [id data]}]
+  (let [current-players @players]
+    (when-let [socket (get-in current-players [id :socket])]
+      (try
+        (dispatch pro-name {:id id
+                            :ping 0
+                            :data data
+                            :req {}
+                            :current-players current-players
+                            :current-world @world
+                            :socket socket
+                            :send-fn (fn [socket {:keys [id result]}]
+                                       (when result
+                                         (s/put! socket (msg/pack (hash-map id result)))))})
+        (catch Exception e
+          (log/error e))))))
+
+(defn- check-enemies-entered-base* []
+  (try
+    (let [current-world @world
+          current-players @players
+          player-ids-to-damage (->> current-players
+                                    (filter
+                                      (fn [[_ player]]
+                                        (and
+                                          (get player :in-enemy-base?)
+                                          (not (get-in player [:effects :hide :result]))
+                                          (get current-world (:id player))
+                                          (> (get-in current-world [(:id player) :health]) 0))))
+                                    (map (fn [[_ player]]
+                                           (:id player))))]
+      (doseq [id player-ids-to-damage]
+        (dispatch-in :skill {:id id
+                             :data {:skill "baseDamage"}})))
+    (catch Exception e
+      (println "Couldn't check enemies entered base")
+      (log/error e))))
+
+(defn- check-enemies-entered-base []
+  (create-single-thread-executor 1000 (fn [] (check-enemies-entered-base*))))
+
 (defn- shutdown [^ExecutorService ec]
   (.shutdown ec)
   (try
@@ -165,6 +206,10 @@
 (defstate ^{:on-reload :noop} afk-player-checker
   :start (check-afk-players)
   :stop (shutdown afk-player-checker))
+
+(defstate ^{:on-reload :noop} enemies-entered-base-checker
+  :start (check-enemies-entered-base)
+  :stop (shutdown enemies-entered-base-checker))
 
 (defstate ^{:on-reload :noop} teatime-pool
   :start (tea/start!)
@@ -630,6 +675,20 @@
                 (add-effect :mp-potion id)
                 {:skill skill})))))
 
+(defmethod apply-skill "baseDamage" [{:keys [id current-world data]}]
+  (let [damage (common.skills/rand-between 350 400)
+        player-world-state (get current-world id)
+        health-after-damage (- (:health player-world-state) damage)
+        health-after-damage (Math/max ^long health-after-damage 0)]
+    (swap! world assoc-in [id :health] health-after-damage)
+    (add-effect :attack-base id)
+    (when (= 0 health-after-damage)
+      (cancel-all-tasks-of-player id)
+      (swap! players assoc-in [id :last-time :died] (now))
+      (swap! players assoc-in [id :in-enemy-base?] false))
+    {:skill (:skill data)
+     :damage damage}))
+
 (def re-spawn-failed {:error :re-spawn-failed})
 
 (defn re-spawn-duration-finished? [player]
@@ -668,6 +727,12 @@
                   {:pos new-pos
                    :health (:health player)
                    :mana (:mana player)}))))))
+
+(reg-pro
+  :trigger-base
+  (fn [{:keys [id data]}]
+    (swap! players assoc-in [id :in-enemy-base?] data)
+    nil))
 
 (comment
 
@@ -729,6 +794,7 @@
 
   (mount/start #'snapshot-sender)
   (mount/stop #'snapshot-sender)
+  (mount/start)
   )
 
 (reg-pro

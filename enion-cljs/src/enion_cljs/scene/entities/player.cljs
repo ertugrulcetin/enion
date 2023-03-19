@@ -2,6 +2,7 @@
   (:require
     [applied-science.js-interop :as j]
     [enion-cljs.common :as common :refer [dev? fire on dlog]]
+    [enion-cljs.scene.entities.base :as entity.base]
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.asas :as skills.asas]
@@ -516,7 +517,9 @@
     (on :cooldown-ready? (fn [{:keys [ready? skill]}]
                            (st/set-cooldown ready? skill)))
     (when-not dev?
-      (j/assoc! (st/get-player-entity) :name (str (random-uuid))))))
+      (j/assoc! (st/get-player-entity) :name (str (random-uuid))))
+    (entity.base/unregister-base-trigger-events)
+    (entity.base/register-base-trigger-events)))
 
 (defn- play-running-sound [dt model-entity]
   (when (and (= "run" (pc/get-anim-state model-entity))
