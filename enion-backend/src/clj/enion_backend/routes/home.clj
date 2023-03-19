@@ -713,13 +713,13 @@
         players-to-restore-hp-&-mp (->> current-players
                                         (filter
                                           (fn [[_ p]]
-                                            (and (>= (- now (get-in p [:last-time :combat] 0)) 10000)
+                                            (and (>= (- now (get-in p [:last-time :combat] 0)) 15000)
                                                  (> (get-in current-world [(:id p) :health] 0) 0))))
                                         (map
                                           (fn [[_ p]]
                                             {:id (:id p)
-                                             :mp (int (* 0.02 (:mana p)))
-                                             :hp (int (* 0.02 (:health p)))})))]
+                                             :mp (int (* 0.05 (:mana p)))
+                                             :hp (int (* 0.05 (:health p)))})))]
     (when (seq players-to-restore-hp-&-mp)
       (swap! world (fn [world]
                      (reduce
