@@ -210,22 +210,10 @@
       (swap! world #(apply dissoc (cons % player-ids-to-remove-from-world))))))
 
 (defn- restore-hp-&-mp-for-players-out-of-combat* []
-  (let [now (now)
-        current-world @world
-        players-to-restore-hp-&-mp (->> @players
-                                        (filter
-                                          (fn [[_ p]]
-                                            (and (>= (- now (get-in p [:last-time :combat] 0)) 10000)
-                                                 (> (get-in current-world [(:id p) :health] 0) 0))))
-                                        (map
-                                          (fn [[_ p]]
-                                            {:id (:id p)
-                                             :mp (int (* 0.02 (:mana p)))
-                                             :hp (int (* 0.02 (:health p)))})))]
-    (when (seq players-to-restore-hp-&-mp)
-      (dispatch-in :skill {:id nil
-                           :data {:skill "restoreHpMp"
-                                  :players-to-restore players-to-restore-hp-&-mp}}))))
+  (try
+    (dispatch-in :skill {:data {:skill "restoreHpMp"}})
+    (catch Exception e
+      (log/error e))))
 
 (defn- check-enemies-entered-base []
   (create-single-thread-executor 1000 (fn [] (check-enemies-entered-base*))))
@@ -245,37 +233,6 @@
       ;; TODO may no need interrupt fn
       (.. Thread currentThread interrupt)
       (.shutdownNow ec))))
-
-(defstate ^{:on-reload :noop} snapshot-sender
-  :start (send-world-snapshots)
-  :stop (shutdown snapshot-sender))
-
-(defstate ^{:on-reload :noop} afk-player-checker
-  :start (check-afk-players)
-  :stop (shutdown afk-player-checker))
-
-(defstate ^{:on-reload :noop} enemies-entered-base-checker
-  :start (check-enemies-entered-base)
-  :stop (shutdown enemies-entered-base-checker))
-
-(defstate ^{:on-reload :noop} leftover-player-state-checker
-  :start (check-leftover-player-states)
-  :stop (shutdown leftover-player-state-checker))
-
-(defstate ^{:on-reload :noop} restore-hp-&-mp
-  :start (restore-hp-&-mp-for-players-out-of-combat)
-  :stop (shutdown restore-hp-&-mp))
-
-(defstate ^{:on-reload :noop} teatime-pool
-  :start (tea/start!)
-  :stop (tea/stop!))
-
-(defstate register-procedures
-  :start (easync/start-procedures))
-
-(defstate ^{:on-reload :noop} init-sentry
-  :start (sentry/init! "https://9080b8a52af24bdb9c637555f1a36a1b@o4504713579724800.ingest.sentry.io/4504731298693120"
-                       {:traces-sample-rate 1.0}))
 
 (def selected-keys-of-set-state [:px :py :pz :ex :ey :ez :st])
 
@@ -751,22 +708,33 @@
     {:skill (:skill data)
      :damage damage}))
 
-(defmethod apply-skill "restoreHpMp" [{:keys [current-players]
-                                       {:keys [players-to-restore]} :data}]
-  (swap! world (fn [world]
-                 (reduce
-                   (fn [world {:keys [id hp mp]}]
-                     (let [total-hp (get-in current-players [id :health])
-                           total-mp (get-in current-players [id :mana])
-                           hp (+ hp (get-in world [id :health]))
-                           mp (+ mp (get-in world [id :mana]))
-                           hp (Math/min hp total-hp)
-                           mp (Math/min mp total-mp)]
-                       (-> world
-                           (assoc-in [id :health] hp)
-                           (assoc-in [id :mana] mp))))
-                   world
-                   players-to-restore)))
+(defmethod apply-skill "restoreHpMp" [{:keys [current-players current-world]}]
+  (let [now (now)
+        players-to-restore-hp-&-mp (->> current-players
+                                        (filter
+                                          (fn [[_ p]]
+                                            (and (>= (- now (get-in p [:last-time :combat] 0)) 10000)
+                                                 (> (get-in current-world [(:id p) :health] 0) 0))))
+                                        (map
+                                          (fn [[_ p]]
+                                            {:id (:id p)
+                                             :mp (int (* 0.02 (:mana p)))
+                                             :hp (int (* 0.02 (:health p)))})))]
+    (when (seq players-to-restore-hp-&-mp)
+      (swap! world (fn [world]
+                     (reduce
+                       (fn [world {:keys [id hp mp]}]
+                         (let [total-hp (get-in current-players [id :health])
+                               total-mp (get-in current-players [id :mana])
+                               hp (+ hp (get-in world [id :health]))
+                               mp (+ mp (get-in world [id :mana]))
+                               hp (Math/min hp total-hp)
+                               mp (Math/min mp total-mp)]
+                           (-> world
+                               (assoc-in [id :health] hp)
+                               (assoc-in [id :mana] mp))))
+                       world
+                       players-to-restore-hp-&-mp)))))
   nil)
 
 (def re-spawn-failed {:error :re-spawn-failed})
@@ -1061,3 +1029,34 @@
    ["/stats" {:post stats}]
    ["/servers" {:get get-servers-list}]
    ["/ws" {:get ws-handler}]])
+
+(defstate register-procedures
+  :start (easync/start-procedures))
+
+(defstate ^{:on-reload :noop} snapshot-sender
+  :start (send-world-snapshots)
+  :stop (shutdown snapshot-sender))
+
+(defstate ^{:on-reload :noop} afk-player-checker
+  :start (check-afk-players)
+  :stop (shutdown afk-player-checker))
+
+(defstate ^{:on-reload :noop} enemies-entered-base-checker
+  :start (check-enemies-entered-base)
+  :stop (shutdown enemies-entered-base-checker))
+
+(defstate ^{:on-reload :noop} leftover-player-state-checker
+  :start (check-leftover-player-states)
+  :stop (shutdown leftover-player-state-checker))
+
+(defstate ^{:on-reload :noop} restore-hp-&-mp
+  :start (restore-hp-&-mp-for-players-out-of-combat)
+  :stop (shutdown restore-hp-&-mp))
+
+(defstate ^{:on-reload :noop} teatime-pool
+  :start (tea/start!)
+  :stop (tea/stop!))
+
+(defstate ^{:on-reload :noop} init-sentry
+  :start (sentry/init! "https://9080b8a52af24bdb9c637555f1a36a1b@o4504713579724800.ingest.sentry.io/4504731298693120"
+                       {:traces-sample-rate 1.0}))

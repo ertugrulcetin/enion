@@ -946,7 +946,7 @@
 (defn- server-list [username race class]
   (let [servers @(subscribe [::subs/servers])]
     [:div (styles/server-stats-container)
-     (if (empty? servers)
+     (if (or (empty? servers) @(subscribe [::subs/initializing?]))
        [:span "Fetching servers list..."]
        [:table (styles/server-stats-table)
         [:thead

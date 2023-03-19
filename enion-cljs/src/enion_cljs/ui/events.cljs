@@ -25,8 +25,9 @@
 (reg-event-fx
   ::initialize-db
   [(inject-cofx ::settings)]
-  (fn [{:keys [settings]} _]
-    {:db (assoc db/default-db :settings settings)}))
+  (fn [{:keys [settings]} [_ initializing?]]
+    {:db (assoc db/default-db :settings settings
+                :initializing? initializing?)}))
 
 (reg-fx
   ::set-to-ls
@@ -541,10 +542,17 @@
     {:dispatch-later [{:ms 2000
                        :dispatch [::fetch-server-list]}]}))
 
+(reg-event-db
+  ::finish-initializing
+  (fn [db]
+    (assoc db :initializing? false)))
+
 (reg-event-fx
   ::re-init-game
   (fn []
-    {:dispatch [::initialize-db]
+    {:dispatch [::initialize-db true]
+     :dispatch-later [{:ms 3000
+                       :dispatch [::finish-initializing]}]
      ::fire [:re-init]}))
 
 (reg-event-db

@@ -316,3 +316,8 @@
   ::defense-break?
   (fn [db]
     (-> db :player :defense-break?)))
+
+(reg-sub
+  ::initializing?
+  (fn [db]
+    (:initializing? db)))
