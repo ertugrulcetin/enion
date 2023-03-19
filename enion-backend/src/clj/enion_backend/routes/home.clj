@@ -703,8 +703,7 @@
     (add-effect :attack-base id)
     (when (= 0 health-after-damage)
       (cancel-all-tasks-of-player id)
-      (swap! players assoc-in [id :last-time :died] (now))
-      (swap! players assoc-in [id :in-enemy-base?] false))
+      (swap! players assoc-in [id :last-time :died] (now)))
     {:skill (:skill data)
      :damage damage}))
 
@@ -760,6 +759,8 @@
                                 [px py pz]
                                 new-pos)
                       [x y z] new-pos]
+                  (when-not (:commercial-break-rewarded data)
+                    (swap! players assoc-in [id :in-enemy-base?] false))
                   (swap! players (fn [players]
                                    (-> players
                                        (utils/dissoc-in [id :effects])

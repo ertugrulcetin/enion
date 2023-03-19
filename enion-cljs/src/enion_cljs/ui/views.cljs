@@ -1098,7 +1098,7 @@
               :color :white}}
      [:span
       {:style {:text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}}
-      "You completed your first quest and earned 30 Health and Mana potions! "]
+      "You completed your first quest and earned 50 Health and Mana potions! "]
      [:span
       "\uD83C\uDF89"]]))
 
