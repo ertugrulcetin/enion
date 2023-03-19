@@ -17,7 +17,7 @@
   {:sound? true
    :fps? false
    :ping? false
-   :minimap? true
+   :minimap? false
    :camera-rotation-speed 10
    :edge-scroll-speed 100
    :graphics-quality 0.75})
@@ -47,12 +47,16 @@
   ::settings
   (fn [cofx _]
     (try
-      (if-let [ls (common.utils/get-local-storage)]
-        (assoc cofx :settings (let [settings (j/call ls :getItem "settings")]
-                                (if (str/blank? settings)
-                                  default-settings
-                                  (reader/read-string settings))))
-        (assoc cofx :settings default-settings))
+      (let [width js/window.innerWidth
+            default-settings (if (>= width 1250)
+                               (assoc default-settings :minimap? true)
+                               default-settings)]
+        (if-let [ls (common.utils/get-local-storage)]
+          (assoc cofx :settings (let [settings (j/call ls :getItem "settings")]
+                                  (if (str/blank? settings)
+                                    default-settings
+                                    (reader/read-string settings))))
+          (assoc cofx :settings default-settings)))
       (catch js/Error _
         (assoc cofx :settings default-settings)))))
 

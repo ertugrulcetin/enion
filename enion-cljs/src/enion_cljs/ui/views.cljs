@@ -695,6 +695,8 @@
         open? @(subscribe [::subs/settings-modal-open?])]
     [:button
      {:class (styles/settings-button minimap-open?)
+      :on-mouse-over #(fire :on-ui-element? true)
+      :on-mouse-out #(fire :on-ui-element? false)
       :on-click (if open?
                   #(dispatch [::events/close-settings-modal])
                   #(dispatch [::events/open-settings-modal]))}
@@ -705,6 +707,8 @@
         open? @(subscribe [::subs/change-server-modal-open?])]
     [:button
      {:class (styles/change-server-button minimap-open?)
+      :on-mouse-over #(fire :on-ui-element? true)
+      :on-mouse-out #(fire :on-ui-element? false)
       :on-click (if open?
                   #(dispatch [::events/close-change-server-modal])
                   #(dispatch [::events/open-change-server-modal]))}
@@ -1141,7 +1145,8 @@
                                                      (do
                                                        (dispatch [::events/cancel-skill-move])
                                                        (dispatch [::events/close-chat])
-                                                       (dispatch [::events/close-settings-modal]))))))
+                                                       (dispatch [::events/close-settings-modal])
+                                                       (dispatch [::events/close-change-server-modal]))))))
        (js/document.addEventListener "keyup" (fn [e]
                                                (let [code (j/get e :code)]
                                                  (cond

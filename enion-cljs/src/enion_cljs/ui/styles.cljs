@@ -217,7 +217,9 @@
   {:composes [(chat)]
    :left :unset
    :bottom "20px"
-   :height "150px"})
+   :height "150px"}
+  (at-media {:max-width "1250px"}
+            {:height "110px"}))
 
 (defclass message-box []
   {:width "100%"
@@ -255,7 +257,9 @@
    [:&.skill {:color "#e1dedeff"}]
    [:&.hp-recover {:color "#53b226ff"}]
    [:&.mp-recover {:color "#2691b2ff"}]
-   [:&.skill-failed {:color "#ffc301c8"}]])
+   [:&.skill-failed {:color "#ffc301c8"}]]
+  (at-media {:max-width "1250px"}
+            {:height "110px"}))
 
 (defattrs chat-part-message-box []
   {:color "rgb(15 188 3)"})
@@ -334,6 +338,10 @@
   [:&:hover {:border "2px solid white"}])
 
 (defattrs minimap []
+  (at-media {:max-width "1250px"}
+            {:transform "scale(0.75)"
+             :right "-10px"
+             :top "-10px"})
   {:position :absolute
    :right "10px"
    :top "10px"
@@ -408,7 +416,7 @@
    :background-color "#10131dcc"
    :padding "20px"
    :border "1px solid black"
-   :z-index 1
+   :z-index 25
    :font-size "20px"
    :text-align :center})
 
@@ -461,15 +469,16 @@
 (def party-member-hp-mp-height "12px")
 
 (defclass party-list-container [minimap-open?]
-  (at-media {:max-height "470px"}
-            {:max-height "230px"
+  (at-media {:max-width "1250px"}
+            {:max-height (if minimap-open? "230px" "255px")
+             :margin-top (if minimap-open? "130px" "50px")
              :overflow-y :auto})
   {:position :absolute
    :width "200px"
    :margin-left :auto
    :z-index 3
    :right 0
-   :margin-top (if minimap-open? "170px" "10px")})
+   :margin-top (if minimap-open? "170px" "50px")})
 
 (defattrs party-action-button-container []
   {:display :flex
@@ -495,7 +504,10 @@
    :text-overflow :ellipsis
    :color "white"
    :pointer-events :all}
-  [:&:hover {:border "2px solid rgb(15 188 3)"}])
+  [:&:hover {:border "2px solid rgb(15 188 3)"}]
+  (at-media {:max-width "1250px"}
+            {:width "145px"
+             :height "30px"}))
 
 (defattrs party-member-hp-bar []
   {:composes [(hp-bar)]
@@ -581,7 +593,7 @@
 (defclass settings-button [minimap?]
   {:composes [(button)]
    :position :absolute
-   :right (if minimap? "170px" "145px")
+   :right (if minimap? "185px" "10px")
    :top "10px"
    :font-size "18px"
    :opacity 0.75
@@ -589,7 +601,7 @@
 
 (defclass change-server-button [minimap?]
   {:composes [(settings-button minimap?)]
-   :right (if minimap? "257px" "232px")})
+   :right (if minimap? "270px" "97px")})
 
 (defclass ping-counter [fps? ping]
   {:composes [(settings-button false)]
