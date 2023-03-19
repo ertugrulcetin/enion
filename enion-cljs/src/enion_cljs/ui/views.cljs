@@ -3,6 +3,7 @@
     ["bad-words" :as bad-words]
     ["react-device-detect" :as device-dec]
     [applied-science.js-interop :as j]
+    [breaking-point.core :as bp]
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on dev?]]
     [enion-cljs.ui.events :as events]
@@ -69,25 +70,27 @@
     (fn []
       (when-let [{:keys [name description cooldown required-mana]} (and (nil? @(subscribe [::subs/skill-move]))
                                                                         @(subscribe [::subs/skill-description]))]
-        [:div
-         {:style {:position :absolute
-                  :top (- @mouse-y @offset-height 5)
-                  :left (- @mouse-x (/ @offset-width 2))
-                  :z-index 15
-                  :pointer-events :none}}
-         [:div
-          {:ref #(do
-                   (when-let [ow (j/get % :offsetWidth)]
-                     (reset! offset-width ow))
-                   (when-let [oh (j/get % :offsetHeight)]
-                     (reset! offset-height oh)))
-           :class (styles/skill-description)}
-          [:span.skill-name name]
-          [:span.desc description]
-          [:span.info "Cooldown: " (/ cooldown 1000) "s"]
-          [:br]
-          (when required-mana
-            [:span.info "Required MP: " required-mana])]]))))
+        (let [width @(subscribe [::bp/screen-width])
+              offset-top (if (< width 1250) -15 5)]
+          [:div
+           {:style {:position :absolute
+                    :top (- @mouse-y @offset-height offset-top)
+                    :left (- @mouse-x (/ @offset-width 2))
+                    :z-index 15
+                    :pointer-events :none}}
+           [:div
+            {:ref #(do
+                     (when-let [ow (j/get % :offsetWidth)]
+                       (reset! offset-width ow))
+                     (when-let [oh (j/get % :offsetHeight)]
+                       (reset! offset-height oh)))
+             :class (styles/skill-description)}
+            [:span.skill-name name]
+            [:span.desc description]
+            [:span.info "Cooldown: " (/ cooldown 1000) "s"]
+            [:br]
+            (when required-mana
+              [:span.info "Required MP: " required-mana])]])))))
 
 (defn- cooldown [skill]
   (let [cooldown-secs (-> skill common.skills/skills :cooldown)]

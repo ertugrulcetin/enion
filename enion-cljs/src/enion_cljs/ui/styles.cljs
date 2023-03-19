@@ -154,6 +154,8 @@
    :font-size "13px"})
 
 (defclass skill-description []
+  (at-media {:max-width "1250px"}
+            {:transform "scale(0.8)"})
   {:background "black"
    :color "#c2c2c2"
    :max-width "400px"

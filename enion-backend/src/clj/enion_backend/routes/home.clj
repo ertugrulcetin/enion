@@ -219,7 +219,7 @@
   (create-single-thread-executor 1000 (fn [] (check-enemies-entered-base*))))
 
 (defn- check-leftover-player-states []
-  (create-single-thread-executor 1000 (fn [] (check-leftover-player-states*))))
+  (create-single-thread-executor (* 60 1000) (fn [] (check-leftover-player-states*))))
 
 (defn- restore-hp-&-mp-for-players-out-of-combat []
   (create-single-thread-executor 5000 (fn [] (restore-hp-&-mp-for-players-out-of-combat*))))

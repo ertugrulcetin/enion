@@ -1,3 +1,5 @@
+Player is able to jump multiple times in the air.
+Show countdown timer when a player is about to disconnect.
 Component overlap when there is a party, and no minimap shown
 Upon entering another race's base, the player takes damage every second.
 If a player remains out of battle for at least 15 seconds, their health will start regenerating.
