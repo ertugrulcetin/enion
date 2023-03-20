@@ -552,6 +552,7 @@
 (defn make-asas-appear-if-hidden [selected-player-id]
   (when (hidden? selected-player-id)
     (add-effect :appear selected-player-id)
+    (swap! players assoc-in [selected-player-id :effects :hide :result] false)
     (send! selected-player-id :hide-finished true)))
 
 ;; TODO replace @players -> players*
