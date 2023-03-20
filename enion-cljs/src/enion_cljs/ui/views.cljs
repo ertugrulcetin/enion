@@ -1044,7 +1044,7 @@
        (fn []
          [:<>
           [:a
-           {:href "https://discord.gg/xV4Q2ncz"
+           {:href "https://discord.gg/rmaTrYdV5V"
             :target "_blank"}
            [:img
             {:src "img/dc.png"
