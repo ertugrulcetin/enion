@@ -316,5 +316,6 @@
         to (screen-to-world camera x y)]
     (raycast-all from to)))
 
-(defn clamp [value min max]
-  ((j/get-in js/pc [:math :clamp]) value min max))
+(let [clamp* (j/get-in js/pc [:math :clamp])]
+  (defn clamp [value min max]
+    (clamp* value min max)))
