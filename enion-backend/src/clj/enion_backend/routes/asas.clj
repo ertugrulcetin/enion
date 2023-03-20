@@ -151,11 +151,9 @@
                            (-> players
                                (assoc-in [id :last-time :skill skill] (now))
                                (assoc-in [id :effects :hide :result] true))))
-          (add-effect :hide id)
           (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
                       (bound-fn []
                         (when (get @players id)
                           (send! id :hide-finished true)
-                          (swap! players assoc-in [id :effects :hide :result] false)
-                          (add-effect :appear id))))
+                          (swap! players assoc-in [id :effects :hide :result] false))))
           {:skill skill})))))

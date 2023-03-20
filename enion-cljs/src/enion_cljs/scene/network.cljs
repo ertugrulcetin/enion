@@ -269,6 +269,7 @@
                   entity (j/get other-player :entity)
                   health (:health new-state)
                   new-anim-state (:st new-state)
+                  hide (:hide new-state)
                   new-pos (do
                             (pc/setv temp-pos (:px new-state) (:py new-state) (:pz new-state))
                             temp-pos)
@@ -325,10 +326,15 @@
               "attackRange" (effects/apply-effect-flame-particles other-player)
               "attackSingle" (effects/apply-effect-fire-hands other-player)
               "attackIce" (effects/apply-effect-ice-hands other-player)
-              nil))))
+              nil))
+          (when (and (not (nil? hide)) (not= hide (j/get-in st/other-players [id :prev-hide])))
+            (if hide
+              (j/call-in other-player [:skills :hide])
+              (j/call-in other-player [:skills :appear])))))
       (-> st/other-players
           (j/assoc-in! [id :prev-pos] new-pos)
-          (j/assoc-in! [id :prev-state] new-anim-state)))))
+          (j/assoc-in! [id :prev-state] new-anim-state)
+          (j/assoc-in! [id :prev-hide] hide)))))
 
 (defn- process-effects [effects]
   (doseq [[e ids] effects
@@ -352,8 +358,6 @@
       :heal (effects/add-player-id-to-healed-ids id)
       :cure (effects/apply-effect-got-cure other-player-state)
       :break-defense (effects/apply-effect-got-defense-break other-player-state)
-      :hide (j/call-in other-player-state [:skills :hide])
-      :appear (j/call-in other-player-state [:skills :appear])
       :else (js/console.error "Unknown effect: " e))))
 
 (let [temp-pos (pc/vec3)]

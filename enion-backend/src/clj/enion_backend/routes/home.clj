@@ -117,6 +117,12 @@
         w (if (empty? effects) w (assoc w :effects effects))
         w (if (empty? kills) w (assoc w :kills kills))
         current-players @players
+        w (reduce-kv
+            (fn [w id v]
+              (assoc w id (if (= "asas" (get-in current-players [id :class]))
+                            (assoc v :hide (get-in current-players [id :effects :hide :result]))
+                            v)))
+            w w)
         party-id->players (get-players-with-defense current-players)]
     (doseq [player-id (keys w)
             :let [party-id (get-in current-players [player-id :party-id])
@@ -130,7 +136,7 @@
     (.scheduleAtFixedRate f 0 millisecs TimeUnit/MILLISECONDS)))
 
 (defn- send-world-snapshots []
-  (create-single-thread-executor world-tick-rate send-world-snapshots*))
+  (create-single-thread-executor world-tick-rate (fn [] (send-world-snapshots*))))
 
 (defn- check-afk-players* []
   (doseq [[_ player] @players
@@ -551,7 +557,6 @@
 
 (defn make-asas-appear-if-hidden [selected-player-id]
   (when (hidden? selected-player-id)
-    (add-effect :appear selected-player-id)
     (swap! players assoc-in [selected-player-id :effects :hide :result] false)
     (send! selected-player-id :hide-finished true)))
 
