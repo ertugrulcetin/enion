@@ -641,10 +641,10 @@
            [:tr
             [:th (styles/score-modal-orc-color) "Player"]
             [:th (styles/score-modal-orc-color) "Class"]
-            [:th (styles/score-modal-orc-color) "Battle Point"]
+            [:th (styles/score-modal-orc-color) "Battle Points"]
             [:th (styles/score-modal-human-color) "Player"]
             [:th (styles/score-modal-human-color) "Class"]
-            [:th (styles/score-modal-human-color) "Battle Point"]]]
+            [:th (styles/score-modal-human-color) "Battle Points"]]]
           [:tbody
            (let [players @(subscribe [::subs/score-board])
                  orcs (sort-by :bp > (filter #(= "orc" (:race %)) players))

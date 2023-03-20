@@ -18,7 +18,7 @@
    :fps? false
    :ping? false
    :minimap? false
-   :camera-rotation-speed 10
+   :camera-rotation-speed 20
    :edge-scroll-speed 100
    :graphics-quality 0.75})
 
@@ -50,7 +50,9 @@
     (try
       (let [width js/window.innerWidth
             default-settings (if (>= width 1250)
-                               (assoc default-settings :minimap? true)
+                               (assoc default-settings :minimap? true
+                                      :fps? true
+                                      :ping? true)
                                default-settings)]
         (if-let [ls (common.utils/get-local-storage)]
           (assoc cofx :settings (let [settings (j/call ls :getItem "settings")]
@@ -495,19 +497,22 @@
   ::fetch-server-stats
   (fn [{:keys [db]} [_ server-name stats-url]]
     (when (-> db :servers :current-server nil?)
-      {:http {:method :post
-              :uri stats-url
-              :params {:timestamp (js/Date.now)}
-              :on-success [::fetch-server-stats-success server-name stats-url]
-              :on-failure [:dispatch-later [{:ms 2000
-                                             :dispatch [::fetch-server-stats server-name stats-url]}]]}})))
+      (let [timestamp (js/Date.now)]
+        {:http {:method :post
+                :uri stats-url
+                :params {:timestamp timestamp}
+                :on-success [::fetch-server-stats-success server-name stats-url timestamp]
+                :on-failure [:dispatch-later [{:ms 2000
+                                               :dispatch [::fetch-server-stats server-name stats-url]}]]}}))))
 
 (reg-event-fx
   ::fetch-server-stats-success
-  (fn [{:keys [db]} [_ server-name stats-url response]]
-    {:db (update-in db [:servers :list server-name] merge response)
-     :dispatch-later [{:ms 2000
-                       :dispatch [::fetch-server-stats server-name stats-url]}]}))
+  (fn [{:keys [db]} [_ server-name stats-url timestamp response]]
+    (let [ping (int (/ (- (js/Date.now) timestamp) 2))
+          response (assoc response :ping ping)]
+      {:db (update-in db [:servers :list server-name] merge response)
+       :dispatch-later [{:ms 2000
+                         :dispatch [::fetch-server-stats server-name stats-url]}]})))
 
 (reg-event-fx
   ::connect-to-server

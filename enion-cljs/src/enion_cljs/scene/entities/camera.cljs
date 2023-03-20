@@ -114,7 +114,6 @@
 (let [duration 1
       shake-interval 0.05
       max-shake-distance 1
-      clamp (j/get-in js/pc [:math :clamp])
       random (j/get-in js/pc [:math :random])]
   (defn update-fn [dt]
     (when (j/get state :shaking?)
@@ -124,7 +123,7 @@
           (do
             (j/update! state :time-since-last-shake + dt)
             (if (>= (j/get state :time-since-last-shake) shake-interval)
-              (let [v (- 1 (clamp (/ time duration) 0 1))
+              (let [v (- 1 (pc/clamp (/ time duration) 0 1))
                     t (* 2 Math/PI (random 0 1))
                     u (+ (* (random 0 max-shake-distance) v) (* (random 0 max-shake-distance) v))
                     r (if (> u 1) (- 2 u) u)
@@ -143,30 +142,17 @@
               :shaking? true
               :last-shake-time (js/Date.now))))
 
-(comment
-  (shake-camera)
-  )
-
 (defn- post-update-fn [dt _]
   (let [origin-entity (j/get entity :parent)
         eulers (j/get state :eulers)
         target-y (mod (+ (j/get eulers :x) 180) 360)
-        target-x (-> (j/get eulers :y)
-                     (mod 360)
-                     (-))
-        target-x (if (> target-x -5)
-                   (do
-                     (j/assoc! eulers :y 5)
-                     -5)
-                   target-x)
-        target-x (if (< target-x -55)
-                   (do
-                     (j/assoc! eulers :y 55)
-                     -55)
-                   target-x)
+        target-x (mod (j/get eulers :y) 360)
+        target-x (if (> target-x 200) 5 target-x)
+        target-x (pc/clamp target-x 5 50)
+        _ (j/assoc! eulers :y target-x)
         target-angle (j/get state :target-angle)
         page-x (j/get state :page-x)]
-    (pc/setv target-angle target-x target-y 0)
+    (pc/setv target-angle (- target-x) target-y 0)
     (pc/set-pos entity (get-world-point))
     (when-not (j/get state :shaking?)
       (pc/set-euler origin-entity target-angle)

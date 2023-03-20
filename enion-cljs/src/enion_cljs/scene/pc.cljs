@@ -315,3 +315,6 @@
         from (get-pos camera-entity)
         to (screen-to-world camera x y)]
     (raycast-all from to)))
+
+(defn clamp [value min max]
+  ((j/get-in js/pc [:math :clamp]) value min max))

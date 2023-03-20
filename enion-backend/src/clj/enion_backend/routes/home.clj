@@ -260,10 +260,15 @@
 
 (reg-pro
   :ping
-  (fn [{:keys [id ping]}]
-    (swap! players assoc-in [id :ping] ping)
-    {:ping ping
+  (fn [{:keys [data]}]
+    {:timestamp (:timestamp data)
      :online (count @world)}))
+
+(reg-pro
+  :set-ping
+  (fn [{:keys [id data]}]
+    (swap! players assoc-in [id :ping] (:ping data))
+    nil))
 
 (defn get-orcs [players]
   (filter (fn [[_ p]] (= "orc" (:race p))) players))
@@ -533,13 +538,13 @@
     (<= (distance x x1 y y1 z z1) threshold)))
 
 (defn close-for-attack? [player-world-state other-player-world-state]
-  (close-distance? player-world-state other-player-world-state (+ common.skills/close-attack-distance-threshold 0.4)))
+  (close-distance? player-world-state other-player-world-state (+ common.skills/close-attack-distance-threshold 1)))
 
 (defn close-for-priest-skills? [player-world-state other-player-world-state]
-  (close-distance? player-world-state other-player-world-state (+ common.skills/priest-skills-distance-threshold 0.5)))
+  (close-distance? player-world-state other-player-world-state (+ common.skills/priest-skills-distance-threshold 1)))
 
 (defn close-for-attack-single? [player-world-state other-player-world-state]
-  (close-distance? player-world-state other-player-world-state (+ common.skills/attack-single-distance-threshold 0.5)))
+  (close-distance? player-world-state other-player-world-state (+ common.skills/attack-single-distance-threshold 1)))
 
 (defn attack-range-in-distance? [world-state x y z]
   (try
@@ -1001,15 +1006,12 @@
   ;; Routing lib expects some sort of HTTP response, so just give it `nil`
   nil)
 
-(defn- stats [req]
-  (let [now (Instant/now)
-        ping (- (.toEpochMilli now) (-> req :params :timestamp))
-        players @players
+(defn- stats [_]
+  (let [players @players
         orcs (count (get-orcs players))
         humans (count (get-humans players))]
     {:status 200
-     :body {:ping ping
-            :number-of-players (+ orcs humans)
+     :body {:number-of-players (+ orcs humans)
             :orcs orcs
             :humans humans
             :max-number-of-same-race-players max-number-of-same-race-players

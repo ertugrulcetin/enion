@@ -22,6 +22,8 @@
 (defonce send-state-interval-id (atom nil))
 (defonce get-ping-interval-id (atom nil))
 
+(defonce party-member-ids (volatile! []))
+
 (def sending-states-to-server-tick-rate (/ 1000 30))
 
 (defn connect [{:keys [url on-open on-message on-close on-error]}]
@@ -101,8 +103,6 @@
 (defmethod dispatch-pro-response :player-exit [params]
   (dlog "player left")
   (-> (:player-exit params) st/destroy-player))
-
-(defonce party-member-ids (volatile! []))
 
 (defmulti party-response #(-> % :party :type))
 
@@ -422,17 +422,21 @@
   (if-let [id @get-ping-interval-id]
     (js/clearInterval id)
     (reset! get-ping-interval-id (js/setInterval
-                                   ;; TODO online counter icin surekli atma, birileri girip cikinca at
                                    #(when (utils/tab-visible?)
-                                      (dispatch-pro :ping))
-                                   1000))))
+                                      (dispatch-pro :ping {:timestamp (js/Date.now)}))
+                                   2000))))
 
 (defn cancel-ping-interval []
   (some-> @get-ping-interval-id js/clearInterval)
   (reset! get-ping-interval-id nil))
 
 (defmethod dispatch-pro-response :ping [params]
-  (fire :ui-update-ping (:ping params)))
+  (let [ping (:ping params)
+        timestamp (:timestamp ping)
+        rtt (int (/ (- (js/Date.now) timestamp) 2))
+        ping (assoc ping :ping rtt)]
+    (fire :ui-update-ping ping)
+    (dispatch-pro :set-ping {:ping rtt})))
 
 (defmethod dispatch-pro-response :connect-to-world-state [params]
   (when (:connect-to-world-state params)
@@ -551,6 +555,8 @@
 
 (on :close-socket-for-re-init
     (fn []
+      (set! effects/healed-player-ids (js/Set.))
+      (vreset! party-member-ids [])
       (poki/gameplay-stop)
       (poki/commercial-break)
       (some-> @socket (j/call :close 3001 "re-init"))

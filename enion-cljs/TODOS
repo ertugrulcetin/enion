@@ -1,9 +1,13 @@
 Player is able to jump multiple times in the air.
 Show countdown timer when a player is about to disconnect.
 
-New comers can see hidden assassins
-Disconnect AFK players (3 minutes)
-Component overlap when there is a party, and no minimap shown (small screens)
+Ping is minus.
+Fix camera rotation Y axis.
+Party list is not gone when using change server.
+Increase distance threshold on network layer.
+New comers can see hidden assassins.
+Disconnect AFK players (3 minutes).
+Component overlap when there is a party, and no minimap shown (small screens).
 Upon entering another race's base, the player takes high damage every second.
 If a player remains out of battle for at least 15 seconds, their health will start regenerating.
 Make an indicator that shows players got poisoned.
