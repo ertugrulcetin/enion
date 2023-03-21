@@ -131,12 +131,12 @@
                       w)]]
       (send! player-id :world-snapshot w))))
 
-(defn- create-single-thread-executor [millisecs f]
-  (doto (Executors/newSingleThreadScheduledExecutor)
-    (.scheduleAtFixedRate f 0 millisecs TimeUnit/MILLISECONDS)))
+(defmacro create-single-thread-executor [millisecs f]
+  `(doto (Executors/newSingleThreadScheduledExecutor)
+     (.scheduleAtFixedRate (if (dev?) (var ~f) ~f) 0 ~millisecs TimeUnit/MILLISECONDS)))
 
 (defn- send-world-snapshots []
-  (create-single-thread-executor world-tick-rate (fn [] (send-world-snapshots*))))
+  (create-single-thread-executor world-tick-rate send-world-snapshots*))
 
 (defn- check-afk-players* []
   (doseq [[_ player] @players
@@ -152,7 +152,7 @@
 
 (defn- check-afk-players []
   (when-not (dev?)
-    (create-single-thread-executor 1000 (fn [] (check-afk-players*)))))
+    (create-single-thread-executor 1000 check-afk-players*)))
 
 (let [temp {}
       temp-fn (fn [_ _])]
@@ -222,13 +222,13 @@
       (log/error e))))
 
 (defn- check-enemies-entered-base []
-  (create-single-thread-executor 1000 (fn [] (check-enemies-entered-base*))))
+  (create-single-thread-executor 1000 check-enemies-entered-base*))
 
 (defn- check-leftover-player-states []
-  (create-single-thread-executor (* 60 1000) (fn [] (check-leftover-player-states*))))
+  (create-single-thread-executor (* 60 1000) check-leftover-player-states*))
 
 (defn- restore-hp-&-mp-for-players-out-of-combat []
-  (create-single-thread-executor 5000 (fn [] (restore-hp-&-mp-for-players-out-of-combat*))))
+  (create-single-thread-executor 5000 restore-hp-&-mp-for-players-out-of-combat*))
 
 (defn- shutdown [^ExecutorService ec]
   (.shutdown ec)

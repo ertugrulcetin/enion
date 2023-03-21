@@ -2,6 +2,7 @@
   (:require
     [clojure.string :as str]
     [clojure.tools.logging :as log]
+    [enion-backend.utils :refer [dev?]]
     [manifold.deferred :as d]
     [manifold.stream :as s]
     [sentry-clj.core :as sentry]
@@ -206,7 +207,7 @@
         pro (fn []
               (when-not (fn? (last fdecl))
                 (throw (ex-info "Last argument must be a function" {})))
-              (swap! procedure-map update pro-name merge (merge {:fn (bound-fn* (fn [] (eval (last fdecl))))
+              (swap! procedure-map update pro-name merge (merge {:fn (bound-fn* (fn [] (last fdecl)))
                                                                  :data-response-schema-map nil} m))
               (reset! deps (dep/graph))
               (doseq [[k v] @procedure-map]
@@ -228,5 +229,8 @@
                   (swap! procedure-map (fn [m]
                                          (-> m
                                              (assoc-in [k :stream] new-stream)
-                                             (assoc-in [k :async-flow] (delay (eval `(create-async-flow ~k))))))))))]
-    (swap! procedures assoc pro-name pro)))
+                                             (assoc-in [k :async-flow] (delay (eval `(create-async-flow ~k))))))))))
+        re-start-pro? (boolean (get @procedure-map pro-name))]
+    (swap! procedures assoc pro-name pro)
+    (when (and (dev?) re-start-pro?)
+      (start-procedures))))
