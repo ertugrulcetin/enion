@@ -1,3 +1,5 @@
+Kick players with high ping.
+Show why player is kicked. (Ping, AFK, etc.)
 Player runs fast/slow based on the camera angle.
 Show countdown timer when a player is about to disconnect.
 
