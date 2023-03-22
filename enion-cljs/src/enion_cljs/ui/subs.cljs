@@ -161,7 +161,7 @@
 (reg-sub
   ::skill-description
   (fn [db]
-    (some->> (:skill-description db) (get common.skills/skills))))
+    (and (:show-skill-description? db) (some->> (:skill-description db) (get common.skills/skills)))))
 
 (reg-sub
   ::party-members

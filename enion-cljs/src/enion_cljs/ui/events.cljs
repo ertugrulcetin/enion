@@ -234,10 +234,24 @@
       (when-not (= skill :none)
         {:db (assoc-in db [:player :skill-move] {:index index :skill skill})}))))
 
-(reg-event-db
+(reg-event-fx
   ::show-skill-description
-  (fn [db [_ skill]]
-    (assoc db :skill-description skill)))
+  (fn [{:keys [db]} [_ skill still-hovering?]]
+    (let [prev-skill (:skill-description db)]
+      {:db (cond
+             (nil? skill)
+             (assoc db :skill-description nil
+                    :show-skill-description? false)
+
+             (and still-hovering? prev-skill  (= prev-skill skill))
+             (assoc db :skill-description skill
+                    :show-skill-description? true)
+
+             (and skill (nil? prev-skill) (not still-hovering?))
+             (assoc db :skill-description skill
+                    :show-skill-description? still-hovering?))
+       :dispatch-later [(when (and skill (not still-hovering?))
+                          {:ms 750 :dispatch [::show-skill-description skill true]})]})))
 
 (reg-event-fx
   ::cooldown

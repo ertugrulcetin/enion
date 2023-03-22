@@ -129,6 +129,7 @@
                           (swap! event-listeners assoc skill [ref f]))))
                :class (styles/skill)
                :on-click (fn []
+                           (dispatch [::events/show-skill-description nil])
                            (if skill-move
                              (dispatch [::events/update-skills-order index skill])
                              (let [event (js/KeyboardEvent. "keydown" #js {:code (str "Digit" (inc index))
@@ -139,8 +140,8 @@
                                    event #js {:event event
                                               :key (+ 49 index)}]
                                (fire :process-skills-from-skill-bar-clicks event))))
-               :on-mouse-over #(dispatch [::events/show-skill-description skill])
-               :on-mouse-out #(dispatch [::events/show-skill-description nil])}
+               :on-mouse-enter #(dispatch [::events/show-skill-description skill])
+               :on-mouse-leave #(dispatch [::events/show-skill-description nil])}
          [:span (styles/skill-number) (inc index)]
          (when (= "hpPotion" skill)
            [:span (styles/potion-count) hp-potions])

@@ -25,10 +25,6 @@
     "heal"
     "cure"})
 
-;; TODO add MP used message after each success skill
-
-;; TODO eger karakter stateti idle ve run degilse, ve belirlenen sureden fazla o statete kalmissa duzenleme yap
-;; networkten gelen koddan dolayi sikinti olabilir
 (def common-states
   [{:anim-state "idle" :event "onIdleStart"}
    {:anim-state "run"
@@ -74,7 +70,8 @@
   (and (idle-run-states active-state)
        (pc/key? e :KEY_SPACE)
        (j/get player :on-ground?)
-       (not (j/get st/settings :tutorial?))))
+       (not (j/get st/settings :tutorial?))
+       (not (j/get player :slow-down?))))
 
 (let [too-far-msg {:too-far true}]
   (defn close-for-attack? [selected-player-id]

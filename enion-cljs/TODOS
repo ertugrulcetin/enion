@@ -1,6 +1,7 @@
-Player is able to jump multiple times in the air.
+Player runs fast/slow based on the camera angle.
 Show countdown timer when a player is about to disconnect.
 
+Skill description blocks the health and mana status.
 Ping is minus.
 Fix camera rotation Y axis.
 Party list is not gone when using change server.
