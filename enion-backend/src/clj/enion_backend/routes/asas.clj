@@ -145,15 +145,18 @@
                                          :skill skill
                                          :player player})]
         err
-        (let [required-mana (get-required-mana skill)]
+        (let [required-mana (get-required-mana skill)
+              _ (when-let [task (get-in current-players [id :effects :hide :task])]
+                  (tea/cancel! task))
+              tea (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
+                              (bound-fn []
+                                (when (get @players id)
+                                  (send! id :hide-finished true)
+                                  (swap! players assoc-in [id :effects :hide :result] false))))]
           (swap! world update-in [id :mana] - required-mana)
           (swap! players (fn [players]
                            (-> players
                                (assoc-in [id :last-time :skill skill] (now))
-                               (assoc-in [id :effects :hide :result] true))))
-          (tea/after! (-> common.skills/skills (get skill) :effect-duration (/ 1000))
-                      (bound-fn []
-                        (when (get @players id)
-                          (send! id :hide-finished true)
-                          (swap! players assoc-in [id :effects :hide :result] false))))
+                               (assoc-in [id :effects :hide :result] true)
+                               (assoc-in [id :effects :hide :task] tea))))
           {:skill skill})))))

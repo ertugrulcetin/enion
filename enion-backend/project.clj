@@ -3,13 +3,17 @@
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
 
-  :dependencies [[ch.qos.logback/logback-classic "1.4.4"]
+  :dependencies [[aleph "0.6.1"]
+                 [amalloy/ring-buffer "1.3.1"]
+                 [amalloy/ring-gzip-middleware "0.1.4"]
+                 [ch.qos.logback/logback-classic "1.4.4"]
                  [clojure.java-time "1.1.0"]
+                 [clojure-msgpack "1.2.1"]
                  [cprop "0.1.19"]
+                 [io.sentry/sentry-clj "6.13.191"]
                  [luminus-aleph "0.2.0"]
-                 [aleph "0.6.1"]
-                 [luminus-transit "0.1.5"]
                  [luminus/ring-ttl-session "0.3.3"]
+                 [luminus-transit "0.1.5"]
                  [metosin/muuntaja "0.6.8"]
                  [metosin/reitit "0.5.18"]
                  [metosin/ring-http-response "0.9.3"]
@@ -18,14 +22,11 @@
                  [org.clojure/clojure "1.11.1"]
                  [org.clojure/tools.cli "1.0.214"]
                  [org.clojure/tools.logging "1.2.4"]
+                 [ring-cors/ring-cors "0.1.13"]
                  [ring/ring-core "1.9.6"]
                  [ring/ring-defaults "0.3.4"]
                  [selmer "1.12.55"]
-                 [clojure-msgpack "1.2.1"]
-                 [amalloy/ring-gzip-middleware "0.1.4"]
-                 [ring-cors/ring-cors "0.1.13"]
-                 [weavejester/dependency "0.2.1"]
-                 [io.sentry/sentry-clj "6.13.191"]]
+                 [weavejester/dependency "0.2.1"]]
 
   :min-lein-version "2.0.0"
 
