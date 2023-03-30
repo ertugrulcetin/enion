@@ -321,3 +321,8 @@
   ::initializing?
   (fn [db]
     (:initializing? db)))
+
+(reg-sub
+  ::fullscreen?
+  (fn [db]
+    (:fullscreen? db)))

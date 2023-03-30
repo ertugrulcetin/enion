@@ -590,3 +590,8 @@
     {:db (assoc-in db [:player :defense-break?] false)
      :dispatch-n [[::close-re-spawn-modal]
                   [::clear-all-cooldowns]]}))
+
+(reg-event-db
+  ::set-fullscreen-mode
+  (fn [db [_ fullscreen?]]
+    (assoc db :fullscreen? fullscreen?)))

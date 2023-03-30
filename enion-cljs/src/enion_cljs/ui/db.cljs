@@ -17,6 +17,7 @@
               :open? true
               :active-input? false
               :type :all}
+   :fullscreen? false
    :init-modal {:open? true}
    :score-board {:open? false}
    :connection-lost? false

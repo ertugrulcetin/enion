@@ -47,8 +47,8 @@
 (defmulti dispatch-pro-response ffirst)
 
 (defn- get-potions []
-  (let [default {:hp-potions 0
-                 :mp-potions 0}]
+  (let [default {:hp-potions 10
+                 :mp-potions 10}]
     (if-let [ls (common.utils/get-local-storage)]
       (try
         (let [potions (j/call ls :getItem "potions")]

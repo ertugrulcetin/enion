@@ -193,8 +193,7 @@
 
 (defclass info-box-wrapper []
   {:composes [(chat-wrapper)]
-   :width "25%"
-   :right "25px"
+   :right "20px"
    :left :unset
    :bottom "10px"})
 
@@ -597,7 +596,7 @@
 (defclass settings-button [minimap?]
   {:composes [(button)]
    :position :absolute
-   :right (if minimap? "185px" "10px")
+   :right (if minimap? "170px" "10px")
    :top "10px"
    :font-size "18px"
    :opacity 0.75
@@ -605,7 +604,11 @@
 
 (defclass change-server-button [minimap?]
   {:composes [(settings-button minimap?)]
-   :right (if minimap? "270px" "97px")})
+   :right (if minimap? "255px" "97px")})
+
+(defclass fullscreen-button [minimap?]
+  {:composes [(settings-button minimap?)]
+   :right (if minimap? "400px" "242px")})
 
 (defclass ping-counter [fps? ping]
   {:composes [(settings-button false)]

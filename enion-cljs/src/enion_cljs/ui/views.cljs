@@ -5,7 +5,7 @@
     [applied-science.js-interop :as j]
     [breaking-point.core :as bp]
     [common.enion.skills :as common.skills]
-    [enion-cljs.common :refer [fire on dev?]]
+    [enion-cljs.common :refer [fire on dev? dlog]]
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
@@ -717,6 +717,61 @@
                   #(dispatch [::events/open-change-server-modal]))}
      "Change server"]))
 
+(defn enter-fullscreen []
+  (let [el (j/get js/document :documentElement)]
+    (cond
+      (j/get el :requestFullscreen) (j/call el :requestFullscreen)
+      (j/get el :webkitRequestFullscreen) (j/call el :webkitRequestFullscreen)
+      (j/get el :mozRequestFullScreen) (j/call el :mozRequestFullScreen)
+      (j/get el :msRequestFullscreen) (j/call el :msRequestFullscreen))))
+
+(defn exit-fullscreen []
+  (let [doc js/document]
+    (cond
+      (j/get doc :exitFullscreen) (j/call doc :exitFullscreen)
+      (j/get doc :webkitExitFullscreen) (j/call doc :webkitExitFullscreen)
+      (j/get doc :mozCancelFullScreen) (j/call doc :mozCancelFullScreen)
+      (j/get doc :msExitFullscreen) (j/call doc :msExitFullscreen))))
+
+(defn fullscreen? []
+  (boolean (or (j/get js/document :fullscreenElement)
+               (j/get js/document :webkitFullscreenElement)
+               (j/get js/document :mozFullScreenElement)
+               (j/get js/document :msFullscreenElement))))
+
+(defn- fullscreen-change-callback []
+  (if (fullscreen?)
+    (do
+      (dlog "Entered fullscreen mode")
+      (dispatch [::events/set-fullscreen-mode true]))
+    (do
+      (dlog "Exited fullscreen mode")
+      (dispatch [::events/set-fullscreen-mode false]))))
+
+(defn- add-fullscreen-listeners []
+  (let [fullscreen-events ["fullscreenchange"
+                           "webkitfullscreenchange"
+                           "mozfullscreenchange"
+                           "MSFullscreenChange"]]
+    (doseq [event fullscreen-events]
+      (j/call js/document :addEventListener event fullscreen-change-callback))))
+
+(defn- fullscreen-button []
+  (r/create-class
+    {:component-did-mount #(add-fullscreen-listeners)
+     :reagent-render
+     (fn []
+       (let [minimap-open? @(subscribe [::subs/minimap?])
+             fullscreen? @(subscribe [::subs/fullscreen?])]
+         [:button
+          {:class (styles/fullscreen-button minimap-open?)
+           :on-mouse-over #(fire :on-ui-element? true)
+           :on-mouse-out #(fire :on-ui-element? false)
+           :on-click (if fullscreen? exit-fullscreen enter-fullscreen)}
+          (if fullscreen?
+            "Exit Full-screen"
+            "Full-screen Mode")]))}))
+
 (defn- ping-counter []
   (let [fps? (:fps? @(subscribe [::subs/settings]))
         ping @(subscribe [::subs/ping])]
@@ -1118,45 +1173,53 @@
               :color :white}}
      [:span "You need to disable Adblock!"]]))
 
+(defn- add-mouse-listeners []
+  (js/document.addEventListener "mousedown" on-mouse-down)
+  (js/document.addEventListener "mouseup" on-mouse-up)
+  (js/document.addEventListener "mousemove"
+                                (fn [e]
+                                  (reset! mouse-x (j/get e :x))
+                                  (reset! mouse-y (j/get e :y)))))
+
+(defn- add-key-listeners []
+  (js/document.addEventListener "keydown"
+                                (fn [e]
+                                  (let [code (j/get e :code)]
+                                    (cond
+                                      (= code "Enter")
+                                      (do
+                                        (.preventDefault e)
+                                        (dispatch [::events/send-message]))
+
+                                      (= code "Tab")
+                                      (do
+                                        (.preventDefault e)
+                                        (dispatch [::events/open-score-board]))
+
+                                      (= code "Space")
+                                      (tutorial/next-intro)
+
+                                      (= code "Escape")
+                                      (do
+                                        (dispatch [::events/cancel-skill-move])
+                                        (dispatch [::events/close-chat])
+                                        (dispatch [::events/close-settings-modal])
+                                        (dispatch [::events/close-change-server-modal]))))))
+  (js/document.addEventListener "keyup"
+                                (fn [e]
+                                  (let [code (j/get e :code)]
+                                    (cond
+                                      (= code "Tab")
+                                      (do
+                                        (.preventDefault e)
+                                        (dispatch [::events/close-score-board])))))))
+
 (defn main-panel []
   (r/create-class
     {:component-did-mount
      (fn []
-       (js/document.addEventListener "mousedown" on-mouse-down)
-       (js/document.addEventListener "mouseup" on-mouse-up)
-       (js/document.addEventListener "mousemove"
-                                     (fn [e]
-                                       (reset! mouse-x (j/get e :x))
-                                       (reset! mouse-y (j/get e :y))))
-       (js/document.addEventListener "keydown" (fn [e]
-                                                 (let [code (j/get e :code)]
-                                                   (cond
-                                                     (= code "Enter")
-                                                     (do
-                                                       (.preventDefault e)
-                                                       (dispatch [::events/send-message]))
-
-                                                     (= code "Tab")
-                                                     (do
-                                                       (.preventDefault e)
-                                                       (dispatch [::events/open-score-board]))
-
-                                                     (= code "Space")
-                                                     (tutorial/next-intro)
-
-                                                     (= code "Escape")
-                                                     (do
-                                                       (dispatch [::events/cancel-skill-move])
-                                                       (dispatch [::events/close-chat])
-                                                       (dispatch [::events/close-settings-modal])
-                                                       (dispatch [::events/close-change-server-modal]))))))
-       (js/document.addEventListener "keyup" (fn [e]
-                                               (let [code (j/get e :code)]
-                                                 (cond
-                                                   (= code "Tab")
-                                                   (do
-                                                     (.preventDefault e)
-                                                     (dispatch [::events/close-score-board]))))))
+       (add-mouse-listeners)
+       (add-key-listeners)
        (on :ui-init-game #(dispatch [::events/init-game %]))
        (on :ui-set-as-party-leader #(dispatch [::events/set-as-party-leader %]))
        (on :init-skills #(dispatch [::events/init-skills %]))
@@ -1217,6 +1280,7 @@
              [online-counter]
              [tutorials]
              [change-server-button]
+             [fullscreen-button]
              [settings-button]
              (when @(subscribe [::subs/settings-modal-open?])
                [settings-modal])
