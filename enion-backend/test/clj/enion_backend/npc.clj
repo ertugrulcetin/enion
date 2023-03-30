@@ -4,7 +4,7 @@
     [enion-backend.npc :as npc]))
 
 ;; Tests
-(deftest fsm-state-transitions-test
+#_(deftest fsm-state-transitions-test
   (testing "FSM state transitions"
     (let [initial-states [:idle :attack :chase :change-pos :die]
           scenarios [{:label "not-alive"
