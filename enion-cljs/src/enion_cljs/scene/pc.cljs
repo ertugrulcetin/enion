@@ -13,6 +13,8 @@
 (def linear)
 (def expo-in)
 
+(def vec3-down js/pc.Vec3.DOWN)
+
 (def key->code
   (->> (js->clj js/pc :keywordize-keys true)
        (filter #(or (str/starts-with? (name (first %)) "KEY_")

@@ -388,12 +388,30 @@
                                  :killer-race killer-race
                                  :killed killed-username}))))
 
+(defonce npc (delay (pc/find-by-name "npc")))
+(defonce temp-v (pc/vec3))
+(defonce temp-v2 (pc/vec3))
+
+;; TODO raycast all and get closest
+(defn- process-npcs [npcs]
+  (let [npc-entity @npc
+        first-npc (first npcs)
+        x (:px first-npc)
+        z (:pz first-npc)
+        _ (pc/setv temp-v x 10 z)
+        _ (pc/setv temp-v2 x -1 z)
+        from temp-v
+        to temp-v2
+        hit (pc/raycast-first from to)]
+    (pc/set-pos npc-entity x (or (some-> hit (j/get-in [:point :y])) 0.55) z)))
+
 (defmethod dispatch-pro-response :world-snapshot [params]
   (let [ws (:world-snapshot params)
         effects (:effects ws)
         kills (:kills ws)
         members-with-break-defense (:break-defense ws)
-        ws (dissoc ws :effects :kills :break-defense)
+        npcs (:npcs ws)
+        ws (dissoc ws :effects :kills :break-defense :npcs)
         attack-ranges (get effects :attack-range)
         effects (dissoc effects :attack-range)]
     (set! world ws)
@@ -402,6 +420,7 @@
     (process-effects effects)
     (process-attack-ranges attack-ranges)
     (process-kills kills)
+    (process-npcs npcs)
     (when-let [ids (seq @party-member-ids)]
       (fire :update-party-members {:healths (reduce (fn [acc id]
                                                       (assoc acc id (get-in ws [id :health]))) {} ids)
@@ -545,7 +564,10 @@
       (let [pos (-> params :re-spawn :pos)
             health (-> params :re-spawn :health)
             mana (-> params :re-spawn :mana)]
+        (when (st/asas?)
+          (j/call-in st/player [:skills :appear]))
         (st/move-player pos)
+        (j/assoc! st/player :slow-down? false :speed st/speed)
         (fire :ui-re-spawn)
         (st/set-mana mana)
         (st/set-health health)

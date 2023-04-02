@@ -8,6 +8,7 @@
     [clojure.tools.logging :as log]
     [common.enion.skills :as common.skills]
     [enion-backend.async :as easync :refer [dispatch reg-pro]]
+    [enion-backend.bots :as bots]
     [enion-backend.layout :as layout]
     [enion-backend.middleware :as middleware]
     [enion-backend.teatime :as tea]
@@ -108,28 +109,45 @@
          (fn [acc k v]
            (assoc acc k (vec (map :id v)))) {})))
 
+(comment
+  (mount/stop)
+  (mount/start)
+
+  (bots/make-player-attack! 0 (ffirst @players))
+  (bots/make-player-attack! 0 (ffirst (next @players)))
+  bots/npcs
+  )
+
 (defn- send-world-snapshots* []
-  (let [effects (->> effects-stream
-                     (take-while-stream comp-not-nil)
-                     create-effects->player-ids-mapping)
-        kills (take-while-stream comp-not-nil killings-stream)
-        w @world
-        w (if (empty? effects) w (assoc w :effects effects))
-        w (if (empty? kills) w (assoc w :kills kills))
-        current-players @players
-        w (reduce-kv
-            (fn [w id v]
-              (assoc w id (if (= "asas" (get-in current-players [id :class]))
-                            (assoc v :hide (get-in current-players [id :effects :hide :result]))
-                            v)))
-            w w)
-        party-id->players (get-players-with-defense current-players)]
-    (doseq [player-id (keys w)
-            :let [party-id (get-in current-players [player-id :party-id])
-                  w (if-let [members-ids (seq (get party-id->players party-id))]
-                      (assoc w :break-defense (set members-ids))
-                      w)]]
-      (send! player-id :world-snapshot w))))
+  (try
+    (let [effects (->> effects-stream
+                       (take-while-stream comp-not-nil)
+                       create-effects->player-ids-mapping)
+          kills (take-while-stream comp-not-nil killings-stream)
+          w @world
+          w (if (empty? effects) w (assoc w :effects effects))
+          w (if (empty? kills) w (assoc w :kills kills))
+          current-players @players
+          all-npcs (bots/update-all-npcs! w)
+          w (if (empty? all-npcs) w (assoc w :npcs all-npcs))
+          ;; _ (clojure.pprint/pprint w)
+          w (reduce-kv
+              (fn [w id v]
+                (assoc w id (if (= "asas" (get-in current-players [id :class]))
+                              (assoc v :hide (get-in current-players [id :effects :hide :result]))
+                              v)))
+              w w)
+          party-id->players (get-players-with-defense current-players)]
+      (doseq [player-id (keys w)
+              :let [party-id (get-in current-players [player-id :party-id])
+                    w (if-let [members-ids (seq (get party-id->players party-id))]
+                        (assoc w :break-defense (set members-ids))
+                        w)]]
+        (send! player-id :world-snapshot w)))
+    (catch Exception e
+      (println e)
+      ;; (log/error e)
+      )))
 
 (defmacro create-single-thread-executor [millisecs f]
   `(doto (Executors/newSingleThreadScheduledExecutor)
@@ -728,8 +746,8 @@
                                         (map
                                           (fn [[_ p]]
                                             {:id (:id p)
-                                             :mp (int (* 0.05 (:mana p)))
-                                             :hp (int (* 0.05 (:health p)))})))]
+                                             :mp (int (* 0.2 (:mana p)))
+                                             :hp (int (* 0.2 (:health p)))})))]
     (when (seq players-to-restore-hp-&-mp)
       (swap! world (fn [world]
                      (reduce

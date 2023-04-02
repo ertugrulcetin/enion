@@ -43,15 +43,11 @@
       (fire :ui-send-msg too-far-msg))
     close?))
 
-
-
 (defn enemy-close-for-skill? [selected-player-id]
   (let [result (<= (st/distance-to selected-player-id) common.skills/priest-skills-distance-threshold)]
     (when-not result
       (fire :ui-send-msg too-far-msg))
     result))
-
-
 
 (defn heal? [e selected-player-id]
   (and (skills/skill-pressed? e "heal")
@@ -61,8 +57,6 @@
        (st/enough-mana? heal-required-mana)
        (close-for-skill? selected-player-id)))
 
-
-
 (defn cure? [e selected-player-id]
   (and (skills/skill-pressed? e "cure")
        (st/cooldown-ready? "cure")
@@ -71,8 +65,6 @@
        (st/enough-mana? cure-required-mana)
        (close-for-skill? selected-player-id)))
 
-
-
 (defn break-defense? [e selected-player-id]
   (and (skills/skill-pressed? e "breakDefense")
        (st/cooldown-ready? "breakDefense")
@@ -80,8 +72,6 @@
        (st/alive? selected-player-id)
        (st/enough-mana? break-defense-required-mana)
        (enemy-close-for-skill? selected-player-id)))
-
-
 
 (let [heal-msg {:heal true}]
   (defmethod skills/skill-response "heal" [params]
@@ -92,8 +82,6 @@
         (skills.effects/add-to-healed-ids)
         (fire :ui-send-msg heal-msg)))))
 
-
-
 (let [cure-msg {:cure true}]
   (defmethod skills/skill-response "cure" [params]
     (fire :ui-cooldown "cure")
@@ -103,13 +91,9 @@
         (skills.effects/apply-effect-got-cure player)
         (fire :ui-send-msg cure-msg)))))
 
-
-
 (defmethod skills/skill-response "breakDefense" [_]
   (fire :ui-cooldown "breakDefense")
   (st/play-sound "breakDefense"))
-
-
 
 (defmethod skills/skill-response "attackPriest" [params]
   (fire :ui-cooldown "attackPriest")
@@ -123,14 +107,10 @@
     (when (not (utils/tutorial-finished? :how-to-cast-skills?))
       (utils/finish-tutorial-step :how-to-cast-skills?))))
 
-
-
 (defn- get-selected-player-id-for-priest-skill [selected-player-id]
   (if (st/enemy-selected? selected-player-id)
     net/current-player-id
     (or selected-player-id net/current-player-id)))
-
-
 
 (defn- attack-priest? [e active-state selected-player-id]
   (and
@@ -141,8 +121,6 @@
     (st/alive? selected-player-id)
     (st/enough-mana? attack-priest-required-mana)
     (skills/close-for-attack? selected-player-id)))
-
-
 
 (defn process-skills [e]
   (when (and (not (-> e .-event .-repeat)) (st/alive?))
