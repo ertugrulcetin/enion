@@ -17,7 +17,8 @@
 
 ;; (def attack-range-threshold 1.5)
 (def damage-buffer-size 20)
-(def last-time-changed-pos-threshold 5000)
+(def last-time-changed-pos-threshold 15000)
+(def target-locked-threshold 10000)
 (def target-pos-gap-threshold 0.2)
 (def npc-speed 0.1)
 
@@ -86,7 +87,8 @@
   (> (:health e) 0))
 
 (defn- get-player-id-to-attack [npc]
-  (some-> npc :damage-buffer last :attacker-id))
+  (or (:locked-player-id npc)
+      (some-> npc :damage-buffer last :attacker-id)))
 
 (defn- player-close-for-attack? [npc player-id world]
   (let [player (get world player-id)
@@ -117,12 +119,23 @@
   (let [now (System/currentTimeMillis)]
     (>= (- now (or (:last-time-attacked npc) 0)) (:cooldown npc))))
 
-(defn change-fsm-state [npc new-state-name]
-  (let [current-state (:state npc)
-        new-state (states new-state-name)]
-    ((:exit current-state) npc)
-    ((:enter new-state) npc)
-    (assoc npc :state new-state)))
+(defn change-fsm-state
+  ([npc new-state]
+   (change-fsm-state npc new-state nil))
+  ([npc new-state player-id]
+   (let [current-state (:state npc)
+         new-state (states new-state)
+         npc ((:exit current-state) npc)
+         npc ((:enter new-state) (assoc npc :target-player-id player-id))]
+     (assoc npc :state new-state))))
+
+(defn- unlock-target-player? [{:keys [init-pos locked-player-id last-locked-to-player]} world]
+  (let [now (System/currentTimeMillis)
+        player (get world locked-player-id)
+        player-pos [(:px player) (:pz player)]]
+    (or (and last-locked-to-player (>= (- now last-locked-to-player) target-locked-threshold))
+        (and locked-player-id (not (some->> locked-player-id (get world) alive?)))
+        (and player (> (v2/dist init-pos player-pos) chase-range-threshold)))))
 
 (defn update-npc! [npc world]
   (let [damage-buffer (->> (:damage-buffer npc)
@@ -132,6 +145,11 @@
                                            player-pos [(:px player) (:pz player)]]
                                        (<= (v2/dist (:init-pos npc) player-pos) chase-range-threshold)))))
         current-state (:state npc)
+        npc (if (unlock-target-player? npc world)
+              (do
+                (println "UNLOCK!")
+                (dissoc npc :locked-player-id :last-locked-to-player))
+              npc)
         npc (assoc npc :damage-buffer (into (ring-buffer damage-buffer-size) damage-buffer))
         npc ((:update current-state) npc world)]
     (swap! npcs assoc (:id npc) npc)
@@ -175,6 +193,15 @@
         new-pos (v2/add pos dir)]
     (assoc npc :pos new-pos)))
 
+(defn- lock-npc-to-player [npc]
+  (let [player-id (:target-player-id npc)
+        now (System/currentTimeMillis)]
+    (if (or (nil? (:locked-player-id npc))
+            (>= (- now (:last-locked-to-player npc)) target-locked-threshold))
+      (assoc npc :locked-player-id player-id
+             :last-locked-to-player now)
+      npc)))
+
 (def states
   {:idle (->State :idle
                   (fn [npc] (println "Entering IDLE state") npc)
@@ -182,15 +209,16 @@
                     (if (alive? npc)
                       (if-let [player-id (get-player-id-to-attack npc)]
                         (if (player-close-for-attack? npc player-id world)
-                          (change-fsm-state npc :attack)
-                          (change-fsm-state npc :chase))
+                          (change-fsm-state npc :attack player-id)
+                          (change-fsm-state npc :chase player-id))
                         (if (need-to-change-pos? npc)
                           (change-fsm-state npc :change-pos)
                           npc))
                       (change-fsm-state npc :die)))
                   (fn [npc] (println "Exiting IDLE state") npc))
    :attack (->State :attack
-                    (fn [npc] (println "Entering ATTACK state") npc)
+                    (fn [npc] (println "Entering ATTACK state")
+                      (lock-npc-to-player npc))
                     (fn [npc world]
                       (if (alive? npc)
                         (if-let [player-id (get-player-id-to-attack npc)]
@@ -198,17 +226,19 @@
                             (if (cooldown-finished? npc)
                               (attack-to-player npc player-id world)
                               npc)
-                            (change-fsm-state npc :chase))
+                            (change-fsm-state npc :chase player-id))
                           (change-fsm-state npc :idle))
                         (change-fsm-state npc :die)))
                     (fn [npc] (println "Exiting ATTACK state") npc))
    :chase (->State :chase
-                   (fn [npc] (println "Entering CHASE state") npc)
+                   (fn [npc]
+                     (println "Entering CHASE state")
+                     (lock-npc-to-player npc))
                    (fn [npc world]
                      (if (alive? npc)
                        (if-let [player-id (get-player-id-to-attack npc)]
                          (if (player-close-for-attack? npc player-id world)
-                           (change-fsm-state npc :attack)
+                           (change-fsm-state npc :attack player-id)
                            (chase-player npc player-id world))
                          (change-fsm-state npc :idle))
                        (change-fsm-state npc :die)))
@@ -219,8 +249,8 @@
                           (if (alive? npc)
                             (if-let [player-id (get-player-id-to-attack npc)]
                               (if (player-close-for-attack? npc player-id world)
-                                (change-fsm-state npc :attack)
-                                (change-fsm-state npc :chase))
+                                (change-fsm-state npc :attack player-id)
+                                (change-fsm-state npc :chase player-id))
                               (if (need-to-change-pos? npc)
                                 (change-pos npc)
                                 (change-fsm-state npc :idle)))

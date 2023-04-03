@@ -326,3 +326,8 @@
   ::fullscreen?
   (fn [db]
     (:fullscreen? db)))
+
+(reg-sub
+  ::in-iframe?
+  (fn [db]
+    (:in-iframe? db)))

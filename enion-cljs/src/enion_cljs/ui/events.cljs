@@ -26,8 +26,10 @@
   ::initialize-db
   [(inject-cofx ::settings)]
   (fn [{:keys [settings]} [_ initializing?]]
-    {:db (assoc db/default-db :settings settings
-                :initializing? initializing?)}))
+    {:db (assoc db/default-db
+                :settings settings
+                :initializing? initializing?
+                :in-iframe? (not= js/window (j/get js/window :parent)))}))
 
 (reg-fx
   ::set-to-ls

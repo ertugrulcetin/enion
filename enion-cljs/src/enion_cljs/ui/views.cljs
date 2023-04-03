@@ -1280,7 +1280,8 @@
              [online-counter]
              [tutorials]
              [change-server-button]
-             [fullscreen-button]
+             (when-not @(subscribe [::subs/in-iframe?])
+               [fullscreen-button])
              [settings-button]
              (when @(subscribe [::subs/settings-modal-open?])
                [settings-modal])
