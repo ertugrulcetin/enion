@@ -129,6 +129,7 @@
           w (if (empty? kills) w (assoc w :kills kills))
           current-players @players
           all-npcs (bots/update-all-npcs! w)
+          ;; _ (clojure.pprint/pprint all-npcs)
           w (if (empty? all-npcs) w (assoc w :npcs all-npcs))
           ;; _ (clojure.pprint/pprint w)
           w (reduce-kv

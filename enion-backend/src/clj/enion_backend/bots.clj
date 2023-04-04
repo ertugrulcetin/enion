@@ -167,7 +167,8 @@
     (update-npc! npc world))
   (map
     (fn [[_ npc]]
-      (cond-> {:state (-> npc :state :name)
+      (cond-> {:id (:id npc)
+               :state (-> npc :state :name)
                :px (-> npc :pos first)
                :pz (-> npc :pos second)}
         (:target-player-id npc) (assoc :target-player-id (:target-player-id npc))))
@@ -272,13 +273,6 @@
                      npc))
                  (fn [npc] (println "Exiting DIE state") npc))})
 
-(defn add-me [pos]
-  (-> [2 2]
-      (v2/sub pos)
-      v2/normalize
-      (v2/scale 0.1)
-      (v2/add pos)))
-
 (comment
   @npcs
 
@@ -291,25 +285,13 @@
                  :health 1000
                  :cooldown 1000})
 
-  (doseq [npc [{:id 0
-                :name "Knight Slayer"
-                :slot-id 0
-                :damage-buffer-size 20
-                :health 100
-                :cooldown 1000}
-               {:id 1
-                :name "Knight Slayer 2"
-                :slot-id 0
-                :damage-buffer-size 20
-                :health 100
-                :cooldown 1000}
-               {:id 2
-                :name "Knight Slayer 3"
-                :slot-id 0
-                :damage-buffer-size 20
-                :health 100
-                :cooldown 1000}]]
-    (add-npc npcs npc))
+  (doseq [id (range 4)]
+    (add-npc npcs {:id id
+                   :name "Knight Slayer"
+                   :slot-id 0
+                   :damage-buffer-size 20
+                   :health 100
+                   :cooldown 1000}))
   ;;get height if a given x and z points in a mesh
   npcs
 

@@ -389,6 +389,7 @@
                                  :killer-race killer-race
                                  :killed killed-username}))))
 
+(defonce npcs #js {})
 (defonce npc (delay (pc/find-by-name "undead_warrior")))
 (defonce npc-model (delay (pc/find-by-name @npc "undead_warrior_model")))
 (defonce temp-v (pc/vec3))
@@ -397,8 +398,34 @@
 (defonce initial-pos #js {})
 (defonce last-pos #js {})
 
-(defn- interpolate-npc [npc-entity new-x new-y new-z]
-  (let [current-pos (pc/get-pos npc-entity)
+(defn init-npcs []
+  (doseq [i (range 4)
+          :let [entity (pc/clone @npc)
+                model (pc/find-by-name entity "undead_warrior_model")]]
+    (pc/add-child (pc/root) entity)
+    (j/assoc! npcs i (clj->js {:id i
+                               :entity entity
+                               :model model
+                               :prev-state :idle
+                               :initial-pos {}
+                               :last-pos {}
+                               :from (pc/vec3)
+                               :to (pc/vec3)}))))
+
+(comment
+  (init-npcs)
+  npcs
+  (js/console.log (j/get-in npcs [0 :entity]))
+  (j/get-in npcs [0 :entity])
+  (js/console.log (j/get-in npcs [0 :entity]))
+  (pc/get-pos (j/get-in npcs [0 :entity]))
+  )
+
+(defn- interpolate-npc [npc-id new-x new-y new-z]
+  (let [npc-entity (j/get-in npcs [npc-id :entity])
+        initial-pos (j/get-in npcs [npc-id :initial-pos])
+        last-pos (j/get-in npcs [npc-id :last-pos])
+        current-pos (pc/get-pos npc-entity)
         current-x (j/get current-pos :x)
         current-y (j/get current-pos :y)
         current-z (j/get current-pos :z)]
@@ -426,33 +453,41 @@
 (defn- get-closest-hit-of-terrain [result]
   (j/get-in result [:point :y]))
 
-(defn- process-npcs [npcs]
-  (let [npc-entity @npc
-        model @npc-model
-        first-npc (first npcs)
-        state (:state first-npc)
-        new-x (:px first-npc)
-        new-z (:pz first-npc)
-        _ (pc/setv temp-v new-x 10 new-z)
-        _ (pc/setv temp-v2 new-x -1 new-z)
-        from temp-v
-        to temp-v2
-        hit (->> (pc/raycast-all from to)
-                 (filter filter-hit-by-terrain)
-                 (sort-by get-closest-hit-of-terrain)
-                 first)
-        new-y (or (some-> hit (j/get-in [:point :y])) 0.55)
-        target-player-id (:target-player-id first-npc)
-        target-player-pos (st/get-pos)]
-    (when (not= state @prev-state)
-      (pc/set-anim-boolean model (csk/->camelCaseString @prev-state) false)
-      (pc/set-anim-boolean model (csk/->camelCaseString state) true))
-    (if target-player-id
-      ;; TODO update here!!
-      (pc/look-at model (j/get target-player-pos :x) new-y (j/get target-player-pos :z) true)
-      (pc/look-at model new-x new-y new-z true))
-    (vreset! prev-state state)
-    (interpolate-npc npc-entity new-x new-y new-z)))
+(defn- update-npc-anim-state [model state prev-state]
+  (when (not= state prev-state)
+    (pc/set-anim-boolean model (csk/->camelCaseString prev-state) false)
+    (pc/set-anim-boolean model (csk/->camelCaseString state) true)))
+
+(defn- process-npcs [npcs-world-state]
+  (doseq [npc npcs-world-state
+          :let [npc-id (:id npc)
+                npc-entity (j/get-in npcs [npc-id :entity])]
+          :when npc-entity]
+    (let [model (j/get-in npcs [npc-id :model])
+          state (:state npc)
+          new-x (:px npc)
+          new-z (:pz npc)
+          from (j/get-in npcs [npc-id :from])
+          to (j/get-in npcs [npc-id :to])
+          _ (pc/setv from new-x 10 new-z)
+          _ (pc/setv to new-x -1 new-z)
+          hit (->> (pc/raycast-all from to)
+                   (filter filter-hit-by-terrain)
+                   (sort-by get-closest-hit-of-terrain)
+                   first)
+          new-y (or (some-> hit (j/get-in [:point :y])) 0.55)
+          target-player-id (:target-player-id npc)
+          target-player-pos (when target-player-id
+                              (if (= current-player-id target-player-id)
+                                (st/get-pos)
+                                (st/get-pos target-player-id)))
+          prev-state (j/get-in npcs [npc-id :prev-state])]
+      (update-npc-anim-state model state prev-state)
+      (if target-player-id
+        (pc/look-at model (j/get target-player-pos :x) new-y (j/get target-player-pos :z) true)
+        (pc/look-at model new-x new-y new-z true))
+      (j/assoc-in! npcs [npc-id :prev-state] state)
+      (interpolate-npc npc-id new-x new-y new-z))))
 
 (defmethod dispatch-pro-response :world-snapshot [params]
   (let [ws (:world-snapshot params)
