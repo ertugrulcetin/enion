@@ -64,6 +64,9 @@
 (defn get-other-player-entity [id]
   (j/get-in other-players [id :entity]))
 
+(defn get-pos []
+  (pc/get-pos (get-player-entity)))
+
 (defn get-username
   ([]
    (j/get player :username))

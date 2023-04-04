@@ -17,10 +17,11 @@
 
 ;; (def attack-range-threshold 1.5)
 (def damage-buffer-size 20)
-(def last-time-changed-pos-threshold 15000)
+(def change-pos-interval 15000)
 (def target-locked-threshold 10000)
 (def target-pos-gap-threshold 0.2)
-(def npc-speed 0.1)
+(def npc-change-pos-speed 0.02)
+(def npc-chase-speed 0.05)
 
 (defonce slots (atom {0 {0 [29.181615829467773 -33.506229400634766]
                          1 [27.930034637451172 -33.23066711425781]
@@ -62,6 +63,12 @@
 
 (defonce npcs (atom {}))
 
+(defn- get-state-by-id [npc-id]
+  (get-in @npcs [npc-id :state :name]))
+
+(comment
+  (get-state-by-id 0))
+
 (defn- clear-npcs []
   (reset! npcs {}))
 
@@ -97,13 +104,13 @@
 
 (defn- need-to-change-pos? [npc]
   (or (> (v2/dist (:init-pos npc) (:pos npc)) chase-range-threshold)
-      (> (- (System/currentTimeMillis) (:last-time-changed-pos npc)) last-time-changed-pos-threshold)
+      (> (- (System/currentTimeMillis) (:last-time-changed-pos npc)) change-pos-interval)
       (and (:target-pos npc) (>= (v2/dist (:pos npc) (:target-pos npc)) target-pos-gap-threshold))))
 
 (defn- change-pos [npc]
   (if-let [target (:target-pos npc)]
     (let [pos (:pos npc)
-          new-pos (-> target (v2/sub pos) v2/normalize (v2/scale npc-speed) (v2/add pos))]
+          new-pos (-> target (v2/sub pos) v2/normalize (v2/scale npc-change-pos-speed) (v2/add pos))]
       (if (<= (v2/dist target new-pos) target-pos-gap-threshold)
         (assoc npc :pos new-pos :target-pos nil)
         (assoc npc :pos new-pos)))
@@ -160,9 +167,10 @@
     (update-npc! npc world))
   (map
     (fn [[_ npc]]
-      {:state (-> npc :state :name)
-       :px (-> npc :pos first)
-       :pz (-> npc :pos second)})
+      (cond-> {:state (-> npc :state :name)
+               :px (-> npc :pos first)
+               :pz (-> npc :pos second)}
+        (:target-player-id npc) (assoc :target-player-id (:target-player-id npc))))
     @npcs))
 
 (defn attack-to-player [npc player-id world]
@@ -175,7 +183,7 @@
 
 (defn make-player-attack! [npc-id player-id]
   (if (> (get-in @npcs [npc-id :health]) 0)
-    (let [damage (rand-int 10)]
+    (let [damage (rand 10)]
       (println "NPC took damage: " damage)
       (swap! npcs (fn [npcs]
                     (let [health-after-damage (- (get-in npcs [npc-id :health]) damage)
@@ -189,7 +197,7 @@
   (let [player (get world player-id)
         target [(:px player) (:pz player)]
         pos (:pos npc)
-        dir (-> target (v2/sub pos) v2/normalize (v2/scale npc-speed))
+        dir (-> target (v2/sub pos) v2/normalize (v2/scale npc-chase-speed))
         new-pos (v2/add pos dir)]
     (assoc npc :pos new-pos)))
 
@@ -280,7 +288,7 @@
                  :name "Knight Slayer"
                  :slot-id 0
                  :damage-buffer-size 20
-                 :health 10000
+                 :health 1000
                  :cooldown 1000})
 
   (doseq [npc [{:id 0
@@ -306,6 +314,7 @@
   npcs
 
 
+  (swap! npcs assoc-in [0 :health] 100)
   (swap! players assoc-in [1 :health] 100)
   (swap! players assoc-in [1 :pos] [15 2])
 

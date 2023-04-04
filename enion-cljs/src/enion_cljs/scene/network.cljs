@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.network
   (:require
     [applied-science.js-interop :as j]
+    [camel-snake-kebab.core :as csk]
     [cljs.reader :as reader]
     [clojure.string :as str]
     [enion-cljs.common :refer [dev? fire on dlog ws-url]]
@@ -388,22 +389,70 @@
                                  :killer-race killer-race
                                  :killed killed-username}))))
 
-(defonce npc (delay (pc/find-by-name "npc")))
+(defonce npc (delay (pc/find-by-name "undead_warrior")))
+(defonce npc-model (delay (pc/find-by-name @npc "undead_warrior_model")))
 (defonce temp-v (pc/vec3))
 (defonce temp-v2 (pc/vec3))
+(defonce prev-state (volatile! :idle))
+(defonce initial-pos #js {})
+(defonce last-pos #js {})
 
-;; TODO raycast all and get closest
+(defn- interpolate-npc [npc-entity new-x new-y new-z]
+  (let [current-pos (pc/get-pos npc-entity)
+        current-x (j/get current-pos :x)
+        current-y (j/get current-pos :y)
+        current-z (j/get current-pos :z)]
+    (when (and current-x new-x current-z new-z
+               (or (not= (common.utils/parse-float current-x 2)
+                         (common.utils/parse-float new-x 2))
+                   (not= (common.utils/parse-float current-z 2)
+                         (common.utils/parse-float new-z 2))))
+      (let [tween-interpolation (-> (j/call npc-entity :tween initial-pos)
+                                    (j/call :to last-pos 0.05 pc/linear))]
+        (j/assoc! initial-pos :x current-x :y current-y :z current-z)
+        (j/assoc! last-pos :x new-x :y new-y :z new-z)
+        (j/call tween-interpolation :on "update"
+                (fn []
+                  (let [x (j/get initial-pos :x)
+                        y (j/get initial-pos :y)
+                        z (j/get initial-pos :z)]
+                    (pc/set-pos npc-entity x y z))))
+        (j/call tween-interpolation :start)))))
+
+(defn- filter-hit-by-terrain [result]
+  (when (= "terrain" (j/get-in result [:entity :name]))
+    result))
+
+(defn- get-closest-hit-of-terrain [result]
+  (j/get-in result [:point :y]))
+
 (defn- process-npcs [npcs]
   (let [npc-entity @npc
+        model @npc-model
         first-npc (first npcs)
-        x (:px first-npc)
-        z (:pz first-npc)
-        _ (pc/setv temp-v x 10 z)
-        _ (pc/setv temp-v2 x -1 z)
+        state (:state first-npc)
+        new-x (:px first-npc)
+        new-z (:pz first-npc)
+        _ (pc/setv temp-v new-x 10 new-z)
+        _ (pc/setv temp-v2 new-x -1 new-z)
         from temp-v
         to temp-v2
-        hit (pc/raycast-first from to)]
-    (pc/set-pos npc-entity x (or (some-> hit (j/get-in [:point :y])) 0.55) z)))
+        hit (->> (pc/raycast-all from to)
+                 (filter filter-hit-by-terrain)
+                 (sort-by get-closest-hit-of-terrain)
+                 first)
+        new-y (or (some-> hit (j/get-in [:point :y])) 0.55)
+        target-player-id (:target-player-id first-npc)
+        target-player-pos (st/get-pos)]
+    (when (not= state @prev-state)
+      (pc/set-anim-boolean model (csk/->camelCaseString @prev-state) false)
+      (pc/set-anim-boolean model (csk/->camelCaseString state) true))
+    (if target-player-id
+      ;; TODO update here!!
+      (pc/look-at model (j/get target-player-pos :x) new-y (j/get target-player-pos :z) true)
+      (pc/look-at model new-x new-y new-z true))
+    (vreset! prev-state state)
+    (interpolate-npc npc-entity new-x new-y new-z)))
 
 (defmethod dispatch-pro-response :world-snapshot [params]
   (let [ws (:world-snapshot params)

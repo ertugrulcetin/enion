@@ -17,7 +17,7 @@
 (def mouse-x (r/atom nil))
 (def mouse-y (r/atom nil))
 
-(def how-often-to-show-ad 3)
+(def how-often-to-show-ad 2)
 (def death-count (atom 0))
 
 (defn- img->img-url [img]

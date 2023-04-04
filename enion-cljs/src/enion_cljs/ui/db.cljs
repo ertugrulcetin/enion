@@ -10,9 +10,8 @@
               :open? true}
    :chat-box {:messages {:all (conj (rb/ring-buffer 50)
                                     {:from "System" :text "Press Z to select nearest enemy"}
-                                    {:from "System" :text "Press R to run towards the selected enemy and cancel enemy attack skill when close"}
-                                    {:from "System" :text "Press Tab to check score board"}
-                                    {:from "System" :text "Click 'Add to party' to add players to your party"})
+                                    {:from "System" :text "Press R to run towards the selected enemy"}
+                                    {:from "System" :text "Press Tab to check score board"})
                          :party (rb/ring-buffer 50)}
               :open? true
               :active-input? false

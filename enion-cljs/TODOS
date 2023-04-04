@@ -1,4 +1,5 @@
 When got slow down from warrior and player dies it still continues.
+Show party members username in 20 meters range.
 Show orcs defeat in green color.
 Make party chat enabled by default.
 Cooldown spinner not shown in other browsers
@@ -6,7 +7,6 @@ Kick players with high ping.
 Show why player is kicked. (Ping, AFK, etc.)
 Player runs fast/slow based on the camera angle.
 Show countdown timer when a player is about to disconnect.
-
 
 When enemy death and selected priest can't apply heal to himself, also sometimes it says skills to far
 Skill description blocks the health and mana status.

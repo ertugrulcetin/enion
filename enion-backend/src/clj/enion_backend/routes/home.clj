@@ -724,7 +724,7 @@
 
 (defmethod apply-skill "baseDamage" [{:keys [id current-world data]}]
   (update-last-combat-time id)
-  (let [damage (common.skills/rand-between 350 400)
+  (let [damage (common.skills/rand-between 450 550)
         player-world-state (get current-world id)
         health-after-damage (- (:health player-world-state) damage)
         health-after-damage (Math/max ^long health-after-damage 0)]
