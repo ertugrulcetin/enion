@@ -12,12 +12,25 @@
 (declare states)
 
 (defonce npc-id-generator (atom 0))
+(defonce npcs (atom {}))
 
-(defonce slots (atom {0 {0 [29.181615829467773 -33.506229400634766]
-                         1 [27.930034637451172 -33.23066711425781]
-                         2 [26.952550888061523 -34.70235061645508]
-                         3 [27.36751937866211 -36.20378494262695]
-                         4 [28.449161529541016 -35.21776580810547]}}))
+(def slots
+  {0 {0 [27.87 -33.66]
+      1 [27.42 -31.79]
+      2 [29.51 -33.27]
+      3 [28.7 -35.18]
+      4 [27.74 -34.2]
+      5 [29.48 -32.48]
+      6 [28.32 -32.72]
+      7 [29.22 -34.18]}
+   1 {0 [25.61 -36.75]
+      1 [23.57 -36.72]
+      2 [25.1 -38.65]
+      3 [22.9 -37.31]
+      4 [25.23 -39.32]
+      5 [24.71 -36.42]
+      6 [26.23 -37.94]
+      7 [25.53 -39.57]}})
 
 (def npc-types
   {:undead-soldier {:attack-range-threshold 0.5
@@ -47,8 +60,6 @@
        :taken-slot-pos-id taken-slot-pos-id
        :last-time-changed-pos (System/currentTimeMillis)})))
 
-(defonce npcs (atom {}))
-
 (defn- get-state-by-id [npc-id]
   (get-in @npcs [npc-id :state :name]))
 
@@ -57,13 +68,18 @@
   (reset! npcs {}))
 
 (defn- find-available-slot-pos-id [npcs slot-id]
-  (let [slot-pos-ids (set (keys (get @slots slot-id)))
-        taken-slot-pos-ids (set (map :taken-slot-pos-id (vals @npcs)))]
+  (let [slot-pos-ids (set (keys (get slots slot-id)))
+        taken-slot-pos-ids (->> (vals @npcs)
+                                (filter #(= slot-id (:slot-id %)))
+                                (map :taken-slot-pos-id)
+                                set)]
     (-> (set/difference slot-pos-ids taken-slot-pos-ids) shuffle first)))
 
 (defn- add-npc [npcs {:keys [type slot-id]}]
+  (println "slot-id: " slot-id)
   (let [available-slot-pos-id (find-available-slot-pos-id npcs slot-id)
-        init-pos (get-in @slots [slot-id available-slot-pos-id])
+        _ (println "available-slot-pos-id: " available-slot-pos-id)
+        init-pos (get-in slots [slot-id available-slot-pos-id])
         npc (create-npc {:type type
                          :slot-id slot-id
                          :init-pos init-pos
@@ -103,7 +119,7 @@
         (assoc npc :pos new-pos)))
     (let [slot-id (:slot-id npc)
           available-slot-pos-id (find-available-slot-pos-id npcs slot-id)
-          target-pos (get-in @slots [slot-id available-slot-pos-id])]
+          target-pos (get-in slots [slot-id available-slot-pos-id])]
       (assoc npc :target-pos target-pos
              :init-pos target-pos
              :taken-slot-pos-id available-slot-pos-id
@@ -136,15 +152,18 @@
         (and player (> (v2/dist init-pos player-pos) chase-range-threshold)))))
 
 (defn update-npc! [npc world]
-  (let [damage-buffer (filter #(some->> (:attacker-id %) (get world) alive?) (:damage-buffer npc))
-        current-state (:state npc)
-        npc (if (unlock-target-player? npc world)
-              (dissoc npc :locked-player-id :last-locked-to-player)
-              npc)
-        npc (assoc npc :damage-buffer (into (ring-buffer (:damage-buffer-size npc)) damage-buffer))
-        npc ((:update current-state) npc world)]
-    (swap! npcs assoc (:id npc) npc)
-    npc))
+  (try
+    (let [damage-buffer (filter #(some->> (:attacker-id %) (get world) alive?) (:damage-buffer npc))
+          current-state (:state npc)
+          npc (if (unlock-target-player? npc world)
+                (dissoc npc :locked-player-id :last-locked-to-player)
+                npc)
+          npc (assoc npc :damage-buffer (into (ring-buffer (:damage-buffer-size npc)) damage-buffer))
+          npc ((:update current-state) npc world)]
+      (swap! npcs assoc (:id npc) npc)
+      npc)
+    (catch Exception e
+      (println e))))
 
 (defn update-all-npcs! [world]
   (doseq [[_ npc] @npcs]
@@ -265,9 +284,15 @@
 
   (clear-npcs)
 
-  (doseq [id (range 4)]
-    (add-npc npcs {:type :undead-soldier
-                   :slot-id 0}))
+  (doseq [{:keys [type slot-id count]} [{:type :undead-soldier
+                                         :slot-id 0
+                                         :count 5}
+                                        {:type :undead-soldier
+                                           :slot-id 1
+                                           :count 5}]]
+    (dotimes [_ count]
+      (add-npc npcs {:type type
+                     :slot-id slot-id})))
   ;;get height if a given x and z points in a mesh
 
 

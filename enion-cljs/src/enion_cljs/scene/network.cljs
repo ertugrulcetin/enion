@@ -391,15 +391,9 @@
 
 (defonce npcs #js {})
 (defonce npc (delay (pc/find-by-name "undead_warrior")))
-(defonce npc-model (delay (pc/find-by-name @npc "undead_warrior_model")))
-(defonce temp-v (pc/vec3))
-(defonce temp-v2 (pc/vec3))
-(defonce prev-state (volatile! :idle))
-(defonce initial-pos #js {})
-(defonce last-pos #js {})
 
 (defn init-npcs []
-  (doseq [i (range 4)
+  (doseq [i (range 10)
           :let [entity (pc/clone @npc)
                 model (pc/find-by-name entity "undead_warrior_model")
                 i (inc i)]]
@@ -413,9 +407,17 @@
                                :from (pc/vec3)
                                :to (pc/vec3)}))))
 
+(defn remove-npcs []
+  (doseq [id (js/Object.keys npcs)]
+    (j/call-in npcs [id :entity :destroy])
+    (js-delete npcs id)))
+
 (comment
-  (init-npcs)
+
   npcs
+  (init-npcs)
+  (remove-npcs)
+
   (js/console.log (j/get-in npcs [0 :entity]))
   (j/get-in npcs [0 :entity])
   (js/console.log (j/get-in npcs [0 :entity]))
