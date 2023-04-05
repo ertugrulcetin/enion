@@ -113,7 +113,7 @@
   (mount/stop)
   (mount/start)
 
-  (bots/make-player-attack! 0 (ffirst @players))
+  (bots/make-player-attack!  (ffirst @players))
   (bots/make-player-attack! 0 (ffirst (next @players)))
   bots/npcs
   )

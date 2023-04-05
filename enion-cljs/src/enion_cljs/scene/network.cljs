@@ -401,7 +401,8 @@
 (defn init-npcs []
   (doseq [i (range 4)
           :let [entity (pc/clone @npc)
-                model (pc/find-by-name entity "undead_warrior_model")]]
+                model (pc/find-by-name entity "undead_warrior_model")
+                i (inc i)]]
     (pc/add-child (pc/root) entity)
     (j/assoc! npcs i (clj->js {:id i
                                :entity entity
@@ -458,6 +459,11 @@
     (pc/set-anim-boolean model (csk/->camelCaseString prev-state) false)
     (pc/set-anim-boolean model (csk/->camelCaseString state) true)))
 
+;; Skeleton Warrior
+;; Bone Fighter
+;; Skull Knight
+;; Undead Soldier
+;; Skeletal Champion
 (defn- process-npcs [npcs-world-state]
   (doseq [npc npcs-world-state
           :let [npc-id (:id npc)
@@ -483,9 +489,10 @@
                                 (st/get-pos target-player-id)))
           prev-state (j/get-in npcs [npc-id :prev-state])]
       (update-npc-anim-state model state prev-state)
-      (if target-player-id
-        (pc/look-at model (j/get target-player-pos :x) new-y (j/get target-player-pos :z) true)
-        (pc/look-at model new-x new-y new-z true))
+      (when-not (= state :idle)
+        (if target-player-id
+          (pc/look-at model (j/get target-player-pos :x) new-y (j/get target-player-pos :z) true)
+          (pc/look-at model new-x new-y new-z true)))
       (j/assoc-in! npcs [npc-id :prev-state] state)
       (interpolate-npc npc-id new-x new-y new-z))))
 
