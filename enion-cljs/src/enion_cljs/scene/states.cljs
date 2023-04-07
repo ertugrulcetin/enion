@@ -34,13 +34,11 @@
 (defonce settings #js {})
 (defonce camera-entity nil)
 
+(defonce party-member-ids (volatile! []))
+
 (def username-color (pc/color 2 2 2))
 (def username-party-color (pc/color 2 2 0))
 (def username-enemy-color (pc/color 2 0 0))
-
-(comment
-  (j/assoc! player :speed 900)
-  )
 
 (on :on-ui-element?
     (fn [on-ui-element?]
@@ -350,3 +348,6 @@
       (set! player (clj->js default-player-state))
       (pc/off-all-keyboard-events)
       (pc/off-all-mouse-events)))
+
+(defn party-member? [player-id]
+  (some #(= % (js/parseInt player-id)) @party-member-ids))

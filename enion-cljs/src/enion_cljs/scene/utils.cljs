@@ -2,6 +2,7 @@
   (:require
     [applied-science.js-interop :as j]
     [enion-cljs.common :refer [fire on]]
+    [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.states :as st]
     [enion-cljs.utils :as common.utils]))
 
@@ -26,3 +27,20 @@
   (tutorial-step (j/get st/player :tutorials)))
 
 (on :finish-tutorial-step finish-tutorial-step)
+
+(defn create-char-name-text [{:keys [template-entity username race class other-player? enemy? npc?]}]
+  (let [username-text-entity (pc/clone (pc/find-by-name "char_name"))]
+    (j/assoc-in! username-text-entity [:element :text] username)
+    (j/assoc-in! username-text-entity [:element :color] st/username-color)
+    (when enemy?
+      (j/assoc-in! username-text-entity [:element :color] st/username-enemy-color))
+    (j/assoc-in! username-text-entity [:element :outlineThickness] 0.5)
+    (pc/add-child template-entity username-text-entity)
+    (when (and (= race "orc")
+               (or (= class "priest")
+                   (= class "warrior")))
+      (when other-player?
+        (pc/set-loc-pos username-text-entity 0 0.05 0)))
+    (when npc?
+      (pc/set-loc-pos username-text-entity 0 0.3 0))
+    (j/assoc-in! username-text-entity [:script :enabled] true)))

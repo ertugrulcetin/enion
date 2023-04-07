@@ -290,22 +290,6 @@
     (pc/add-child entity character-template-entity)
     [character-template-entity character-model-entity]))
 
-;; TODO username text elementleri faceCamera.js kullaniyor, o scripti kaldir, toplu bir sekilde yap kodda
-(defn- create-username-text [{:keys [template-entity username race class other-player? enemy?]}]
-  (let [username-text-entity (pc/clone (pc/find-by-name "char_name"))]
-    (j/assoc-in! username-text-entity [:element :text] username)
-    (j/assoc-in! username-text-entity [:element :color] st/username-color)
-    (when enemy?
-      (j/assoc-in! username-text-entity [:element :color] st/username-enemy-color))
-    (j/assoc-in! username-text-entity [:element :outlineThickness] 0.5)
-    (pc/add-child template-entity username-text-entity)
-    (when (and (= race "orc")
-               (or (= class "priest")
-                   (= class "warrior")))
-      (when other-player?
-        (pc/set-loc-pos username-text-entity 0 0.05 0)))
-    (j/assoc-in! username-text-entity [:script :enabled] true)))
-
 (defn- init-player [{:keys [id username class race mana health pos hp-potions mp-potions tutorials]} player-entity]
   (let [[x y z] pos]
     (j/assoc! player
@@ -466,7 +450,7 @@
                                    :initial-pos #js {}
                                    :last-pos #js {}})
                     clj->js)]
-      (create-username-text (assoc params :template-entity template-entity))
+      (utils/create-char-name-text (assoc params :template-entity template-entity))
       (create-skill-fns state true)
       (add-player-id-to-char-meshes params model-entity template-entity state)
       (if enemy?
@@ -497,7 +481,7 @@
               :race (j/get player :race)
               :class (j/get player :class)}
         [template-entity model-entity] (create-model-and-template-entity opts)]
-    (create-username-text (assoc opts :template-entity template-entity))
+    (utils/create-char-name-text (assoc opts :template-entity template-entity))
     (j/assoc! player :camera (pc/find-by-name "camera"))
     (j/assoc! player
               :this this

@@ -89,7 +89,8 @@
     (let [selected-player-id (-> params :skill :selected-player-id)]
       (when (= selected-player-id net/current-player-id)
         (skills.effects/apply-effect-got-cure player)
-        (fire :ui-send-msg cure-msg)))))
+        (fire :ui-send-msg cure-msg)
+        (fire :ui-cured)))))
 
 (defmethod skills/skill-response "breakDefense" [_]
   (fire :ui-cooldown "breakDefense")

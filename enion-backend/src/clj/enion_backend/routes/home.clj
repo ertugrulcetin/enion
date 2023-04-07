@@ -742,7 +742,7 @@
         players-to-restore-hp-&-mp (->> current-players
                                         (filter
                                           (fn [[_ p]]
-                                            (and (>= (- now (get-in p [:last-time :combat] 0)) 15000)
+                                            (and (>= (- now (get-in p [:last-time :combat] 0)) 10000)
                                                  (> (get-in current-world [(:id p) :health] 0) 0))))
                                         (map
                                           (fn [[_ p]]
@@ -933,9 +933,12 @@
         (do
           (when only-2-players-left?
             (swap! players (fn [players]
-                             (-> players
-                                 (assoc-in [id :party-id] nil)
-                                 (assoc-in [id :party-leader?] false)))))
+                             (reduce (fn [players [id _]]
+                                       (-> players
+                                           (assoc-in [id :party-id] nil)
+                                           (assoc-in [id :party-leader?] false)))
+                                     players
+                                     players))))
           (when selected-player-id
             (swap! players assoc-in [selected-player-id :party-id] nil)
             (doseq [id (disj party-member-ids id)]
@@ -1088,3 +1091,7 @@
 (defstate ^{:on-reload :noop} init-sentry
   :start (sentry/init! "https://9080b8a52af24bdb9c637555f1a36a1b@o4504713579724800.ingest.sentry.io/4504731298693120"
                        {:traces-sample-rate 1.0}))
+
+(defstate ^{:on-reload :noop} init-npcs
+  :start (bots/init-npcs)
+  :stop (bots/clear-npcs))

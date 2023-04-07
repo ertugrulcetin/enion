@@ -1,11 +1,11 @@
 (ns enion-cljs.scene.network
   (:require
     [applied-science.js-interop :as j]
-    [camel-snake-kebab.core :as csk]
     [cljs.reader :as reader]
     [clojure.string :as str]
     [enion-cljs.common :refer [dev? fire on dlog ws-url]]
     [enion-cljs.scene.entities.chest :as chest]
+    [enion-cljs.scene.entities.npc :as npc]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.poki :as poki]
     [enion-cljs.scene.skills.effects :as effects]
@@ -22,8 +22,6 @@
 
 (defonce send-state-interval-id (atom nil))
 (defonce get-ping-interval-id (atom nil))
-
-(defonce party-member-ids (volatile! []))
 
 (def sending-states-to-server-tick-rate (/ 1000 30))
 
@@ -147,26 +145,26 @@
 
 (defmethod party-response :accepted-party-request [params]
   (let [player-id (-> params :party :player-id)]
-    (when (empty? @party-member-ids)
-      (vswap! party-member-ids conj current-player-id))
-    (vswap! party-member-ids conj player-id)
+    (when (empty? @st/party-member-ids)
+      (vswap! st/party-member-ids conj current-player-id))
+    (vswap! st/party-member-ids conj player-id)
     (fire :ui-set-as-party-leader)
-    (update-username-text-color @party-member-ids true)
+    (update-username-text-color @st/party-member-ids true)
     (fire :ui-send-msg {:joined-party (st/get-username player-id)})
-    (fire :register-party-members (register-party-members @party-member-ids))))
+    (fire :register-party-members (register-party-members @st/party-member-ids))))
 
 (defmethod party-response :joined-party [params]
   (let [player-id (-> params :party :player-id)]
-    (vswap! party-member-ids conj player-id)
-    (update-username-text-color @party-member-ids true)
+    (vswap! st/party-member-ids conj player-id)
+    (update-username-text-color @st/party-member-ids true)
     (fire :ui-send-msg {:joined-party (st/get-username player-id)})
-    (fire :register-party-members (register-party-members @party-member-ids))))
+    (fire :register-party-members (register-party-members @st/party-member-ids))))
 
 (def party-cancelled-msg {:party-cancelled true})
 
 (defn- cancel-party []
-  (update-username-text-color @party-member-ids false)
-  (vreset! party-member-ids [])
+  (update-username-text-color @st/party-member-ids false)
+  (vreset! st/party-member-ids [])
   (fire :cancel-party)
   (fire :ui-send-msg party-cancelled-msg))
 
@@ -180,9 +178,9 @@
     (if (or this-player? party-cancelled?)
       (cancel-party)
       (do
-        (vswap! party-member-ids (fn [ids] (vec (remove #(= player-id %) ids))))
+        (vswap! st/party-member-ids (fn [ids] (vec (remove #(= player-id %) ids))))
         (update-username-text-color [player-id] false)
-        (fire :register-party-members (register-party-members @party-member-ids))
+        (fire :register-party-members (register-party-members @st/party-member-ids))
         (fire :ui-send-msg {:member-removed-from-party (st/get-username player-id)})))))
 
 (defmethod party-response :party-cancelled [_]
@@ -191,11 +189,11 @@
 (defmethod party-response :member-exit-from-party [params]
   (let [player-id (-> params :party :player-id)
         username (-> params :party :username)]
-    (if (= 2 (count @party-member-ids))
+    (if (= 2 (count @st/party-member-ids))
       (cancel-party)
       (do
-        (vswap! party-member-ids (fn [ids] (vec (remove #(= player-id %) ids))))
-        (fire :register-party-members (register-party-members @party-member-ids))
+        (vswap! st/party-member-ids (fn [ids] (vec (remove #(= player-id %) ids))))
+        (fire :register-party-members (register-party-members @st/party-member-ids))
         (update-username-text-color [player-id] false)
         (fire :ui-send-msg {:member-exit-from-party username})))))
 
@@ -222,7 +220,7 @@
 
 (defmethod party-response :accept-party-request [params]
   (let [party-member-ids* (-> params :party :party-members-ids vec)]
-    (vreset! party-member-ids party-member-ids*)
+    (vreset! st/party-member-ids party-member-ids*)
     (update-username-text-color party-member-ids* true)
     (fire :register-party-members (register-party-members party-member-ids*))
     (fire :close-party-request-modal)))
@@ -389,115 +387,6 @@
                                  :killer-race killer-race
                                  :killed killed-username}))))
 
-(defonce npcs #js {})
-(defonce npc (delay (pc/find-by-name "undead_warrior")))
-
-(defn init-npcs []
-  (doseq [i (range 10)
-          :let [entity (pc/clone @npc)
-                model (pc/find-by-name entity "undead_warrior_model")
-                i (inc i)]]
-    (pc/add-child (pc/root) entity)
-    (j/assoc! npcs i (clj->js {:id i
-                               :entity entity
-                               :model model
-                               :prev-state :idle
-                               :initial-pos {}
-                               :last-pos {}
-                               :from (pc/vec3)
-                               :to (pc/vec3)}))))
-
-(defn remove-npcs []
-  (doseq [id (js/Object.keys npcs)]
-    (j/call-in npcs [id :entity :destroy])
-    (js-delete npcs id)))
-
-(comment
-
-  npcs
-  (init-npcs)
-  (remove-npcs)
-
-  (js/console.log (j/get-in npcs [0 :entity]))
-  (j/get-in npcs [0 :entity])
-  (js/console.log (j/get-in npcs [0 :entity]))
-  (pc/get-pos (j/get-in npcs [0 :entity]))
-  )
-
-(defn- interpolate-npc [npc-id new-x new-y new-z]
-  (let [npc-entity (j/get-in npcs [npc-id :entity])
-        initial-pos (j/get-in npcs [npc-id :initial-pos])
-        last-pos (j/get-in npcs [npc-id :last-pos])
-        current-pos (pc/get-pos npc-entity)
-        current-x (j/get current-pos :x)
-        current-y (j/get current-pos :y)
-        current-z (j/get current-pos :z)]
-    (when (and current-x new-x current-z new-z
-               (or (not= (common.utils/parse-float current-x 2)
-                         (common.utils/parse-float new-x 2))
-                   (not= (common.utils/parse-float current-z 2)
-                         (common.utils/parse-float new-z 2))))
-      (let [tween-interpolation (-> (j/call npc-entity :tween initial-pos)
-                                    (j/call :to last-pos 0.05 pc/linear))]
-        (j/assoc! initial-pos :x current-x :y current-y :z current-z)
-        (j/assoc! last-pos :x new-x :y new-y :z new-z)
-        (j/call tween-interpolation :on "update"
-                (fn []
-                  (let [x (j/get initial-pos :x)
-                        y (j/get initial-pos :y)
-                        z (j/get initial-pos :z)]
-                    (pc/set-pos npc-entity x y z))))
-        (j/call tween-interpolation :start)))))
-
-(defn- filter-hit-by-terrain [result]
-  (when (= "terrain" (j/get-in result [:entity :name]))
-    result))
-
-(defn- get-closest-hit-of-terrain [result]
-  (j/get-in result [:point :y]))
-
-(defn- update-npc-anim-state [model state prev-state]
-  (when (not= state prev-state)
-    (pc/set-anim-boolean model (csk/->camelCaseString prev-state) false)
-    (pc/set-anim-boolean model (csk/->camelCaseString state) true)))
-
-;; Skeleton Warrior
-;; Bone Fighter
-;; Skull Knight
-;; Undead Soldier
-;; Skeletal Champion
-(defn- process-npcs [npcs-world-state]
-  (doseq [npc npcs-world-state
-          :let [npc-id (:id npc)
-                npc-entity (j/get-in npcs [npc-id :entity])]
-          :when npc-entity]
-    (let [model (j/get-in npcs [npc-id :model])
-          state (:state npc)
-          new-x (:px npc)
-          new-z (:pz npc)
-          from (j/get-in npcs [npc-id :from])
-          to (j/get-in npcs [npc-id :to])
-          _ (pc/setv from new-x 10 new-z)
-          _ (pc/setv to new-x -1 new-z)
-          hit (->> (pc/raycast-all from to)
-                   (filter filter-hit-by-terrain)
-                   (sort-by get-closest-hit-of-terrain)
-                   first)
-          new-y (or (some-> hit (j/get-in [:point :y])) 0.55)
-          target-player-id (:target-player-id npc)
-          target-player-pos (when target-player-id
-                              (if (= current-player-id target-player-id)
-                                (st/get-pos)
-                                (st/get-pos target-player-id)))
-          prev-state (j/get-in npcs [npc-id :prev-state])]
-      (update-npc-anim-state model state prev-state)
-      (when-not (= state :idle)
-        (if target-player-id
-          (pc/look-at model (j/get target-player-pos :x) new-y (j/get target-player-pos :z) true)
-          (pc/look-at model new-x new-y new-z true)))
-      (j/assoc-in! npcs [npc-id :prev-state] state)
-      (interpolate-npc npc-id new-x new-y new-z))))
-
 (defmethod dispatch-pro-response :world-snapshot [params]
   (let [ws (:world-snapshot params)
         effects (:effects ws)
@@ -513,8 +402,8 @@
     (process-effects effects)
     (process-attack-ranges attack-ranges)
     (process-kills kills)
-    (process-npcs npcs)
-    (when-let [ids (seq @party-member-ids)]
+    (npc/process-npcs current-player-id npcs)
+    (when-let [ids (seq @st/party-member-ids)]
       (fire :update-party-members {:healths (reduce (fn [acc id]
                                                       (assoc acc id (get-in ws [id :health]))) {} ids)
                                    :members-with-break-defense members-with-break-defense}))))
@@ -671,7 +560,7 @@
 (on :close-socket-for-re-init
     (fn []
       (set! effects/healed-player-ids (js/Set.))
-      (vreset! party-member-ids [])
+      (vreset! st/party-member-ids [])
       (poki/gameplay-stop)
       (poki/commercial-break)
       (some-> @socket (j/call :close 3001 "re-init"))

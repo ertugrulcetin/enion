@@ -37,9 +37,10 @@
                     :change-pos-interval 15000
                     :change-pos-speed 0.02
                     :chase-range-threshold 20
-                    :chase-speed 0.05
+                    :chase-speed 0.1
                     :cooldown 1000
                     :damage-buffer-size 100
+                    :damage-fn #(utils/rand-between 150 200)
                     :health 2500
                     :name "Undead Soldier"
                     :target-locked-threshold 10000
@@ -63,10 +64,6 @@
 (defn- get-state-by-id [npc-id]
   (get-in @npcs [npc-id :state :name]))
 
-(defn- clear-npcs []
-  (reset! npc-id-generator 0)
-  (reset! npcs {}))
-
 (defn- find-available-slot-pos-id [npcs slot-id]
   (let [slot-pos-ids (set (keys (get slots slot-id)))
         taken-slot-pos-ids (->> (vals @npcs)
@@ -76,9 +73,7 @@
     (-> (set/difference slot-pos-ids taken-slot-pos-ids) shuffle first)))
 
 (defn- add-npc [npcs {:keys [type slot-id]}]
-  (println "slot-id: " slot-id)
   (let [available-slot-pos-id (find-available-slot-pos-id npcs slot-id)
-        _ (println "available-slot-pos-id: " available-slot-pos-id)
         init-pos (get-in slots [slot-id available-slot-pos-id])
         npc (create-npc {:type type
                          :slot-id slot-id
@@ -232,18 +227,25 @@
                       (change-fsm-state npc :die)))
           :exit (fn [npc] (println "Exiting IDLE state") npc)}
    :attack {:name :attack
-            :enter (fn [npc] (println "Entering ATTACK state")
-                     (lock-npc-to-player npc))
+            :enter (fn [npc]
+                     (println "Entering ATTACK state")
+                     (-> npc
+                         (assoc :last-time-attacked (System/currentTimeMillis))
+                         (lock-npc-to-player)))
             :update (fn [npc world]
-                      (if (alive? npc)
-                        (if-let [player-id (get-player-id-to-attack npc world)]
-                          (if (player-close-for-attack? npc player-id world)
-                            (if (cooldown-finished? npc)
-                              (attack-to-player npc player-id world)
-                              npc)
-                            (change-fsm-state npc :chase player-id))
-                          (change-fsm-state npc :idle))
-                        (change-fsm-state npc :die)))
+                      (let [last-time-attacked (:last-time-attacked npc)
+                            now (System/currentTimeMillis)]
+                        (if (alive? npc)
+                          (if (and last-time-attacked (<= (- now last-time-attacked) 1000))
+                            npc
+                            (if-let [player-id (get-player-id-to-attack npc world)]
+                              (if (player-close-for-attack? npc player-id world)
+                                (if (cooldown-finished? npc)
+                                  (attack-to-player npc player-id world)
+                                  npc)
+                                (change-fsm-state npc :chase player-id))
+                              (change-fsm-state npc :idle)))
+                          (change-fsm-state npc :die))))
             :exit (fn [npc] (println "Exiting ATTACK state") npc)}
    :chase {:name :chase
            :enter (fn [npc]
@@ -279,20 +281,26 @@
                      npc))
          :exit (fn [npc] (println "Exiting DIE state") npc)}})
 
-(comment
-  @npcs
-
-  (clear-npcs)
-
+(defn init-npcs []
   (doseq [{:keys [type slot-id count]} [{:type :undead-soldier
                                          :slot-id 0
                                          :count 5}
                                         {:type :undead-soldier
-                                           :slot-id 1
-                                           :count 5}]]
+                                         :slot-id 1
+                                         :count 5}]]
     (dotimes [_ count]
       (add-npc npcs {:type type
-                     :slot-id slot-id})))
+                     :slot-id slot-id}))))
+
+(defn clear-npcs []
+  (reset! npc-id-generator 0)
+  (reset! npcs {}))
+
+(comment
+  @npcs
+  (init-npcs)
+  (clear-npcs)
+
   ;;get height if a given x and z points in a mesh
 
 

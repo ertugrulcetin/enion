@@ -126,7 +126,11 @@
           :let [distance (st/distance-to id)]]
     (when-not (= (j/get distances id) distance)
       (j/assoc! distances id distance)
-      (let [username-distance (if (st/enemy? id) 10 5)]
+      ;; TODO if party member make distance 20
+      (let [username-distance (cond
+                                (st/enemy? id) 10
+                                (st/party-member? id) 20
+                                :else 5)]
         (cond
           (< distance lod-0-threshold) (set-lod :lod-0 id)
           (< distance lod-1-threshold) (set-lod :lod-1 id)

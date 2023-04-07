@@ -47,7 +47,7 @@
                                      "to wield two daggers with deadly precision")
                    :required-mana 100
                    :damage-fn (create-damage-fn 225 300)}
-   "attackStab" {:cooldown 10000
+   "attackStab" {:cooldown 12000
                  :name "Dark Stab"
                  :description (str "A lethal close-range attack that lets the Assassin deliver a quick "
                                    "and deadly strike with a hidden blade")
@@ -102,14 +102,14 @@
                                      "of your enemies and increasing the damage they receive by 30% for 15 seconds.")
                    :required-mana 150
                    :effect-duration 15000}
-   "cure" {:cooldown 2500
+   "cure" {:cooldown 3500
            :name "Purify"
            :description (str "Removes toxic effects from you and your party members, "
                              "restoring health and vitality")
            :required-mana 100}
    "attackPriest" {:cooldown 1000
                    :name "Divine Hammerstrike"
-                   :damage-fn (create-damage-fn 100 200)
+                   :damage-fn (create-damage-fn 150 250)
                    :description (str "Powerful close combat skill that allows the Priest to "
                                      "channel holy energy into their hammer, delivering a crushing blow to their enemies")
                    :required-mana 100}
