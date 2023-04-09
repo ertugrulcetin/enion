@@ -134,9 +134,12 @@
   (fire :ui-cooldown "attackDagger")
   (let [selected-player-id (-> params :skill :selected-player-id)
         damage (-> params :skill :damage)
-        enemy (st/get-other-player selected-player-id)]
+        npc? (-> params :skill :npc?)
+        enemy (if npc?
+                (st/get-npc selected-player-id)
+                (st/get-other-player selected-player-id))]
     (skills.effects/apply-effect-attack-dagger enemy)
-    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+    (fire :ui-send-msg {:to (j/get enemy :username)
                         :hit damage})
     (when (not (utils/tutorial-finished? :how-to-cast-skills?))
       (utils/finish-tutorial-step :how-to-cast-skills?))))
@@ -171,8 +174,7 @@
                                                    attack-dagger-cooldown
                                                    (+ attack-dagger-cooldown 400)))
        (st/cooldown-ready? "attackDagger")
-       (st/enemy-selected? selected-player-id)
-       (st/alive? selected-player-id)
+       (skills/can-attack-to-enemy? selected-player-id)
        (st/enough-mana? attack-dagger-required-mana)
        (skills/close-for-attack? selected-player-id)))
 
@@ -182,8 +184,7 @@
     (skills/idle-run-states active-state)
     (skills/skill-pressed? e "attackDagger")
     (st/cooldown-ready? "attackDagger")
-    (st/enemy-selected? selected-player-id)
-    (st/alive? selected-player-id)
+    (skills/can-attack-to-enemy? selected-player-id)
     (st/enough-mana? attack-dagger-required-mana)
     (skills/close-for-attack? selected-player-id)))
 
@@ -192,8 +193,7 @@
     (skills/idle-run-states active-state)
     (skills/skill-pressed? e "attackStab")
     (st/cooldown-ready? "attackStab")
-    (st/enemy-selected? selected-player-id)
-    (st/alive? selected-player-id)
+    (skills/can-attack-to-enemy? selected-player-id)
     (st/enough-mana? attack-stab-required-mana)
     (skills/close-for-attack? selected-player-id)))
 
@@ -216,7 +216,8 @@
   (when (and (not (-> e .-event .-repeat)) (st/alive?))
     (let [model-entity (st/get-model-entity)
           active-state (pc/get-anim-state model-entity)
-          selected-player-id (st/get-selected-player-id)]
+          selected-player-id (st/get-selected-player-id)
+          npc? (st/npc-selected?)]
       (m/process-cancellable-skills
         ["attackDagger" "attackR" "hide" "attackStab"]
         (j/get-in e [:event :code])
@@ -246,12 +247,14 @@
         (attack-dagger? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackDagger"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackDagger"] npc?)
           (pc/set-anim-boolean (st/get-model-entity) "attackDagger" true)
           (st/play-sound "attackDagger"))
 
         (attack-stab? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackStab"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackStab"] npc?)
           (pc/set-anim-boolean (st/get-model-entity) "attackStab" true)
           (st/play-sound "attackStab"))
 
@@ -263,6 +266,7 @@
         (skills/attack-r? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackR"] npc?)
           (pc/set-anim-boolean model-entity "attackR" true)
           (st/look-at-selected-player))
 

@@ -349,6 +349,7 @@
     (:damage message) "damage"
     (:defense-break message) "damage"
     (:cauldron message) "damage"
+    (:npc message) "damage"
     (:hit message) "hit"
     (:bp message) "bp"
     (:skill message) "skill"
@@ -393,7 +394,8 @@
       (:member-exit-from-party message) (str (:member-exit-from-party message) " exit from the party")
       (:bp message) (str "Earned " (:bp message) " Battle Points (BP)")
       (:re-spawn-error message) (:re-spawn-error message)
-      (:cauldron message) (str "Restricted area: You took " (:cauldron message) " damage!"))))
+      (:cauldron message) (str "Restricted area: You took " (:cauldron message) " damage!")
+      (:npc message) (str "You took " (-> message :npc :damage) " damage from " (-> message :npc :name)))))
 
 (defn- info-message [message]
   [:<>

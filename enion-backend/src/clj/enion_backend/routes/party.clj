@@ -1,7 +1,8 @@
 (ns enion-backend.routes.party
   (:require
     [common.enion.skills :as common.skills]
-    [enion-backend.routes.home :refer :all]))
+    [enion-backend.routes.home :refer :all]
+    [enion-backend.utils :as utils]))
 
 (defn- asked-to-join-too-often? [id selected-player-id]
   (let [last-time (get-in @players [id :last-time :add-to-party-request selected-player-id])]
@@ -79,7 +80,7 @@
           (already-in-another-party? other-player player) party-request-failed
           (already-in-the-party? other-player player) party-request-failed
           (blocked-party-requests? other-player) party-request-failed
-          :else (let [party-id (or (:party-id other-player) (swap! party-id-generator inc))]
+          :else (let [party-id (or (:party-id other-player) (swap! utils/party-id-generator inc))]
                   (swap! players (fn [players]
                                    (-> players
                                        (assoc-in [requested-player-id :party-id] party-id)

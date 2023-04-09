@@ -7,7 +7,7 @@
     [clojure.string :as str]
     [clojure.tools.logging :as log]
     [common.enion.skills :as common.skills]
-    [enion-backend.async :as easync :refer [dispatch reg-pro]]
+    [enion-backend.async :as easync :refer [dispatch dispatch-in reg-pro]]
     [enion-backend.bots :as bots]
     [enion-backend.layout :as layout]
     [enion-backend.middleware :as middleware]
@@ -46,15 +46,13 @@
 
 (def afk-threshold-in-milli-secs (* 3 60 1000))
 
-(defonce id-generator (atom 0))
-(defonce party-id-generator (atom 0))
-
 (def max-number-of-party-members 5)
 
 (defonce players (atom {}))
 (defonce world (atom {}))
 
 (defonce effects-stream (s/stream))
+(defonce npc-effects-stream (s/stream))
 (defonce killings-stream (s/stream))
 
 (defn now []
@@ -63,6 +61,10 @@
 (defn add-effect [effect data]
   (s/put! effects-stream {:effect effect
                           :data data}))
+
+(defn add-effect-to-npc [effect data]
+  (s/put! npc-effects-stream {:effect effect
+                              :data data}))
 
 (defn add-killing [killer-id killed-id]
   (s/put! killings-stream {:killer-id killer-id
@@ -113,7 +115,7 @@
   (mount/stop)
   (mount/start)
 
-  (bots/make-player-attack!  (ffirst @players))
+  (bots/make-player-attack! (ffirst @players))
   (bots/make-player-attack! 0 (ffirst (next @players)))
   bots/npcs
   )
@@ -125,13 +127,11 @@
                        create-effects->player-ids-mapping)
           kills (take-while-stream comp-not-nil killings-stream)
           w @world
+          current-players @players
           w (if (empty? effects) w (assoc w :effects effects))
           w (if (empty? kills) w (assoc w :kills kills))
-          current-players @players
-          all-npcs (bots/update-all-npcs! w)
-          ;; _ (clojure.pprint/pprint all-npcs)
+          all-npcs (bots/update-all-npcs! w current-players)
           w (if (empty? all-npcs) w (assoc w :npcs all-npcs))
-          ;; _ (clojure.pprint/pprint w)
           w (reduce-kv
               (fn [w id v]
                 (assoc w id (if (= "asas" (get-in current-players [id :class]))
@@ -173,37 +173,6 @@
   (when-not (dev?)
     (create-single-thread-executor 1000 check-afk-players*)))
 
-(let [temp {}
-      temp-fn (fn [_ _])]
-  (defn dispatch-in [pro-name {:keys [id data]}]
-    (let [current-players @players]
-      (if id
-        (when-let [socket (get-in current-players [id :socket])]
-          (try
-            (dispatch pro-name {:id id
-                                :ping 0
-                                :data data
-                                :req temp
-                                :current-players current-players
-                                :current-world @world
-                                :socket socket
-                                :send-fn (fn [socket {:keys [id result]}]
-                                           (when result
-                                             (s/put! socket (msg/pack (hash-map id result)))))})
-            (catch Exception e
-              (log/error e))))
-        (try
-          (dispatch pro-name {:id nil
-                              :ping 0
-                              :data data
-                              :req temp
-                              :current-players current-players
-                              :current-world @world
-                              :socket temp
-                              :send-fn temp-fn})
-          (catch Exception e
-            (log/error e)))))))
-
 (defn- check-enemies-entered-base* []
   (try
     (let [current-world @world
@@ -220,7 +189,9 @@
                                            (:id player))))]
       (doseq [id player-ids-to-damage]
         (dispatch-in :skill {:id id
-                             :data {:skill "baseDamage"}})))
+                             :data {:skill "baseDamage"}
+                             :players current-players
+                             :world current-world})))
     (catch Exception e
       (println "Couldn't check enemies entered base")
       (log/error e))))
@@ -236,7 +207,9 @@
 
 (defn- restore-hp-&-mp-for-players-out-of-combat* []
   (try
-    (dispatch-in :skill {:data {:skill "restoreHpMp"}})
+    (dispatch-in :skill {:data {:skill "restoreHpMp"}
+                         :players @players
+                         :world @world})
     (catch Exception e
       (log/error e))))
 
@@ -487,7 +460,8 @@
 (reg-pro
   :request-all-players
   (fn [_]
-    (map #(select-keys % [:id :username :race :class :health :mana :pos]) (vals @players))))
+    {:players (map #(select-keys % [:id :username :race :class :health :mana :pos]) (vals @players))
+     :npcs (bots/npc-types->ids)}))
 
 (def ping-high {:error :ping-high})
 (def skill-failed {:error :skill-failed})
@@ -556,8 +530,17 @@
         z1 (:pz other-player-world-state)]
     (<= (distance x x1 y y1 z z1) threshold)))
 
+(defn close-npc-distance? [player-world-state npc-world-state threshold]
+  (let [x (:px player-world-state)
+        z (:pz player-world-state)
+        [x1 z1] (:pos npc-world-state)]
+    (<= (distance x x1 z z1) threshold)))
+
 (defn close-for-attack? [player-world-state other-player-world-state]
   (close-distance? player-world-state other-player-world-state (+ common.skills/close-attack-distance-threshold 1)))
+
+(defn close-for-attack-to-npc? [player-world-state npc-world-state]
+  (close-npc-distance? player-world-state npc-world-state (+ common.skills/close-attack-distance-threshold 1)))
 
 (defn close-for-priest-skills? [player-world-state other-player-world-state]
   (close-distance? player-world-state other-player-world-state (+ common.skills/priest-skills-distance-threshold 1)))
@@ -737,6 +720,21 @@
     {:skill (:skill data)
      :damage damage}))
 
+(defmethod apply-skill "npcDamage" [{:keys [id current-world data]}]
+  (update-last-combat-time id)
+  (let [damage (:damage data)
+        player-world-state (get current-world id)
+        health-after-damage (- (:health player-world-state) damage)
+        health-after-damage (Math/max ^long health-after-damage 0)]
+    (swap! world assoc-in [id :health] health-after-damage)
+    (add-effect :attack-base id)
+    (when (= 0 health-after-damage)
+      (cancel-all-tasks-of-player id)
+      (swap! players assoc-in [id :last-time :died] (now)))
+    {:skill (:skill data)
+     :npc-id (:npc-id data)
+     :damage damage}))
+
 (defmethod apply-skill "restoreHpMp" [{:keys [current-players current-world]}]
   (let [now (now)
         players-to-restore-hp-&-mp (->> current-players
@@ -851,8 +849,8 @@
   (swap! world (fn [world]
                  (reduce (fn [world id]
                            (-> world
-                             (assoc-in [id :health] 200000)
-                             (assoc-in [id :mana] 200000)))
+                             (assoc-in [id :health] 5)
+                             (assoc-in [id :mana] 5)))
                    world
                    (keys @players))))
 
@@ -975,7 +973,7 @@
 (defn reset-states []
   (reset! world {})
   (reset! players {})
-  (reset! id-generator 0))
+  (reset! utils/id-generator 0))
 
 (defn ws-handler
   [req]
@@ -983,7 +981,7 @@
       (d/chain
         (fn [socket]
           (let [now* (now)
-                player-id (swap! id-generator inc)]
+                player-id (swap! utils/id-generator inc)]
             (alter-meta! socket assoc :id player-id)
             (swap! players (fn [players]
                              (-> players

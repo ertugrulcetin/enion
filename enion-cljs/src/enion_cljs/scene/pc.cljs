@@ -260,8 +260,8 @@
 
 (let [ally-color #js [0 1 0]
       enemy-color #js [1 0 0]]
-  (defn set-selected-char-color [ally?]
-    (j/call @terrain-mat :setParameter "selected_char_color" (if ally? ally-color enemy-color))))
+  (defn set-selected-char-color [type]
+    (j/call @terrain-mat :setParameter "selected_char_color" (if (= :ally type) ally-color enemy-color))))
 
 (let [target #js []
       nova-pos (vec3)]

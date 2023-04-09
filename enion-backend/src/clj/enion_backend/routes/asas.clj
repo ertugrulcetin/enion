@@ -1,6 +1,7 @@
 (ns enion-backend.routes.asas
   (:require
     [common.enion.skills :as common.skills]
+    [enion-backend.bots :as bots]
     [enion-backend.routes.home :refer :all]
     [enion-backend.teatime :as tea]))
 
@@ -9,17 +10,25 @@
                                            selected-player-id
                                            player-world-state
                                            other-player-world-state
+                                           npc-world-state
                                            skill
                                            player]}]
   (cond
     (ping-too-high? ping) ping-high
     (not (asas? id)) skill-failed
-    (not (enemy? id selected-player-id)) skill-failed
+    (and (nil? npc-world-state)
+         (not (enemy? id selected-player-id))) skill-failed
     (not (alive? player-world-state)) skill-failed
-    (not (alive? other-player-world-state)) skill-failed
+    (and other-player-world-state
+         (not (alive? other-player-world-state))) skill-failed
+    (and npc-world-state
+         (not (alive? npc-world-state))) skill-failed
     (not (enough-mana? skill player-world-state)) not-enough-mana
     (not (cooldown-finished? skill player)) skill-failed
-    (not (close-for-attack? player-world-state other-player-world-state)) too-far))
+    (and other-player-world-state
+         (not (close-for-attack? player-world-state other-player-world-state))) too-far
+    (and npc-world-state
+         (not (close-for-attack-to-npc? player-world-state npc-world-state))) too-far))
 
 (defn- validate-asas-skill [{:keys [id
                                     ping
@@ -34,40 +43,64 @@
     (not (cooldown-finished? skill player)) skill-failed))
 
 (defmethod apply-skill "attackDagger" [{:keys [id ping current-players current-world]
-                                        {:keys [skill selected-player-id]} :data}]
+                                        {:keys [skill selected-player-id npc?]} :data}]
   (when-let [player (get current-players id)]
-    (when (get current-players selected-player-id)
-      (let [player-world-state (get current-world id)
-            other-player-world-state (get current-world selected-player-id)]
-        (if-let [err (validate-asas-attack-skill {:id id
-                                                  :ping ping
-                                                  :selected-player-id selected-player-id
-                                                  :player-world-state player-world-state
-                                                  :other-player-world-state other-player-world-state
-                                                  :skill skill
-                                                  :player player})]
-          err
-          (let [_ (update-last-combat-time id selected-player-id)
-                required-mana (get-required-mana skill)
-                damage ((-> common.skills/skills (get skill) :damage-fn)
-                        (has-defense? selected-player-id)
-                        (has-break-defense? selected-player-id))
-                health-after-damage (- (:health other-player-world-state) damage)
-                health-after-damage (Math/max ^long health-after-damage 0)]
-            (swap! world (fn [world]
-                           (-> world
-                               (update-in [id :mana] - required-mana)
-                               (assoc-in [selected-player-id :health] health-after-damage))))
-            (add-effect :attack-dagger selected-player-id)
-            (make-asas-appear-if-hidden id)
-            (make-asas-appear-if-hidden selected-player-id)
-            (swap! players assoc-in [id :last-time :skill skill] (now))
-            (process-if-enemy-died id selected-player-id health-after-damage current-players)
-            (send! selected-player-id :got-attack-dagger-damage {:damage damage
-                                                                 :player-id id})
-            {:skill skill
-             :damage damage
-             :selected-player-id selected-player-id}))))))
+    (if npc?
+      (when-let [npc (get @bots/npcs selected-player-id)]
+        (let [player-world-state (get current-world id)]
+          (if-let [err (validate-asas-attack-skill {:id id
+                                                    :ping ping
+                                                    :selected-player-id selected-player-id
+                                                    :player-world-state player-world-state
+                                                    :npc-world-state npc
+                                                    :skill skill
+                                                    :player player})]
+            err
+            (let [_ (update-last-combat-time id)
+                  required-mana (get-required-mana skill)
+                  damage (bots/make-player-attack! {:skill skill
+                                                    :player player
+                                                    :npc npc})]
+              (swap! world update-in [id :mana] - required-mana)
+              (add-effect-to-npc :attack-dagger selected-player-id)
+              (make-asas-appear-if-hidden id)
+              (swap! players assoc-in [id :last-time :skill skill] (now))
+              {:skill skill
+               :damage damage
+               :npc? true
+               :selected-player-id selected-player-id}))))
+      (when (get current-players selected-player-id)
+        (let [player-world-state (get current-world id)
+              other-player-world-state (get current-world selected-player-id)]
+          (if-let [err (validate-asas-attack-skill {:id id
+                                                    :ping ping
+                                                    :selected-player-id selected-player-id
+                                                    :player-world-state player-world-state
+                                                    :other-player-world-state other-player-world-state
+                                                    :skill skill
+                                                    :player player})]
+            err
+            (let [_ (update-last-combat-time id selected-player-id)
+                  required-mana (get-required-mana skill)
+                  damage ((-> common.skills/skills (get skill) :damage-fn)
+                          (has-defense? selected-player-id)
+                          (has-break-defense? selected-player-id))
+                  health-after-damage (- (:health other-player-world-state) damage)
+                  health-after-damage (Math/max ^long health-after-damage 0)]
+              (swap! world (fn [world]
+                             (-> world
+                                 (update-in [id :mana] - required-mana)
+                                 (assoc-in [selected-player-id :health] health-after-damage))))
+              (add-effect :attack-dagger selected-player-id)
+              (make-asas-appear-if-hidden id)
+              (make-asas-appear-if-hidden selected-player-id)
+              (swap! players assoc-in [id :last-time :skill skill] (now))
+              (process-if-enemy-died id selected-player-id health-after-damage current-players)
+              (send! selected-player-id :got-attack-dagger-damage {:damage damage
+                                                                   :player-id id})
+              {:skill skill
+               :damage damage
+               :selected-player-id selected-player-id})))))))
 
 (defmethod apply-skill "attackStab" [{:keys [id ping current-players current-world]
                                       {:keys [skill selected-player-id]} :data}]

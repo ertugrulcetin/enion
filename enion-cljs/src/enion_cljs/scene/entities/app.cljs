@@ -60,7 +60,7 @@
                   component-data (j/get component :data)]
               (when (and (j/get component-data :enabled) (j/get-in component [:entity :enabled]) (j/get component :playing))
                 (if player-id
-                  (let [distance (st/distance-to player-id)
+                  (let [distance (st/distance-to-player player-id)
                         fixed-timestep (cond
                                          (< distance 5) 0
                                          (< distance 8) 0.05

@@ -11,7 +11,7 @@
     [enion-cljs.scene.skills.mage :as skills.mage]
     [enion-cljs.scene.skills.priest :as skills.priest]
     [enion-cljs.scene.skills.warrior :as skills.warrior]
-    [enion-cljs.scene.states :as st :refer [player other-players]]
+    [enion-cljs.scene.states :as st :refer [player other-players npcs]]
     [enion-cljs.scene.utils :as utils])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
@@ -64,25 +64,53 @@
               id))))
       (js/Object.keys other-players))))
 
+(defn- get-selected-enemy-npc-id [e]
+  (let [x (j/get e :x)
+        y (j/get e :y)
+        camera (j/get entity.camera/entity :camera)
+        _ (pc/screen-to-world camera x y (j/get-in player [:ray :direction]))
+        _ (j/call-in player [:ray :origin :copy] (pc/get-pos entity.camera/entity))
+        rr-dir (j/call-in player [:ray :direction :sub] (j/get-in player [:ray :origin]))
+        _ (j/call rr-dir :normalize)]
+    (some
+      (fn [id]
+        (let [npc (st/get-npc id)
+              model-entity (j/get npc :model-entity)
+              prefix "skeleton_warrior"
+              mesh-names [(str prefix "_mesh_lod_0")
+                          (str prefix "_mesh_lod_1")
+                          (str prefix "_mesh_lod_2")]
+              mesh (some (fn [m]
+                           (let [e (pc/find-by-name model-entity m)]
+                             (j/get e :enabled)
+                             e)) mesh-names)
+              aabb (j/get-in mesh [:render :meshInstances 0 :aabb])
+              hit? (j/call aabb :intersectsRay (j/get player :ray) (j/get player :hit-position))]
+          (when hit?
+            id)))
+      (js/Object.keys npcs))))
+
 (defn- get-position []
   (pc/get-pos (st/get-player-entity)))
 
 (defn- show-player-selection-circle []
   (if-let [selected-player-id (j/get player :selected-player-id)]
-    (if-let [other-player (j/get other-players selected-player-id)]
-      (let [e (j/get other-player :entity)
+    (if-let [npc-or-other-player (if (j/get player :selected-enemy-npc?)
+                                   (st/get-npc selected-player-id)
+                                   (st/get-other-player selected-player-id))]
+      (let [e (j/get npc-or-other-player :entity)
             pos (pc/get-pos e)
             distance (pc/distance pos (get-position))]
         (cond
-          (and (j/get other-player :enemy?) (or (> distance char-selection-distance-threshold)
-                                                (and (j/get other-player :hide?)
-                                                     (not (j/get player :phantom-vision?)))))
+          (and (j/get npc-or-other-player :enemy?) (or (> distance char-selection-distance-threshold)
+                                                       (and (j/get npc-or-other-player :hide?)
+                                                            (not (j/get player :phantom-vision?)))))
           (st/cancel-selected-player)
 
           (< distance char-selection-distance-threshold)
           (pc/set-selected-player-position (j/get pos :x) (j/get pos :z))
 
-          (and (not (j/get other-player :enemy?)) (> distance char-selection-distance-threshold))
+          (and (not (j/get npc-or-other-player :enemy?)) (> distance char-selection-distance-threshold))
           (pc/set-selected-player-position)))
       (st/cancel-selected-player))
     (st/cancel-selected-player)))
@@ -105,16 +133,18 @@
 (defn- has-phantom-vision? []
   (j/get player :phantom-vision?))
 
-(defn- select-closest-enemy* []
-  (if-let [id (->> (js/Object.keys other-players)
+(defn- select-closest-enemy* [npc?]
+  (if-let [id (->> (js/Object.keys (if npc? npcs other-players))
                    (map
                      (fn [id]
-                       (let [player (st/get-other-player id)
-                             player-pos (pc/get-pos (j/get player :entity))
+                       (let [player-or-npc (if npc?
+                                             (st/get-npc id)
+                                             (st/get-other-player id))
+                             player-pos (pc/get-pos (j/get player-or-npc :entity))
                              distance (pc/distance (get-position) player-pos)
-                             ally? (not (j/get player :enemy?))
-                             hide? (j/get player :hide?)
-                             health (j/get player :health)]
+                             ally? (not (j/get player-or-npc :enemy?))
+                             hide? (j/get player-or-npc :hide?)
+                             health (j/get player-or-npc :health)]
                          [id distance ally? hide? health])))
                    (remove
                      (fn [[_ distance ally? hide? health]]
@@ -122,17 +152,23 @@
                    (sort-by second)
                    ffirst)]
     (do
-      (pc/set-selected-char-color false)
-      (st/set-selected-player id))
+      (pc/set-selected-char-color :enemy)
+      (st/set-selected-player id npc?))
     (st/cancel-selected-player)))
 
 (defn- select-closest-enemy [e]
   (when (and (st/alive?) (= "KeyZ" (j/get-in e [:event :code])))
-    (select-closest-enemy*)))
+    (select-closest-enemy* false)))
+
+(defn- select-closest-enemy-npc [e]
+  (when (and (st/alive?) (= "KeyX" (j/get-in e [:event :code])))
+    (select-closest-enemy* true)))
 
 (defn- look-at-&-run-towards-selected-player [e]
   (when (and (st/alive?) (= "KeyR" (j/get-in e [:event :code])))
-    (when-let [selected-player (some-> (st/get-selected-player-id) (st/get-other-player-entity))]
+    (when-let [selected-player (if (j/get player :selected-enemy-npc?)
+                                 (some-> (st/get-selected-player-id) (st/get-npc-entity))
+                                 (some-> (st/get-selected-player-id) (st/get-other-player-entity)))]
       (st/process-running)
       (let [selected-player-pos (pc/get-pos selected-player)
             x (j/get selected-player-pos :x)
@@ -162,6 +198,7 @@
                                    (not (j/get-in e [:event :altKey])))
                           (process-skills e))
                         (select-closest-enemy e)
+                        (select-closest-enemy-npc e)
                         (look-at-&-run-towards-selected-player e))))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
@@ -207,13 +244,17 @@
 (defn- select-player-or-set-target [e]
   (if-let [ally-id (get-selected-ally-id e)]
     (do
-      (pc/set-selected-char-color true)
+      (pc/set-selected-char-color :ally)
       (st/set-selected-player ally-id))
     (if-let [enemy-id (get-selected-enemy-id e)]
       (do
-        (pc/set-selected-char-color false)
+        (pc/set-selected-char-color :enemy)
         (st/set-selected-player enemy-id))
-      (set-target-position e))))
+      (if-let [enemy-npc-id (get-selected-enemy-npc-id e)]
+        (do
+          (pc/set-selected-char-color :enemy)
+          (st/set-selected-player enemy-npc-id true))
+        (set-target-position e)))))
 
 (defn- register-mouse-events []
   (pc/on-mouse :EVENT_MOUSEDOWN
@@ -309,27 +350,6 @@
       (j/call-in player-entity [:rigidbody :teleport] x y z))
     (fire :ui-player-set-total-health-and-mana {:health health
                                                 :mana mana})))
-
-(defn- add-skill-effects [template-entity]
-  (let [effects (pc/clone (pc/find-by-name "effects"))]
-    (pc/add-child template-entity effects)
-    ;; add skill effect initial counters and related entities
-    (->> (map (j/get :name) (j/get effects :children))
-         (concat
-           ["particle_fire_hands"
-            "particle_ice_hands"
-            "particle_flame_dots"
-            "particle_heal_hands"
-            "particle_cure_hands"
-            "particle_defense_break_hands"])
-         (keep
-           (fn [e]
-             (when-let [entity (pc/find-by-name template-entity e)]
-               [e {:counter 0
-                   :entity entity
-                   :state #js {:value 0}}])))
-         (into {})
-         clj->js)))
 
 (defn- create-throw-nova-fn [character-template-entity]
   (some-> (pc/find-by-name character-template-entity "nova") skills.mage/create-throw-nova-fn))
@@ -433,7 +453,7 @@
                   :other-player? true}
           _ (pc/add-child (pc/root) entity)
           [template-entity model-entity] (create-model-and-template-entity params)
-          effects (add-skill-effects template-entity)
+          effects (utils/add-skill-effects template-entity)
           state (-> opts
                     (dissoc :pos)
                     (assoc :entity entity
@@ -485,7 +505,7 @@
     (j/assoc! player :camera (pc/find-by-name "camera"))
     (j/assoc! player
               :this this
-              :effects (add-skill-effects template-entity)
+              :effects (utils/add-skill-effects template-entity)
               :template-entity template-entity
               :model-entity model-entity
               :entity player-entity)
@@ -535,8 +555,9 @@
           (let [target (j/get player :target-pos)
                 temp-dir (pc/copyv temp-dir target)
                 pos (get-position)
-                dir (-> temp-dir (pc/sub pos) pc/normalize (pc/scale speed))]
-            (if (>= (pc/distance target pos) 0.2)
+                dir (-> temp-dir (pc/sub pos) pc/normalize (pc/scale speed))
+                target-distance-threshold (if (j/get player :selected-enemy-npc?) 0.35 0.2)]
+            (if (>= (pc/distance target pos) target-distance-threshold)
               (pc/apply-force player-entity (j/get dir :x) 0 (j/get dir :z))
               (st/cancel-target-pos)))
           (when (st/chat-closed?)

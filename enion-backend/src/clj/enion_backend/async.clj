@@ -5,6 +5,8 @@
     [enion-backend.utils :refer [dev?]]
     [manifold.deferred :as d]
     [manifold.stream :as s]
+    [msgpack.clojure-extensions]
+    [msgpack.core :as msg]
     [sentry-clj.core :as sentry]
     [weavejester.dependency :as dep]))
 
@@ -234,3 +236,33 @@
     (swap! procedures assoc pro-name pro)
     (when (and (dev?) re-start-pro?)
       (start-procedures))))
+
+(let [temp {}
+      temp-fn (fn [_ _])]
+  (defn dispatch-in [pro-name {:keys [id data players world]}]
+    (if id
+      (when-let [socket (get-in players [id :socket])]
+        (try
+          (dispatch pro-name {:id id
+                              :ping 0
+                              :data data
+                              :req temp
+                              :current-players players
+                              :current-world world
+                              :socket socket
+                              :send-fn (fn [socket {:keys [id result]}]
+                                         (when result
+                                           (s/put! socket (msg/pack (hash-map id result)))))})
+          (catch Exception e
+            (log/error e))))
+      (try
+        (dispatch pro-name {:id nil
+                            :ping 0
+                            :data data
+                            :req temp
+                            :current-players players
+                            :current-world world
+                            :socket temp
+                            :send-fn temp-fn})
+        (catch Exception e
+          (log/error e))))))

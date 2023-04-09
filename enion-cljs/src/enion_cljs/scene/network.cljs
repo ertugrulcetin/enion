@@ -452,11 +452,15 @@
         (utils/set-item "tutorials" (pr-str (assoc tutorials :how-to-navigate? true)))))))
 
 (defmethod dispatch-pro-response :request-all-players [params]
-  (let [players (:request-all-players params)
+  (let [params (:request-all-players params)
+        players (:players params)
+        npcs (:npcs params)
         current-players-ids (set (cons current-player-id (seq (js/Object.keys st/other-players))))
         players (remove #(or (current-players-ids (:id %)) (nil? (:id %))) players)]
     (when (seq players)
-      (fire :create-players players))))
+      (fire :create-players players))
+    (when (seq npcs)
+      (npc/init-npcs npcs))))
 
 (defn- on-ws-open [params]
   (reset! server-name (:server-name params))

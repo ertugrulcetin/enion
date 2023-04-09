@@ -2,6 +2,9 @@
   (:require
     [enion-backend.config :refer [env]]))
 
+(defonce id-generator (atom 0))
+(defonce party-id-generator (atom 0))
+
 (defn dev? []
   (:dev env))
 

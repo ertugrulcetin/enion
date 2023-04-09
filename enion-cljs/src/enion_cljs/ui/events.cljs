@@ -5,7 +5,7 @@
     [cljs.reader :as reader]
     [clojure.string :as str]
     [day8.re-frame.http-fx :as http-fx]
-    [enion-cljs.common :as common :refer [fire]]
+    [enion-cljs.common :as common :refer [fire dev?]]
     [enion-cljs.ui.db :as db]
     [enion-cljs.ui.utils :as ui.utils]
     [enion-cljs.utils :as common.utils]
@@ -572,7 +572,7 @@
   ::re-init-game
   (fn []
     {:dispatch [::initialize-db true]
-     :dispatch-later [{:ms 3000
+     :dispatch-later [{:ms (if dev? 0 3000)
                        :dispatch [::finish-initializing]}]
      ::fire [:re-init]}))
 

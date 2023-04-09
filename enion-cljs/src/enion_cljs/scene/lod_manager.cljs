@@ -123,7 +123,7 @@
                               (j/get-in mesh-instances [:node :player_id]))]
       (j/call non-visible-player-ids :add player-id)))
   (doseq [id (js/Object.keys st/other-players)
-          :let [distance (st/distance-to id)]]
+          :let [distance (st/distance-to-player id)]]
     (when-not (= (j/get distances id) distance)
       (j/assoc! distances id distance)
       ;; TODO if party member make distance 20

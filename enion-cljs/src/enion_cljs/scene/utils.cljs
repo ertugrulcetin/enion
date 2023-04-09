@@ -44,3 +44,24 @@
     (when npc?
       (pc/set-loc-pos username-text-entity 0 0.3 0))
     (j/assoc-in! username-text-entity [:script :enabled] true)))
+
+(defn add-skill-effects [template-entity]
+  (let [effects (pc/clone (pc/find-by-name "effects"))]
+    (pc/add-child template-entity effects)
+    ;; add skill effect initial counters and related entities
+    (->> (map (j/get :name) (j/get effects :children))
+         (concat
+           ["particle_fire_hands"
+            "particle_ice_hands"
+            "particle_flame_dots"
+            "particle_heal_hands"
+            "particle_cure_hands"
+            "particle_defense_break_hands"])
+         (keep
+           (fn [e]
+             (when-let [entity (pc/find-by-name template-entity e)]
+               [e {:counter 0
+                   :entity entity
+                   :state #js {:value 0}}])))
+         (into {})
+         clj->js)))

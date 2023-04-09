@@ -4,6 +4,7 @@
     [common.enion.skills :as common.skills]
     [enion-cljs.common :as common :refer [dlog fire]]
     [enion-cljs.scene.entities.camera :as entity.camera]
+    [enion-cljs.scene.entities.npc :as npc]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
@@ -83,6 +84,12 @@
 (defn close-for-r-attack? [selected-player-id]
   (<= (st/distance-to selected-player-id) common.skills/close-attack-distance-threshold))
 
+(defn can-attack-to-enemy? [selected-player-id]
+  (let [npc? (st/npc-selected?)]
+    (and
+      (st/enemy-selected? selected-player-id npc?)
+      (st/alive? selected-player-id npc?))))
+
 (defn- get-hidden-enemy-asases []
   (reduce
     (fn [acc id]
@@ -106,8 +113,7 @@
   (and
     (idle-run-states active-state)
     (skill-pressed? e "attackR")
-    (st/enemy-selected? selected-player-id)
-    (st/alive? selected-player-id)
+    (can-attack-to-enemy? selected-player-id)
     (st/enough-mana? attack-r-required-mana)
     (close-for-r-attack? selected-player-id)))
 
@@ -115,8 +121,7 @@
   (and (= active-state prev-state)
        (skill-pressed? e "attackR")
        (j/get player :can-r-attack-interrupt?)
-       (st/enemy-selected? selected-player-id)
-       (st/alive? selected-player-id)
+       (can-attack-to-enemy? selected-player-id)
        (close-for-attack? selected-player-id)))
 
 (defn fleet-foot? [e]
@@ -199,6 +204,14 @@
     (fire :ui-send-msg {:cauldron damage})
     (st/play-sound "attackR")))
 
+(defmethod skill-response "npcDamage" [params]
+  (let [damage (-> params :skill :damage)
+        npc-id (-> params :skill :npc-id)]
+    (skills.effects/apply-effect-attack-cauldron player)
+    (fire :ui-send-msg {:npc {:name (npc/get-npc-name npc-id)
+                              :damage damage}})
+    (st/play-sound "attackR")))
+
 (defn register-skill-events [events]
   (let [player-entity (get-player-entity)
         model-entity (get-model-entity)]
@@ -227,14 +240,17 @@
                         (pc/look-at model-entity (j/get target :x) (j/get (pc/get-pos model-entity) :y) (j/get target :z) true)))
                     (cond
                       call? (let [selected-player-id (j/get-in player [:skill->selected-player-id anim-state])
+                                  npc? (j/get-in player [:skill->selected-enemy-npc? anim-state])
                                   nova-pos (j/get player :nova-pos)]
                               (j/assoc! player :skill-locked? true)
                               (j/assoc-in! player [:skill->selected-player-id anim-state] nil)
+                              (j/assoc-in! player [:skill->selected-enemy-npc? anim-state] nil)
                               (j/assoc! player :nova-pos nil)
 
                               (dispatch-pro :skill
                                             (cond-> {:skill anim-state}
                                               selected-player-id (assoc :selected-player-id (js/parseInt selected-player-id))
+                                              npc? (assoc :npc? true)
                                               nova-pos (assoc :x (j/get nova-pos :x)
                                                               :y (j/get nova-pos :y)
                                                               :z (j/get nova-pos :z)))))

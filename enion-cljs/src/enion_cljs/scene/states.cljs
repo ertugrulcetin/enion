@@ -31,6 +31,9 @@
 (defonce player (clj->js default-player-state))
 
 (defonce other-players #js {})
+
+(defonce npcs #js {})
+
 (defonce settings #js {})
 (defonce camera-entity nil)
 
@@ -62,6 +65,12 @@
 (defn get-other-player-entity [id]
   (j/get-in other-players [id :entity]))
 
+(defn get-npc [id]
+  (j/get npcs id))
+
+(defn get-npc-entity [id]
+  (j/get-in npcs [id :entity]))
+
 (defn get-pos
   ([]
    (pc/get-pos (get-player-entity)))
@@ -89,30 +98,35 @@
 
 ;; TODO when other player's health changes (network tick), in there we will trigger :ui-selected-player
 (let [selected-player-cancelled? (volatile! nil)]
-  (defn set-selected-player [player-id]
-    (j/assoc! player :selected-player-id player-id)
-    (if-let [selected-player (get-other-player player-id)]
-      (let [username (j/get selected-player :username)
-            health (j/get selected-player :health)
-            total-health (j/get selected-player :total-health)
-            enemy? (j/get selected-player :enemy?)]
-        (j/assoc! temp-selected-player
-                  :id player-id
-                  :username username
-                  :health health
-                  :total-health total-health
-                  :enemy? enemy?)
-        (when (or (not= (j/get prev-selected-player :id) player-id)
-                  (not= (j/get prev-selected-player :health) health))
-          (fire :ui-selected-player temp-selected-player))
-        (vreset! selected-player-cancelled? false)
-        (j/assoc! prev-selected-player
-                  :id player-id
-                  :health health))
-      (do
-        (when-not @selected-player-cancelled?
-          (fire :ui-selected-player nil))
-        (vreset! selected-player-cancelled? true)))))
+  (defn set-selected-player
+    ([id]
+     (set-selected-player id false))
+    ([id npc?]
+     (j/assoc! player
+               :selected-player-id id
+               :selected-enemy-npc? npc?)
+     (if-let [selected-player (if npc? (get-npc id) (get-other-player id))]
+       (let [username (j/get selected-player :username)
+             health (j/get selected-player :health)
+             total-health (j/get selected-player :total-health)
+             enemy? (or npc? (j/get selected-player :enemy?))]
+         (j/assoc! temp-selected-player
+                   :id id
+                   :username username
+                   :health health
+                   :total-health total-health
+                   :enemy? enemy?)
+         (when (or (not= (j/get prev-selected-player :id) id)
+                   (not= (j/get prev-selected-player :health) health))
+           (fire :ui-selected-player temp-selected-player))
+         (vreset! selected-player-cancelled? false)
+         (j/assoc! prev-selected-player
+                   :id id
+                   :health health))
+       (do
+         (when-not @selected-player-cancelled?
+           (fire :ui-selected-player nil))
+         (vreset! selected-player-cancelled? true))))))
 
 (on :select-party-member set-selected-player)
 
@@ -126,10 +140,16 @@
 (defn get-selected-player-id []
   (j/get player :selected-player-id))
 
-(defn enemy-selected? [player-id]
-  (boolean
-    (when player-id
-      (j/get-in other-players [player-id :enemy?]))))
+(defn npc-selected? []
+  (j/get player :selected-enemy-npc?))
+
+(defn enemy-selected?
+  ([player-id]
+   (enemy-selected? player-id false))
+  ([player-id npc?]
+   (boolean
+     (when player-id
+       (j/get-in (if npc? npcs other-players) [player-id :enemy?])))))
 
 (defn ally-selected? [player-id]
   (boolean
@@ -140,9 +160,18 @@
   ([]
    (> (j/get player :health) 0))
   ([player-id]
-   (> (j/get-in other-players [player-id :health]) 0)))
+   (alive? player-id false))
+  ([player-id npc?]
+   (> (j/get-in (if npc? npcs other-players) [player-id :health]) 0)))
 
 (defn distance-to [player-id]
+  (let [npc-or-player-entity (if (npc-selected?)
+                               (get-npc-entity player-id)
+                               (get-other-player-entity player-id))]
+    (pc/distance (pc/get-pos (get-player-entity))
+                 (pc/get-pos npc-or-player-entity))))
+
+(defn distance-to-player [player-id]
   (pc/distance (pc/get-pos (get-player-entity))
                (pc/get-pos (get-other-player-entity player-id))))
 
@@ -314,7 +343,9 @@
   (when-let [selected-player-id (get-selected-player-id)]
     (let [model-entity (get-model-entity)
           char-pos (pc/get-pos model-entity)
-          selected-player (get-other-player-entity selected-player-id)
+          selected-player (if (npc-selected?)
+                            (get-npc-entity selected-player-id)
+                            (get-other-player-entity selected-player-id))
           selected-player-pos (pc/get-pos selected-player)
           x (j/get selected-player-pos :x)
           z (j/get selected-player-pos :z)]
