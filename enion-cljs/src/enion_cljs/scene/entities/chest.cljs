@@ -2,15 +2,16 @@
   (:require
     [applied-science.js-interop :as j]
     [enion-cljs.common :refer [fire]]
+    [enion-cljs.scene.drop :as drop]
     [enion-cljs.scene.pc :as pc]
-    [enion-cljs.scene.potions :as potions]
     [enion-cljs.scene.states :as st]
     [enion-cljs.scene.utils :as utils]))
 
 (defn- trigger-start [chest]
-  (let [earned-potions-count 50]
+  (let [earned-potions-count 25]
     (j/assoc! chest :enabled false)
-    (potions/update-potions earned-potions-count earned-potions-count)
+    (drop/inc-potion :hp earned-potions-count)
+    (drop/inc-potion :mp earned-potions-count)
     (fire :ui-show-congrats-text earned-potions-count)
     (st/play-sound "success")
     (utils/finish-tutorial-step :what-is-the-first-quest?)))

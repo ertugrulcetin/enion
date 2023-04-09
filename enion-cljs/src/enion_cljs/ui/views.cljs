@@ -352,6 +352,7 @@
     (:npc message) "damage"
     (:hit message) "hit"
     (:bp message) "bp"
+    (:drop message) "bp"
     (:skill message) "skill"
     (:heal message) "hp-recover"
     (:hp message) "hp-recover"
@@ -395,7 +396,11 @@
       (:bp message) (str "Earned " (:bp message) " Battle Points (BP)")
       (:re-spawn-error message) (:re-spawn-error message)
       (:cauldron message) (str "Restricted area: You took " (:cauldron message) " damage!")
-      (:npc message) (str "You took " (-> message :npc :damage) " damage from " (-> message :npc :name)))))
+      (:npc message) (str "You took " (-> message :npc :damage) " damage from " (-> message :npc :name))
+      (:drop message) (str "You got " (-> message :drop :count) " " (-> message :drop :potion)
+                           (if (= 1 (-> message :drop :count))
+                             " potion"
+                             " potions")))))
 
 (defn- info-message [message]
   [:<>
@@ -1156,7 +1161,7 @@
               :color :white}}
      [:span
       {:style {:text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}}
-      "You completed your first quest and earned 50 Health and Mana potions! "]
+      "You completed your first quest and earned 25 Health and Mana potions! "]
      [:span
       "\uD83C\uDF89"]]))
 

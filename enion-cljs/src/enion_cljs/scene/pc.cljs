@@ -302,6 +302,12 @@
 (defn disable [entity]
   (j/assoc! entity :enabled false))
 
+(defn enabled? [entity]
+  (true? (j/get entity :enabled)))
+
+(defn disabled? [entity]
+  (false? (j/get entity :enabled)))
+
 (defn raycast-rigid-body [e camera-entity]
   (let [x (j/get e :x)
         y (j/get e :y)

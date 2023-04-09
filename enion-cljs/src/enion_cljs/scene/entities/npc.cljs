@@ -122,6 +122,8 @@
 ;; Skull Knight
 ;; Undead Soldier
 ;; Skeletal Champion
+(defonce npc-id->last-time-died #js {})
+
 (defn process-npcs [current-player-id npcs-world-state]
   (doseq [npc npcs-world-state
           :let [npc-id (:id npc)
@@ -145,12 +147,28 @@
                               (if (= current-player-id target-player-id)
                                 (st/get-pos)
                                 (st/get-pos target-player-id)))
-          prev-state (j/get-in st/npcs [npc-id :prev-state])]
+          prev-state (j/get-in st/npcs [npc-id :prev-state])
+          re-spawned? (and (not= :die state)
+                           (= :die prev-state)
+                           (pc/disabled? npc-entity))]
+      (if re-spawned?
+        (pc/set-pos npc-entity new-x new-y new-z)
+        (interpolate-npc npc-id new-x new-y new-z))
       (set-health npc-id (:health npc))
+      (when (and (= :die state) (not= state prev-state))
+        (j/assoc! npc-id->last-time-died npc-id (js/Date.now)))
+      (when (and (= :die state)
+                 (= state prev-state)
+                 (>= (- (js/Date.now) (j/get npc-id->last-time-died npc-id)) 3000)
+                 (pc/enabled? npc-entity))
+        (pc/disable npc-entity)
+        (when (some-> (st/get-selected-player-id) (js/parseInt) (= npc-id))
+          (st/cancel-selected-player)))
+      (when re-spawned?
+        (pc/enable npc-entity))
       (update-npc-anim-state model state prev-state)
       (when-not (= state :idle)
         (if target-player-id
           (pc/look-at model (j/get target-player-pos :x) new-y (j/get target-player-pos :z) true)
           (pc/look-at model new-x new-y new-z true)))
-      (j/assoc-in! st/npcs [npc-id :prev-state] state)
-      (interpolate-npc npc-id new-x new-y new-z))))
+      (j/assoc-in! st/npcs [npc-id :prev-state] state))))

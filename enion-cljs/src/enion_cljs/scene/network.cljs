@@ -4,6 +4,7 @@
     [cljs.reader :as reader]
     [clojure.string :as str]
     [enion-cljs.common :refer [dev? fire on dlog ws-url]]
+    [enion-cljs.scene.drop :as drop]
     [enion-cljs.scene.entities.chest :as chest]
     [enion-cljs.scene.entities.npc :as npc]
     [enion-cljs.scene.pc :as pc]
@@ -335,29 +336,34 @@
           (j/assoc-in! [id :prev-state] new-anim-state)
           (j/assoc-in! [id :prev-hide] hide)))))
 
-(defn- process-effects [effects]
-  (doseq [[e ids] effects
-          id ids
-          :when (not= id current-player-id)
-          :let [other-player-state (st/get-other-player id)]]
-    (case e
-      :attack-r (effects/apply-effect-attack-r other-player-state)
-      :attack-dagger (effects/apply-effect-attack-dagger other-player-state)
-      :attack-stab (effects/apply-effect-attack-stab other-player-state)
-      :attack-one-hand (effects/apply-effect-attack-one-hand other-player-state)
-      :attack-slow-down (effects/apply-effect-attack-slow-down other-player-state)
-      :attack-single (effects/apply-effect-attack-flame other-player-state)
-      :attack-ice (effects/apply-effect-ice-spell other-player-state)
-      :attack-priest (effects/apply-effect-attack-priest other-player-state)
-      :attack-base (effects/apply-effect-attack-cauldron other-player-state)
-      :teleport (effects/apply-effect-teleport other-player-state)
-      :hp-potion (effects/apply-effect-hp-potion other-player-state)
-      :mp-potion (effects/apply-effect-mp-potion other-player-state)
-      :fleet-foot (effects/apply-effect-fleet-foot other-player-state)
-      :heal (effects/add-player-id-to-healed-ids id)
-      :cure (effects/apply-effect-got-cure other-player-state)
-      :break-defense (effects/apply-effect-got-defense-break other-player-state)
-      :else (js/console.error "Unknown effect: " e))))
+(defn- process-effects
+  ([effects]
+   (process-effects effects false))
+  ([effects npc?]
+   (doseq [[e ids] effects
+           id ids
+           :when (not= id current-player-id)
+           :let [player-or-npc-state (if npc?
+                                       (st/get-npc id)
+                                       (st/get-other-player id))]]
+     (case e
+       :attack-r (effects/apply-effect-attack-r player-or-npc-state)
+       :attack-dagger (effects/apply-effect-attack-dagger player-or-npc-state)
+       :attack-stab (effects/apply-effect-attack-stab player-or-npc-state)
+       :attack-one-hand (effects/apply-effect-attack-one-hand player-or-npc-state)
+       :attack-slow-down (effects/apply-effect-attack-slow-down player-or-npc-state)
+       :attack-single (effects/apply-effect-attack-flame player-or-npc-state)
+       :attack-ice (effects/apply-effect-ice-spell player-or-npc-state)
+       :attack-priest (effects/apply-effect-attack-priest player-or-npc-state)
+       :attack-base (effects/apply-effect-attack-cauldron player-or-npc-state)
+       :teleport (effects/apply-effect-teleport player-or-npc-state)
+       :hp-potion (effects/apply-effect-hp-potion player-or-npc-state)
+       :mp-potion (effects/apply-effect-mp-potion player-or-npc-state)
+       :fleet-foot (effects/apply-effect-fleet-foot player-or-npc-state)
+       :heal (effects/add-player-id-to-healed-ids id)
+       :cure (effects/apply-effect-got-cure player-or-npc-state)
+       :break-defense (effects/apply-effect-got-defense-break player-or-npc-state)
+       :else (js/console.error "Unknown effect: " e)))))
 
 (let [temp-pos (pc/vec3)]
   (defn- process-attack-ranges [attack-ranges]
@@ -390,16 +396,18 @@
 (defmethod dispatch-pro-response :world-snapshot [params]
   (let [ws (:world-snapshot params)
         effects (:effects ws)
+        npc-effects (:npc-effects ws)
         kills (:kills ws)
         members-with-break-defense (:break-defense ws)
         npcs (:npcs ws)
-        ws (dissoc ws :effects :kills :break-defense :npcs)
+        ws (dissoc ws :effects :npc-effects :kills :break-defense :npcs)
         attack-ranges (get effects :attack-range)
         effects (dissoc effects :attack-range)]
     (set! world ws)
     (process-world-snapshot-for-player (get ws current-player-id))
     (process-world-snapshot (dissoc ws current-player-id))
     (process-effects effects)
+    (process-effects npc-effects true)
     (process-attack-ranges attack-ranges)
     (process-kills kills)
     (npc/process-npcs current-player-id npcs)
@@ -542,6 +550,19 @@
 
 (defmethod dispatch-pro-response :earned-bp [params]
   (fire :ui-send-msg {:bp (:earned-bp params)}))
+
+(defmethod dispatch-pro-response :drop [params]
+  (let [{:keys [hp-potion mp-potion]} (:drop params)
+        count (or hp-potion mp-potion)
+        type (if hp-potion :hp :mp)
+        particle-entity (j/get-in st/player [:drop :hp])
+        _ (j/assoc! particle-entity :enabled true)
+        par (j/get-in particle-entity [:c :particlesystem])
+        _ (j/call par :reset)
+        _ (j/call par :play)]
+    (drop/inc-potion type count)
+    (fire :ui-send-msg {:drop {:potion (str/upper-case (name type))
+                               :count count}})))
 
 (let [re-spawn-error-msg {:re-spawn-error "Re-spawn failed. Try again."}]
   (defmethod dispatch-pro-response :re-spawn [params]

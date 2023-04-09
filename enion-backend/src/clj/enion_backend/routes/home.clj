@@ -125,11 +125,15 @@
     (let [effects (->> effects-stream
                        (take-while-stream comp-not-nil)
                        create-effects->player-ids-mapping)
+          npc-effects (->> npc-effects-stream
+                           (take-while-stream comp-not-nil)
+                           create-effects->player-ids-mapping)
           kills (take-while-stream comp-not-nil killings-stream)
           w @world
           current-players @players
           w (if (empty? effects) w (assoc w :effects effects))
           w (if (empty? kills) w (assoc w :kills kills))
+          w (if (empty? npc-effects) w (assoc w :npc-effects npc-effects))
           all-npcs (bots/update-all-npcs! w current-players)
           w (if (empty? all-npcs) w (assoc w :npcs all-npcs))
           w (reduce-kv
@@ -810,6 +814,25 @@
   (fn [{:keys [id data]}]
     (swap! players assoc-in [id :in-enemy-base?] data)
     nil))
+
+;; write me a function that with 0.5 prob returns :hp-potions or :mp-potions key, between random 2 and 5
+;; e.g. {:hp-potions 3} or {:mp-potions 4}
+;; []
+
+(reg-pro
+  :drop
+  (fn [{:keys [data]}]
+    (let [{:keys [items count-fn]} (:drop data)
+          drop (hash-map (rand-nth items) (count-fn))
+          {:keys [party-id player-id]} (:top-damager data)
+          current-players @players]
+      (when party-id
+        (let [player-ids (find-player-ids-by-party-id current-players party-id)]
+          (doseq [player-id player-ids]
+            (send! player-id :drop drop))))
+      (when player-id
+        (send! player-id :drop drop))
+      nil)))
 
 (comment
   (clojure.pprint/pprint @players)

@@ -86,7 +86,7 @@
                              e)) mesh-names)
               aabb (j/get-in mesh [:render :meshInstances 0 :aabb])
               hit? (j/call aabb :intersectsRay (j/get player :ray) (j/get player :hit-position))]
-          (when hit?
+          (when (and hit? (> (j/get npc :health) 0))
             id)))
       (js/Object.keys npcs))))
 
@@ -507,6 +507,8 @@
               :this this
               :effects (utils/add-skill-effects template-entity)
               :template-entity template-entity
+              :drop #js{:hp (pc/find-by-name "particle_potion_hp")
+                        :mp (pc/find-by-name "particle_potion_mp")}
               :model-entity model-entity
               :entity player-entity)
     (create-skill-fns player)
@@ -556,7 +558,7 @@
                 temp-dir (pc/copyv temp-dir target)
                 pos (get-position)
                 dir (-> temp-dir (pc/sub pos) pc/normalize (pc/scale speed))
-                target-distance-threshold (if (j/get player :selected-enemy-npc?) 0.35 0.2)]
+                target-distance-threshold (if (j/get player :selected-enemy-npc?) 0.5 0.2)]
             (if (>= (pc/distance target pos) target-distance-threshold)
               (pc/apply-force player-entity (j/get dir :x) 0 (j/get dir :z))
               (st/cancel-target-pos)))
