@@ -49,18 +49,18 @@
       (fire :ui-send-msg too-far-msg))
     result))
 
-(defn heal? [e selected-player-id]
+(defn heal? [e selected-player-id npc?]
   (and (skills/skill-pressed? e "heal")
        (st/cooldown-ready? "heal")
-       (or (and selected-player-id (st/alive? selected-player-id))
+       (or (and selected-player-id (st/alive? selected-player-id npc?))
            (and (not selected-player-id) (st/alive?)))
        (st/enough-mana? heal-required-mana)
        (close-for-skill? selected-player-id)))
 
-(defn cure? [e selected-player-id]
+(defn cure? [e selected-player-id npc?]
   (and (skills/skill-pressed? e "cure")
        (st/cooldown-ready? "cure")
-       (or (and selected-player-id (st/alive? selected-player-id))
+       (or (and selected-player-id (st/alive? selected-player-id npc?))
            (and (not selected-player-id) (st/alive?)))
        (st/enough-mana? cure-required-mana)
        (close-for-skill? selected-player-id)))
@@ -68,8 +68,7 @@
 (defn break-defense? [e selected-player-id]
   (and (skills/skill-pressed? e "breakDefense")
        (st/cooldown-ready? "breakDefense")
-       (st/enemy-selected? selected-player-id)
-       (st/alive? selected-player-id)
+       (skills/can-attack-to-enemy? selected-player-id)
        (st/enough-mana? break-defense-required-mana)
        (enemy-close-for-skill? selected-player-id)))
 
@@ -92,7 +91,13 @@
         (fire :ui-send-msg cure-msg)
         (fire :ui-cured)))))
 
-(defmethod skills/skill-response "breakDefense" [_]
+(defmethod skills/skill-response "breakDefense" [params]
+  (let [selected-player-id (-> params :skill :selected-player-id)
+        npc? (-> params :skill :npc?)
+        enemy (if npc?
+                (st/get-npc selected-player-id)
+                (st/get-other-player selected-player-id))]
+    (fire :ui-send-msg {:break-defense (j/get enemy :username)}))
   (fire :ui-cooldown "breakDefense")
   (st/play-sound "breakDefense"))
 
@@ -101,15 +106,18 @@
   (st/play-sound "attackPriest")
   (let [selected-player-id (-> params :skill :selected-player-id)
         damage (-> params :skill :damage)
-        enemy (st/get-other-player selected-player-id)]
+        npc? (-> params :skill :npc?)
+        enemy (if npc?
+                (st/get-npc selected-player-id)
+                (st/get-other-player selected-player-id))]
     (skills.effects/apply-effect-attack-priest enemy)
-    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+    (fire :ui-send-msg {:to (j/get enemy :username)
                         :hit damage})
     (when (not (utils/tutorial-finished? :how-to-cast-skills?))
       (utils/finish-tutorial-step :how-to-cast-skills?))))
 
-(defn- get-selected-player-id-for-priest-skill [selected-player-id]
-  (if (st/enemy-selected? selected-player-id)
+(defn- get-selected-player-id-for-priest-skill [selected-player-id npc?]
+  (if (st/enemy-selected? selected-player-id npc?)
     net/current-player-id
     (or selected-player-id net/current-player-id)))
 
@@ -118,8 +126,7 @@
     (skills/idle-run-states active-state)
     (skills/skill-pressed? e "attackPriest")
     (st/cooldown-ready? "attackPriest")
-    (st/enemy-selected? selected-player-id)
-    (st/alive? selected-player-id)
+    (skills/can-attack-to-enemy? selected-player-id)
     (st/enough-mana? attack-priest-required-mana)
     (skills/close-for-attack? selected-player-id)))
 
@@ -127,22 +134,23 @@
   (when (and (not (-> e .-event .-repeat)) (st/alive?))
     (let [model-entity (get-model-entity)
           active-state (pc/get-anim-state model-entity)
-          selected-player-id (st/get-selected-player-id)]
+          selected-player-id (st/get-selected-player-id)
+          npc? (st/npc-selected?)]
       (m/process-cancellable-skills
         ["attackR" "breakDefense" "heal" "cure" "attackPriest"]
         (j/get-in e [:event :code])
         active-state
         player)
       (cond
-        (heal? e selected-player-id)
-        (let [selected-player-id (get-selected-player-id-for-priest-skill selected-player-id)]
+        (heal? e selected-player-id npc?)
+        (let [selected-player-id (get-selected-player-id-for-priest-skill selected-player-id npc?)]
           (j/assoc-in! player [:skill->selected-player-id "heal"] selected-player-id)
           (pc/set-anim-boolean model-entity "heal" true)
           (skills.effects/apply-effect-heal-particles player)
           (st/look-at-selected-player))
 
-        (cure? e selected-player-id)
-        (let [selected-player-id (get-selected-player-id-for-priest-skill selected-player-id)]
+        (cure? e selected-player-id npc?)
+        (let [selected-player-id (get-selected-player-id-for-priest-skill selected-player-id npc?)]
           (j/assoc-in! player [:skill->selected-player-id "cure"] selected-player-id)
           (pc/set-anim-boolean model-entity "cure" true)
           (skills.effects/apply-effect-cure-particles player)
@@ -151,6 +159,7 @@
         (break-defense? e selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "breakDefense"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "breakDefense"] npc?)
           (pc/set-anim-boolean model-entity "breakDefense" true)
           (skills.effects/apply-effect-defense-break-particles player)
           (st/look-at-selected-player))
@@ -158,6 +167,7 @@
         (attack-priest? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackPriest"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackPriest"] npc?)
           (pc/set-anim-boolean (st/get-model-entity) "attackPriest" true))
 
         (skills/run? active-state)
@@ -169,6 +179,7 @@
         (skills/attack-r? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackR"] npc?)
           (pc/set-anim-boolean model-entity "attackR" true)
           (st/look-at-selected-player))
 

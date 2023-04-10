@@ -203,12 +203,19 @@
                          :players players})
     npc))
 
-(defn make-player-attack! [{:keys [skill player npc slow-down?]}]
+(defn make-player-attack! [{:keys [skill player npc slow-down? break-defense?]}]
   (try
     (let [attacker-id (:id player)
           attacker-party-id (:party-id player)
-          damage ((-> common.skills/skills (get skill) :damage-fn) false false)
+          now (System/currentTimeMillis)
+          damage-fn (some-> common.skills/skills (get skill) :damage-fn)
+          damage (if damage-fn (damage-fn false false) 0)
           damage (int (* damage 1.25))
+          last-break-defense (:last-time-break-defense npc)
+          damage (if (and last-break-defense
+                          (< (- now last-break-defense) (-> common.skills/skills (get "breakDefense") :effect-duration)))
+                   (int (* damage 1.3))
+                   damage)
           health-after-damage (- (:health npc) damage)
           health-after-damage (Math/max ^long health-after-damage 0)
           npc-id (:id npc)]
@@ -219,9 +226,9 @@
                                                                                 :damage damage
                                                                                 :time (System/currentTimeMillis)}))
                                    (assoc-in [npc-id :health] health-after-damage))]
-                      (if slow-down?
-                        (assoc-in npcs [npc-id :last-time-slow-down] (System/currentTimeMillis))
-                        npcs))))
+                      (cond-> npcs
+                        slow-down? (assoc-in [npc-id :last-time-slow-down] now)
+                        break-defense? (assoc-in [npc-id :last-time-break-defense] now)))))
       damage)
     (catch Exception e
       (println "Error in make-player-attack!")
@@ -258,8 +265,6 @@
                         (:chase-speed npc))
           dir (-> target (v2/sub pos) v2/normalize (v2/scale chase-speed))
           new-pos (v2/add pos dir)]
-      (when (NaN? (first new-pos))
-        (println "Change pos is NAN"))
       (assoc npc :pos new-pos))
     npc))
 

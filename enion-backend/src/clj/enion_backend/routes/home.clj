@@ -115,8 +115,6 @@
   (mount/stop)
   (mount/start)
 
-  (bots/make-player-attack! (ffirst @players))
-  (bots/make-player-attack! 0 (ffirst (next @players)))
   bots/npcs
   )
 
@@ -546,6 +544,9 @@
 (defn close-for-attack-to-npc? [player-world-state npc-world-state]
   (close-npc-distance? player-world-state npc-world-state (+ common.skills/close-attack-distance-threshold 1)))
 
+(defn close-for-priest-skill-attack-to-npc? [player-world-state npc-world-state]
+  (close-npc-distance? player-world-state npc-world-state (+ common.skills/priest-skills-distance-threshold 1)))
+
 (defn close-for-priest-skills? [player-world-state other-player-world-state]
   (close-distance? player-world-state other-player-world-state (+ common.skills/priest-skills-distance-threshold 1)))
 
@@ -630,7 +631,9 @@
                              player
                              ping
                              validate-attack-skill-fn
-                             slow-down?]}]
+                             slow-down?
+                             priest-skill?
+                             break-defense?]}]
   (when-let [npc (get @bots/npcs selected-player-id)]
     (let [player-world-state (get current-world id)]
       (if-let [err (validate-attack-skill-fn {:id id
@@ -639,14 +642,16 @@
                                               :player-world-state player-world-state
                                               :npc-world-state npc
                                               :skill skill
-                                              :player player})]
+                                              :player player
+                                              :priest-skill? priest-skill?})]
         err
         (let [_ (update-last-combat-time id)
               required-mana (get-required-mana skill)
               damage (bots/make-player-attack! {:skill skill
                                                 :player player
                                                 :npc npc
-                                                :slow-down? slow-down?})]
+                                                :slow-down? slow-down?
+                                                :break-defense? break-defense?})]
           (swap! world update-in [id :mana] - required-mana)
           (add-effect-to-npc effect selected-player-id)
           (make-asas-appear-if-hidden id)

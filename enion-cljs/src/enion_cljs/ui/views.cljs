@@ -400,7 +400,8 @@
       (:drop message) (str "Got " (-> message :drop :count) " " (-> message :drop :potion)
                            (if (= 1 (-> message :drop :count))
                              " potion"
-                             " potions")))))
+                             " potions"))
+      (:break-defense message) (str (:break-defense message) " infected with Toxic Spores"))))
 
 (defn- info-message [message]
   [:<>
