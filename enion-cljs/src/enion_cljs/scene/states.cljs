@@ -93,6 +93,11 @@
   (doseq [id (js/Object.keys other-players)]
     (destroy-player id)))
 
+(defn remove-npcs []
+  (doseq [id (js/Object.keys npcs)]
+    (j/call-in npcs [id :entity :destroy])
+    (js-delete npcs id)))
+
 (defonce temp-selected-player #js {})
 (defonce prev-selected-player #js {})
 
@@ -172,9 +177,14 @@
     (pc/distance (pc/get-pos (get-player-entity))
                  (pc/get-pos npc-or-player-entity))))
 
-(defn distance-to-player [player-id]
-  (pc/distance (pc/get-pos (get-player-entity))
-               (pc/get-pos (get-other-player-entity player-id))))
+(defn distance-to-player
+  ([player-id]
+   (distance-to-player player-id false))
+  ([player-id npc?]
+   (pc/distance (pc/get-pos (get-player-entity))
+                (pc/get-pos (if npc?
+                              (get-npc-entity player-id)
+                              (get-other-player-entity player-id))))))
 
 (defn add-player [player]
   (if player
@@ -374,6 +384,7 @@
 (on :socket-closed-for-re-init
     (fn []
       (destroy-players)
+      (remove-npcs)
       (j/call (j/get player :template-entity) :destroy)
       (set! other-players #js {})
       (set! settings #js {})

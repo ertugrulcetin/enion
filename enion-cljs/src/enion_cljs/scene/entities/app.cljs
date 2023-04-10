@@ -55,12 +55,13 @@
         (doseq [id (js/Object.keys components)]
           (when (j/call components :hasOwnProperty id)
             (let [player-id (j/get-in components [id :entity :player_id])
+                  npc-id (j/get-in components [id :entity :npc_id])
                   entity (j/get-in components [id :entity])
                   component (j/get entity :anim)
                   component-data (j/get component :data)]
               (when (and (j/get component-data :enabled) (j/get-in component [:entity :enabled]) (j/get component :playing))
-                (if player-id
-                  (let [distance (st/distance-to-player player-id)
+                (if-let [id (or player-id npc-id)]
+                  (let [distance (st/distance-to-player id (boolean npc-id))
                         fixed-timestep (cond
                                          (< distance 5) 0
                                          (< distance 8) 0.05

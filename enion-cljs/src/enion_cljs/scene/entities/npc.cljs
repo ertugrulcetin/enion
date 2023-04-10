@@ -12,20 +12,23 @@
 
 (defonce npc-template-entities (delay {:skeleton-warrior (pc/find-by-name "skeleton_warrior")}))
 
-(defn remove-npcs []
-  (doseq [id (js/Object.keys st/npcs)]
-    (j/call-in st/npcs [id :entity :destroy])
-    (js-delete st/npcs id)))
-
 (defn init-npcs [npcs]
-  (remove-npcs)
   (doseq [[npc-type ids] npcs
           id ids
           :let [entity (pc/clone (npc-type @npc-template-entities))
-                model (pc/find-by-name entity (str (csk/->snake_case_string npc-type) "_model"))
+                npc-type-name (csk/->snake_case_string npc-type)
+                model (pc/find-by-name entity (str npc-type-name "_model"))
                 effects (utils/add-skill-effects model)
                 effects-entity (pc/find-by-name entity "effects")
+                lod-0 (pc/find-by-name model (str npc-type-name "_mesh_lod_0"))
+                lod-1 (pc/find-by-name model (str npc-type-name "_mesh_lod_1"))
+                lod-2 (pc/find-by-name model (str npc-type-name "_mesh_lod_2"))
+                id-str (str id)
                 npc-name (-> common.npc/npcs npc-type :name)]]
+    (j/assoc! model :npc_id id-str)
+    (j/assoc! lod-0 :npc_id id-str)
+    (j/assoc! lod-1 :npc_id id-str)
+    (j/assoc! lod-2 :npc_id id-str)
     (utils/create-char-name-text {:template-entity entity
                                   :username npc-name
                                   :enemy? true
@@ -46,12 +49,17 @@
                                    :initial-pos {}
                                    :last-pos {}
                                    :from (pc/vec3)
-                                   :to (pc/vec3)}))))
+                                   :to (pc/vec3)
+                                   :armature (pc/find-by-name model "Armature")
+                                   :char-name (pc/find-by-name entity "char_name")
+                                   :lod-0 lod-0
+                                   :lod-1 lod-1
+                                   :lod-2 lod-2
+                                   :anim-component (j/get model :anim)}))))
 
 (comment
   st/npcs
   (init-npcs)
-  (remove-npcs)
   (effects/apply-effect-attack-slow-down (j/get st/npcs 1))
   (effects/apply-effect-attack-dagger (j/get st/npcs 1))
   (effects/apply-effect-attack-flame (j/get st/npcs 1))

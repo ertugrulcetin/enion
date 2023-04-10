@@ -126,7 +126,6 @@
           :let [distance (st/distance-to-player id)]]
     (when-not (= (j/get distances id) distance)
       (j/assoc! distances id distance)
-      ;; TODO if party member make distance 20
       (let [username-distance (cond
                                 (st/enemy? id) 10
                                 (st/party-member? id) 20
@@ -151,6 +150,70 @@
 
       :else
       (j/assoc-in! st/other-players [id :anim-component :enabled] false))))
+
+(def npc-distances #js {})
+
+(defonce visible-npc-ids (js/Set.))
+(defonce non-visible-npc-ids (js/Set.))
+
+(let [lod-selection {:lod-0 #{:lod-1 :lod-2}
+                     :lod-1 #{:lod-0 :lod-2}
+                     :lod-2 #{:lod-0 :lod-1}}]
+  (defn- set-npc-lod [lod npc-id]
+    (j/assoc-in! st/npcs [npc-id lod :enabled] true)
+    (doseq [lod-to-disable (lod-selection lod)]
+      (j/assoc-in! st/npcs [npc-id lod-to-disable :enabled] false))))
+
+(let [lods #{:lod-0 :lod-1 :lod-2}]
+  (defn- disable-npc [npc-id]
+    (doseq [l lods]
+      (j/assoc-in! st/npcs [npc-id l :enabled] false))
+    (j/assoc-in! st/npcs [npc-id :armature :enabled] false)))
+
+(defn- enable-npc [npc-id]
+  (j/assoc-in! st/npcs [npc-id :armature :enabled] true))
+
+(defn- enable-npc-username [npc-id]
+  (j/assoc-in! st/npcs [npc-id :char-name :enabled] true))
+
+(defn- disable-npc-username [npc-id]
+  (j/assoc-in! st/npcs [npc-id :char-name :enabled] false))
+
+(defn- process-npcs [world-layer]
+  (j/call visible-npc-ids :clear)
+  (j/call non-visible-npc-ids :clear)
+  (doseq [mesh-instances (j/get world-layer :opaqueMeshInstances)]
+    (when-let [npc-id (and (j/get mesh-instances :visibleThisFrame)
+                           (j/get-in mesh-instances [:node :npc_id]))]
+      (j/call visible-npc-ids :add npc-id))
+    (when-let [npc-id (and (not (j/get mesh-instances :visibleThisFrame))
+                           (j/get-in mesh-instances [:node :npc_id]))]
+      (j/call non-visible-npc-ids :add npc-id)))
+  (doseq [id (js/Object.keys st/npcs)
+          :let [distance (st/distance-to-player id true)]]
+    (when-not (= (j/get npc-distances id) distance)
+      (j/assoc! npc-distances id distance)
+      (let [username-distance 5]
+        (cond
+          (< distance lod-0-threshold) (set-npc-lod :lod-0 id)
+          (< distance lod-1-threshold) (set-npc-lod :lod-1 id)
+          (< distance lod-2-threshold) (set-npc-lod :lod-2 id)
+          :else (disable-npc id))
+        (when (< distance lod-2-threshold)
+          (enable-npc id))
+        (if (<= distance username-distance)
+          (enable-npc-username id)
+          (disable-npc-username id))))
+    (cond
+      (j/call non-visible-npc-ids :has id)
+      (j/assoc-in! st/npcs [id :anim-component :enabled] false)
+
+      (and (j/call visible-npc-ids :has id)
+           (<= distance animation-on-threshold))
+      (j/assoc-in! st/npcs [id :anim-component :enabled] true)
+
+      :else
+      (j/assoc-in! st/npcs [id :anim-component :enabled] false))))
 
 (let [find-fn (fn [t] (lod-keys t))]
   (defn- process-mesh-instance [mesh-instance]
@@ -193,8 +256,14 @@
     (j/assoc! world-layer :onPostCull (functions/throttle
                                         (fn [_]
                                           (.forEach (j/get world-layer :opaqueMeshInstances) process-mesh-instance)
-                                          (process-players world-layer))
+                                          (process-players world-layer)
+                                          (process-npcs world-layer))
                                         500))))
+
+(comment
+  (let [world-layer (j/call-in app [:scene :layers :getLayerByName] "World")]
+    (js/console.log (j/get world-layer :opaqueMeshInstances)))
+  )
 
 (defn- check-distances-map []
   (js/setInterval
