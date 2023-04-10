@@ -91,17 +91,23 @@
 (defn- alive? [e]
   (> (:health e) 0))
 
-;; todo consider hide? of asas
-(defn- get-player-id-to-attack [npc world]
-  (or (:locked-player-id npc)
-      (some->> npc
-               :damage-buffer
-               (filter (fn [{:keys [attacker-id]}]
-                         (let [player (get world attacker-id)
-                               player-pos [(:px player) (:pz player)]]
-                           (and player (<= (v2/dist (:init-pos npc) player-pos) (:chase-range-threshold npc))))))
-               last
-               :attacker-id)))
+(defn- hide? [attacker-id players]
+  (get-in players [attacker-id :effects :hide :result]))
+
+(defn- get-player-id-to-attack [npc world players]
+  (let [locker-player-id (:locked-player-id npc)]
+    (or (and (not (hide? locker-player-id players))
+             locker-player-id)
+        (some->> npc
+                 :damage-buffer
+                 (filter (fn [{:keys [attacker-id]}]
+                           (let [player (get world attacker-id)
+                                 player-pos [(:px player) (:pz player)]]
+                             (and player
+                                  (<= (v2/dist (:init-pos npc) player-pos) (:chase-range-threshold npc))
+                                  (not (hide? attacker-id players))))))
+                 last
+                 :attacker-id))))
 
 (defn- player-close-for-attack? [npc player-id world]
   (let [player (get world player-id)
@@ -284,7 +290,7 @@
                    npc)
           :update (fn [npc world players]
                     (if (alive? npc)
-                      (if-let [player-id (get-player-id-to-attack npc world)]
+                      (if-let [player-id (get-player-id-to-attack npc world players)]
                         (if (player-close-for-attack? npc player-id world)
                           (change-fsm-state npc :attack player-id world players)
                           (change-fsm-state npc :chase player-id world players))
@@ -308,7 +314,7 @@
                         (if (alive? npc)
                           (if (and last-time-attacked (<= (- now last-time-attacked) 1000))
                             npc
-                            (if-let [player-id (get-player-id-to-attack npc world)]
+                            (if-let [player-id (get-player-id-to-attack npc world players)]
                               (if (player-close-for-attack? npc player-id world)
                                 (if (cooldown-finished? npc)
                                   (attack-to-player npc player-id world players)
@@ -325,7 +331,7 @@
                     (lock-npc-to-player npc))
            :update (fn [npc world players]
                      (if (alive? npc)
-                       (if-let [player-id (get-player-id-to-attack npc world)]
+                       (if-let [player-id (get-player-id-to-attack npc world players)]
                          (if (player-close-for-attack? npc player-id world)
                            (change-fsm-state npc :attack player-id world players)
                            (chase-player npc player-id world))
@@ -340,7 +346,7 @@
                          npc)
                 :update (fn [npc world players]
                           (if (alive? npc)
-                            (if-let [player-id (get-player-id-to-attack npc world)]
+                            (if-let [player-id (get-player-id-to-attack npc world players)]
                               (if (player-close-for-attack? npc player-id world)
                                 (change-fsm-state npc :attack player-id world players)
                                 (change-fsm-state npc :chase player-id world players))
