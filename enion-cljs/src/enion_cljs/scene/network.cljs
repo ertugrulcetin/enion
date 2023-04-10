@@ -555,7 +555,7 @@
   (let [{:keys [hp-potion mp-potion]} (:drop params)
         count (or hp-potion mp-potion)
         type (if hp-potion :hp :mp)
-        particle-entity (j/get-in st/player [:drop :hp])
+        particle-entity (j/get-in st/player [:drop type])
         _ (j/assoc! particle-entity :enabled true)
         par (j/get-in particle-entity [:c :particlesystem])
         _ (j/call par :reset)

@@ -121,7 +121,8 @@
           (dlog "R combo!")
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackOneHand" false)
-          (pc/set-anim-boolean model-entity "attackR" true))
+          (pc/set-anim-boolean model-entity "attackR" true)
+          (st/look-at-selected-player))
 
         (one-hand-combo? e active-state selected-player-id)
         (do
@@ -130,7 +131,8 @@
           (pc/set-anim-boolean model-entity "attackR" false)
           (pc/set-anim-boolean model-entity "attackOneHand" true)
           (vreset! last-one-hand-combo (js/Date.now))
-          (st/play-sound "attackOneHand"))
+          (st/play-sound "attackOneHand")
+          (st/look-at-selected-player))
 
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
@@ -142,13 +144,15 @@
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackOneHand"] selected-player-id)
           (pc/set-anim-boolean (st/get-model-entity) "attackOneHand" true)
-          (st/play-sound "attackOneHand"))
+          (st/play-sound "attackOneHand")
+          (st/look-at-selected-player))
 
         (attack-slow-down? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackSlowDown"] selected-player-id)
           (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true)
-          (st/play-sound "attackSlowDown"))
+          (st/play-sound "attackSlowDown")
+          (st/look-at-selected-player))
 
         (skills/attack-r? e active-state selected-player-id)
         (do

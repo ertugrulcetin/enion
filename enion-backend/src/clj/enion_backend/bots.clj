@@ -340,7 +340,7 @@
          :enter (fn [npc world players]
                   ;; (println "Entering DIE state")
                   (dispatch-in :drop {:data {:top-damager (find-top-damager (:damage-buffer npc))
-                                             :drop (:drop npc)}})
+                                             :npc npc}})
                   (-> npc
                       (assoc-in [:last-time :died] (System/currentTimeMillis))
                       (assoc :damage-buffer (ring-buffer (:damage-buffer-size npc)))))

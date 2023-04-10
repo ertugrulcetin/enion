@@ -148,9 +148,12 @@
   (fire :ui-cooldown "attackStab")
   (let [selected-player-id (-> params :skill :selected-player-id)
         damage (-> params :skill :damage)
-        enemy (st/get-other-player selected-player-id)]
+        npc? (-> params :skill :npc?)
+        enemy (if npc?
+                (st/get-npc selected-player-id)
+                (st/get-other-player selected-player-id))]
     (skills.effects/apply-effect-attack-stab enemy)
-    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+    (fire :ui-send-msg {:to (j/get enemy :username)
                         :hit damage})))
 
 (defmethod skills/skill-response "phantomVision" [_]
@@ -228,7 +231,8 @@
         (do
           (dlog "R combo!")
           (pc/set-anim-boolean model-entity "attackDagger" false)
-          (pc/set-anim-boolean model-entity "attackR" true))
+          (pc/set-anim-boolean model-entity "attackR" true)
+          (st/look-at-selected-player))
 
         (dagger-combo? e active-state selected-player-id)
         (do
@@ -236,7 +240,8 @@
           (pc/set-anim-boolean model-entity "attackR" false)
           (pc/set-anim-boolean model-entity "attackDagger" true)
           (vreset! last-one-hand-combo (js/Date.now))
-          (st/play-sound "attackDagger"))
+          (st/play-sound "attackDagger")
+          (st/look-at-selected-player))
 
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
@@ -249,14 +254,16 @@
           (j/assoc-in! player [:skill->selected-player-id "attackDagger"] selected-player-id)
           (j/assoc-in! player [:skill->selected-enemy-npc? "attackDagger"] npc?)
           (pc/set-anim-boolean (st/get-model-entity) "attackDagger" true)
-          (st/play-sound "attackDagger"))
+          (st/play-sound "attackDagger")
+          (st/look-at-selected-player))
 
         (attack-stab? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackStab"] selected-player-id)
           (j/assoc-in! player [:skill->selected-enemy-npc? "attackStab"] npc?)
           (pc/set-anim-boolean (st/get-model-entity) "attackStab" true)
-          (st/play-sound "attackStab"))
+          (st/play-sound "attackStab")
+          (st/look-at-selected-player))
 
         (hide? e active-state)
         (do

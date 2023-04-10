@@ -46,29 +46,14 @@
                                         {:keys [skill selected-player-id npc?]} :data}]
   (when-let [player (get current-players id)]
     (if npc?
-      (when-let [npc (get @bots/npcs selected-player-id)]
-        (let [player-world-state (get current-world id)]
-          (if-let [err (validate-asas-attack-skill {:id id
-                                                    :ping ping
-                                                    :selected-player-id selected-player-id
-                                                    :player-world-state player-world-state
-                                                    :npc-world-state npc
-                                                    :skill skill
-                                                    :player player})]
-            err
-            (let [_ (update-last-combat-time id)
-                  required-mana (get-required-mana skill)
-                  damage (bots/make-player-attack! {:skill skill
-                                                    :player player
-                                                    :npc npc})]
-              (swap! world update-in [id :mana] - required-mana)
-              (add-effect-to-npc :attack-dagger selected-player-id)
-              (make-asas-appear-if-hidden id)
-              (swap! players assoc-in [id :last-time :skill skill] (now))
-              {:skill skill
-               :damage damage
-               :npc? true
-               :selected-player-id selected-player-id}))))
+      (attack-to-npc {:id id
+                      :selected-player-id selected-player-id
+                      :current-world current-world
+                      :effect :attack-dagger
+                      :skill skill
+                      :player player
+                      :ping ping
+                      :validate-attack-skill-fn validate-asas-attack-skill})
       (when (get current-players selected-player-id)
         (let [player-world-state (get current-world id)
               other-player-world-state (get current-world selected-player-id)]
@@ -103,40 +88,49 @@
                :selected-player-id selected-player-id})))))))
 
 (defmethod apply-skill "attackStab" [{:keys [id ping current-players current-world]
-                                      {:keys [skill selected-player-id]} :data}]
+                                      {:keys [skill selected-player-id npc?]} :data}]
   (when-let [player (get current-players id)]
-    (when (get current-players selected-player-id)
-      (let [player-world-state (get current-world id)
-            other-player-world-state (get current-world selected-player-id)]
-        (if-let [err (validate-asas-attack-skill {:id id
-                                                  :ping ping
-                                                  :selected-player-id selected-player-id
-                                                  :player-world-state player-world-state
-                                                  :other-player-world-state other-player-world-state
-                                                  :skill skill
-                                                  :player player})]
-          err
-          (let [_ (update-last-combat-time id selected-player-id)
-                required-mana (get-required-mana skill)
-                damage ((-> common.skills/skills (get skill) :damage-fn)
-                        (has-defense? selected-player-id)
-                        (has-break-defense? selected-player-id))
-                health-after-damage (- (:health other-player-world-state) damage)
-                health-after-damage (Math/max ^long health-after-damage 0)]
-            (swap! world (fn [world]
-                           (-> world
-                               (update-in [id :mana] - required-mana)
-                               (assoc-in [selected-player-id :health] health-after-damage))))
-            (add-effect :attack-stab selected-player-id)
-            (make-asas-appear-if-hidden id)
-            (make-asas-appear-if-hidden selected-player-id)
-            (swap! players assoc-in [id :last-time :skill skill] (now))
-            (process-if-enemy-died id selected-player-id health-after-damage current-players)
-            (send! selected-player-id :got-attack-stab-damage {:damage damage
-                                                               :player-id id})
-            {:skill skill
-             :damage damage
-             :selected-player-id selected-player-id}))))))
+    (if npc?
+      (attack-to-npc {:id id
+                      :selected-player-id selected-player-id
+                      :current-world current-world
+                      :effect :attack-stab
+                      :skill skill
+                      :player player
+                      :ping ping
+                      :validate-attack-skill-fn validate-asas-attack-skill})
+      (when (get current-players selected-player-id)
+        (let [player-world-state (get current-world id)
+              other-player-world-state (get current-world selected-player-id)]
+          (if-let [err (validate-asas-attack-skill {:id id
+                                                    :ping ping
+                                                    :selected-player-id selected-player-id
+                                                    :player-world-state player-world-state
+                                                    :other-player-world-state other-player-world-state
+                                                    :skill skill
+                                                    :player player})]
+            err
+            (let [_ (update-last-combat-time id selected-player-id)
+                  required-mana (get-required-mana skill)
+                  damage ((-> common.skills/skills (get skill) :damage-fn)
+                          (has-defense? selected-player-id)
+                          (has-break-defense? selected-player-id))
+                  health-after-damage (- (:health other-player-world-state) damage)
+                  health-after-damage (Math/max ^long health-after-damage 0)]
+              (swap! world (fn [world]
+                             (-> world
+                                 (update-in [id :mana] - required-mana)
+                                 (assoc-in [selected-player-id :health] health-after-damage))))
+              (add-effect :attack-stab selected-player-id)
+              (make-asas-appear-if-hidden id)
+              (make-asas-appear-if-hidden selected-player-id)
+              (swap! players assoc-in [id :last-time :skill skill] (now))
+              (process-if-enemy-died id selected-player-id health-after-damage current-players)
+              (send! selected-player-id :got-attack-stab-damage {:damage damage
+                                                                 :player-id id})
+              {:skill skill
+               :damage damage
+               :selected-player-id selected-player-id})))))))
 
 (defmethod apply-skill "phantomVision" [{:keys [id ping current-players current-world]
                                          {:keys [skill]} :data}]

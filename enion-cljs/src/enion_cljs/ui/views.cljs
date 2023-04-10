@@ -373,7 +373,7 @@
   (defn- info-message->text [message]
     (cond
       (:ping-high message) "Ping too high! Can't process your request"
-      (:damage message) (str "You took " (:damage message) " damage from " (:from message))
+      (:damage message) (str "Took " (:damage message) " damage from " (:from message))
       (:hit message) (str (:to message) " received " (:hit message) " damage")
       (:skill message) (str "Using " (:skill message))
       (:skill-failed message) "Skill failed"
@@ -396,8 +396,8 @@
       (:bp message) (str "Earned " (:bp message) " Battle Points (BP)")
       (:re-spawn-error message) (:re-spawn-error message)
       (:cauldron message) (str "Restricted area: You took " (:cauldron message) " damage!")
-      (:npc message) (str "You took " (-> message :npc :damage) " damage from " (-> message :npc :name))
-      (:drop message) (str "You got " (-> message :drop :count) " " (-> message :drop :potion)
+      (:npc message) (str "Took " (-> message :npc :damage) " damage from " (-> message :npc :name))
+      (:drop message) (str "Got " (-> message :drop :count) " " (-> message :drop :potion)
                            (if (= 1 (-> message :drop :count))
                              " potion"
                              " potions")))))

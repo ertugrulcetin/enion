@@ -193,8 +193,12 @@
 (defmethod skill-response "attackR" [params]
   (fire :ui-cooldown "attackR")
   (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)]
-    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+        damage (-> params :skill :damage)
+        npc? (-> params :skill :npc?)
+        enemy (if npc?
+                (st/get-npc selected-player-id)
+                (st/get-other-player selected-player-id))]
+    (fire :ui-send-msg {:to (j/get enemy :username)
                         :hit damage})
     (st/play-sound "attackR")))
 

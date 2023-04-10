@@ -622,44 +622,109 @@
     (int (* damage 1.1))
     damage))
 
-(defmethod apply-skill "attackR" [{:keys [id ping] {:keys [skill selected-player-id]} :data}]
+(defn attack-to-npc [{:keys [id
+                             selected-player-id
+                             current-world
+                             effect
+                             skill
+                             player
+                             ping
+                             validate-attack-skill-fn]}]
+  (when-let [npc (get @bots/npcs selected-player-id)]
+    (let [player-world-state (get current-world id)]
+      (if-let [err (validate-attack-skill-fn {:id id
+                                              :ping ping
+                                              :selected-player-id selected-player-id
+                                              :player-world-state player-world-state
+                                              :npc-world-state npc
+                                              :skill skill
+                                              :player player})]
+        err
+        (let [_ (update-last-combat-time id)
+              required-mana (get-required-mana skill)
+              damage (bots/make-player-attack! {:skill skill
+                                                :player player
+                                                :npc npc})]
+          (swap! world update-in [id :mana] - required-mana)
+          (add-effect-to-npc effect selected-player-id)
+          (make-asas-appear-if-hidden id)
+          (swap! players assoc-in [id :last-time :skill skill] (now))
+          {:skill skill
+           :damage damage
+           :npc? true
+           :selected-player-id selected-player-id})))))
+
+(defn- validate-attack-r [{:keys [id
+                                  ping
+                                  selected-player-id
+                                  player-world-state
+                                  other-player-world-state
+                                  npc-world-state
+                                  skill
+                                  player]}]
+  (cond
+    (ping-too-high? ping) ping-high
+    (not (alive? player-world-state)) skill-failed
+    (and other-player-world-state
+         (not (alive? other-player-world-state))) skill-failed
+    (and npc-world-state
+         (not (alive? npc-world-state))) skill-failed
+    (and (nil? npc-world-state)
+         (not (enemy? id selected-player-id))) skill-failed
+    (not (enough-mana? skill player-world-state)) not-enough-mana
+    (not (cooldown-finished? skill player)) skill-failed
+    (and other-player-world-state
+         (not (close-for-attack? player-world-state other-player-world-state))) too-far
+    (and npc-world-state
+         (not (close-for-attack-to-npc? player-world-state npc-world-state))) too-far))
+
+(defmethod apply-skill "attackR" [{:keys [id ping] {:keys [skill selected-player-id npc?]} :data}]
   (let [players* @players]
     (when-let [player (get players* id)]
-      (when (get players* selected-player-id)
-        (let [w @world
-              player-world-state (get w id)
-              other-player-world-state (get w selected-player-id)]
-          (cond
-            (ping-too-high? ping) ping-high
-            (not (alive? player-world-state)) skill-failed
-            (not (alive? other-player-world-state)) skill-failed
-            (not (enemy? id selected-player-id)) skill-failed
-            (not (enough-mana? skill player-world-state)) not-enough-mana
-            (not (cooldown-finished? skill player)) skill-failed
-            (not (close-for-attack? player-world-state other-player-world-state)) too-far
-            :else (let [_ (update-last-combat-time id selected-player-id)
-                        required-mana (get-required-mana skill)
-                        ;; TODO update damage, player might have defense or poison etc.
-                        damage ((-> common.skills/skills (get skill) :damage-fn)
-                                (has-defense? selected-player-id)
-                                (has-break-defense? selected-player-id))
-                        damage (increase-damage-if-has-battle-fury damage players* id)
-                        health-after-damage (- (:health other-player-world-state) damage)
-                        health-after-damage (Math/max ^long health-after-damage 0)]
-                    (swap! world (fn [world]
-                                   (-> world
-                                       (update-in [id :mana] - required-mana)
-                                       (assoc-in [selected-player-id :health] health-after-damage))))
-                    (swap! players assoc-in [id :last-time :skill skill] (now))
-                    (add-effect :attack-r selected-player-id)
-                    (make-asas-appear-if-hidden selected-player-id)
-                    (make-asas-appear-if-hidden id)
-                    (process-if-enemy-died id selected-player-id health-after-damage players*)
-                    (send! selected-player-id :got-attack-r-damage {:damage damage
-                                                                    :player-id id})
-                    {:skill skill
-                     :damage damage
-                     :selected-player-id selected-player-id})))))))
+      (if npc?
+        (attack-to-npc {:id id
+                        :ping ping
+                        :selected-player-id selected-player-id
+                        :current-world @world
+                        :effect :attack-r
+                        :skill skill
+                        :player player
+                        :validate-attack-skill-fn validate-attack-r})
+        (when (get players* selected-player-id)
+          (let [w @world
+                player-world-state (get w id)
+                other-player-world-state (get w selected-player-id)]
+            (if-let [err (validate-attack-r {:id id
+                                             :ping ping
+                                             :selected-player-id selected-player-id
+                                             :player-world-state player-world-state
+                                             :other-player-world-state other-player-world-state
+                                             :skill skill
+                                             :player player})]
+              err
+              (let [_ (update-last-combat-time id selected-player-id)
+                    required-mana (get-required-mana skill)
+                    ;; TODO update damage, player might have defense or poison etc.
+                    damage ((-> common.skills/skills (get skill) :damage-fn)
+                            (has-defense? selected-player-id)
+                            (has-break-defense? selected-player-id))
+                    damage (increase-damage-if-has-battle-fury damage players* id)
+                    health-after-damage (- (:health other-player-world-state) damage)
+                    health-after-damage (Math/max ^long health-after-damage 0)]
+                (swap! world (fn [world]
+                               (-> world
+                                   (update-in [id :mana] - required-mana)
+                                   (assoc-in [selected-player-id :health] health-after-damage))))
+                (swap! players assoc-in [id :last-time :skill skill] (now))
+                (add-effect :attack-r selected-player-id)
+                (make-asas-appear-if-hidden selected-player-id)
+                (make-asas-appear-if-hidden id)
+                (process-if-enemy-died id selected-player-id health-after-damage players*)
+                (send! selected-player-id :got-attack-r-damage {:damage damage
+                                                                :player-id id})
+                {:skill skill
+                 :damage damage
+                 :selected-player-id selected-player-id}))))))))
 
 ;; TODO scheduler'da ilerideki bir taski iptal etmenin yolunu bul, ornegin adam posion yedi ama posion gecene kadar cure aldi gibi...
 ;; TODO ADJUST COOLDOWN FOR ASAS CLASS
@@ -815,23 +880,29 @@
     (swap! players assoc-in [id :in-enemy-base?] data)
     nil))
 
-;; write me a function that with 0.5 prob returns :hp-potions or :mp-potions key, between random 2 and 5
-;; e.g. {:hp-potions 3} or {:mp-potions 4}
-;; []
+(def valid-drop-range 12)
+
+(defn can-player-get-the-drop? [player-id current-world npc]
+  (let [player (get current-world player-id)]
+    (and player (alive? player) (close-npc-distance? player npc valid-drop-range))))
 
 (reg-pro
   :drop
   (fn [{:keys [data]}]
-    (let [{:keys [items count-fn]} (:drop data)
+    (let [npc (:npc data)
+          {:keys [items count-fn]} (:drop npc)
           drop (hash-map (rand-nth items) (count-fn))
           {:keys [party-id player-id]} (:top-damager data)
-          current-players @players]
+          current-players @players
+          current-world @world]
       (when party-id
         (let [player-ids (find-player-ids-by-party-id current-players party-id)]
           (doseq [player-id player-ids]
-            (send! player-id :drop drop))))
+            (when (can-player-get-the-drop? player-id current-world npc)
+              (send! player-id :drop drop)))))
       (when player-id
-        (send! player-id :drop drop))
+        (when (can-player-get-the-drop? player-id current-world npc)
+          (send! player-id :drop drop)))
       nil)))
 
 (comment
