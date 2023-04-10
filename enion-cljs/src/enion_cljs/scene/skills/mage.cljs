@@ -113,15 +113,21 @@
       (pc/setv temp-pos x y z)
       ((j/get-in player [:skills :throw-nova]) temp-pos)
       (doseq [enemy damaged-enemies]
-        (fire :ui-send-msg {:to (j/get (st/get-other-player (:id enemy)) :username)
+        (fire :ui-send-msg {:to (j/get (if (:npc? enemy)
+                                         (st/get-npc (:id enemy))
+                                         (st/get-other-player (:id enemy))) :username)
                             :hit (:damage enemy)}))
       (st/play-sound "attackRange"))))
 
 (defmethod skills/skill-response "attackSingle" [params]
   (fire :ui-cooldown "attackSingle")
   (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)]
-    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+        damage (-> params :skill :damage)
+        npc? (-> params :skill :npc?)
+        enemy (if npc?
+                (st/get-npc selected-player-id)
+                (st/get-other-player selected-player-id))]
+    (fire :ui-send-msg {:to (j/get enemy :username)
                         :hit damage})
     (when (not (utils/tutorial-finished? :how-to-cast-skills?))
       (utils/finish-tutorial-step :how-to-cast-skills?))))
@@ -129,8 +135,12 @@
 (defmethod skills/skill-response "attackIce" [params]
   (fire :ui-cooldown "attackIce")
   (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)]
-    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+        damage (-> params :skill :damage)
+        npc? (-> params :skill :npc?)
+        enemy (if npc?
+                (st/get-npc selected-player-id)
+                (st/get-other-player selected-player-id))]
+    (fire :ui-send-msg {:to (j/get enemy :username)
                         :hit damage})))
 
 (defmethod skills/skill-response "teleport" [_]
@@ -146,35 +156,34 @@
 (defn- attack-single? [e active-state selected-player-id]
   (and (skills/idle-run-states active-state)
        (skills/skill-pressed? e "attackSingle")
-       (st/alive? selected-player-id)
+       (skills/can-attack-to-enemy? selected-player-id)
        (st/cooldown-ready? "attackSingle")
-       (st/enemy-selected? selected-player-id)
        (st/enough-mana? attack-single-required-mana)
        (close-for-attack-single? selected-player-id)))
 
 (defn- attack-ice? [e active-state selected-player-id]
   (and (skills/idle-run-states active-state)
        (skills/skill-pressed? e "attackIce")
-       (st/alive? selected-player-id)
        (st/cooldown-ready? "attackIce")
-       (st/enemy-selected? selected-player-id)
+       (skills/can-attack-to-enemy? selected-player-id)
        (st/enough-mana? attack-single-required-mana)
        (close-for-attack-single? selected-player-id)))
 
-;; TODO check if selected ally in the same party
 (defn teleport? [e active-state selected-player-id]
   (and (skills/idle-run-states active-state)
        (skills/skill-pressed? e "teleport")
        (st/alive? selected-player-id)
        (st/ally-selected? selected-player-id)
        (st/cooldown-ready? "teleport")
-       (st/enough-mana? teleport-required-mana)))
+       (st/enough-mana? teleport-required-mana)
+       (st/party-member? selected-player-id)))
 
 (defn process-skills [e]
   (when (and (not (-> e .-event .-repeat)) (st/alive?))
     (let [model-entity (get-model-entity)
           active-state (pc/get-anim-state model-entity)
-          selected-player-id (st/get-selected-player-id)]
+          selected-player-id (st/get-selected-player-id)
+          npc? (st/npc-selected?)]
       (m/process-cancellable-skills
         ["attackRange" "attackSingle" "attackIce" "attackR" "teleport"]
         (j/get-in e [:event :code])
@@ -191,6 +200,7 @@
           (j/assoc! player :positioning-nova? false)
           (pc/set-nova-circle-pos)
           (j/assoc-in! player [:skill->selected-player-id "attackSingle"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackSingle"] npc?)
           (pc/set-anim-boolean model-entity "attackSingle" true)
           (skills.effects/apply-effect-fire-hands player)
           (st/look-at-selected-player)
@@ -201,6 +211,7 @@
           (j/assoc! player :positioning-nova? false)
           (pc/set-nova-circle-pos)
           (j/assoc-in! player [:skill->selected-player-id "attackIce"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackIce"] npc?)
           (pc/set-anim-boolean model-entity "attackIce" true)
           (skills.effects/apply-effect-ice-hands player)
           (st/look-at-selected-player)
@@ -223,6 +234,7 @@
         (skills/attack-r? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackR"] npc?)
           (pc/set-anim-boolean model-entity "attackR" true)
           (st/look-at-selected-player))
 

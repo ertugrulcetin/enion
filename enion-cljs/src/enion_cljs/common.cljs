@@ -44,8 +44,10 @@
             6 "hpPotion"
             7 "mpPotion"}})
 
-(defn update-fleet-foot-cooldown-for-asas []
-  (let [duration (-> common.skills/skills (get "fleetFoot") :cooldown-asas)]
+(defn update-fleet-foot-cooldown [class]
+  (let [duration (if (= "asas" class)
+                   (-> common.skills/skills (get "fleetFoot") :cooldown-asas)
+                   (-> common.skills/skills (get "fleetFoot") :cooldown-normal))]
     (set! common.skills/skills (update-in common.skills/skills ["fleetFoot" :cooldown] (constantly duration)))))
 
 (defn set-app [app*]

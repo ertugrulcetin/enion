@@ -1,7 +1,6 @@
 (ns enion-backend.routes.asas
   (:require
     [common.enion.skills :as common.skills]
-    [enion-backend.bots :as bots]
     [enion-backend.routes.home :refer :all]
     [enion-backend.teatime :as tea]))
 

@@ -553,6 +553,9 @@
 (defn close-for-attack-single? [player-world-state other-player-world-state]
   (close-distance? player-world-state other-player-world-state (+ common.skills/attack-single-distance-threshold 1)))
 
+(defn close-for-npc-attack-single? [player-world-state npc-world-state]
+  (close-npc-distance? player-world-state npc-world-state (+ common.skills/attack-single-distance-threshold 1)))
+
 (defn attack-range-in-distance? [world-state x y z]
   (try
     (let [{:keys [px py pz]} world-state]
@@ -633,27 +636,29 @@
                              validate-attack-skill-fn
                              slow-down?
                              priest-skill?
-                             break-defense?]}]
+                             break-defense?
+                             dont-use-mana?]}]
   (when-let [npc (get @bots/npcs selected-player-id)]
     (let [player-world-state (get current-world id)]
-      (if-let [err (validate-attack-skill-fn {:id id
-                                              :ping ping
-                                              :selected-player-id selected-player-id
-                                              :player-world-state player-world-state
-                                              :npc-world-state npc
-                                              :skill skill
-                                              :player player
-                                              :priest-skill? priest-skill?})]
+      (if-let [err (when validate-attack-skill-fn
+                     (validate-attack-skill-fn {:id id
+                                                :ping ping
+                                                :selected-player-id selected-player-id
+                                                :player-world-state player-world-state
+                                                :npc-world-state npc
+                                                :skill skill
+                                                :player player
+                                                :priest-skill? priest-skill?}))]
         err
         (let [_ (update-last-combat-time id)
-              required-mana (get-required-mana skill)
               damage (bots/make-player-attack! {:skill skill
                                                 :player player
                                                 :npc npc
                                                 :slow-down? slow-down?
                                                 :break-defense? break-defense?})]
-          (swap! world update-in [id :mana] - required-mana)
-          (add-effect-to-npc effect selected-player-id)
+          (when-not dont-use-mana?
+            (swap! world update-in [id :mana] - (get-required-mana skill)))
+          (some-> effect (add-effect-to-npc selected-player-id))
           (make-asas-appear-if-hidden id)
           (swap! players assoc-in [id :last-time :skill skill] (now))
           {:skill skill

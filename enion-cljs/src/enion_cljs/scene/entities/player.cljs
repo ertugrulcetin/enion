@@ -478,10 +478,6 @@
         (pc/set-pos entity x y z))
       state)))
 
-(defn- update-fleet-foot-cooldown-if-asas [class]
-  (when (= "asas" class)
-    (common/update-fleet-foot-cooldown-for-asas)))
-
 (defn- set-default-camera-angle []
   (let [state entity.camera/state]
     (if (= "orc" (st/get-race))
@@ -514,7 +510,7 @@
     (create-skill-fns player)
     (register-keyboard-events)
     (register-mouse-events)
-    (update-fleet-foot-cooldown-if-asas (j/get player :class))
+    (common/update-fleet-foot-cooldown (j/get player :class))
     (fire :init-skills (keyword (j/get player :class)))
     (set-default-camera-angle)
     (on :create-players (fn [players]

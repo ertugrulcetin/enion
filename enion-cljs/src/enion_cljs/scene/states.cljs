@@ -128,7 +128,8 @@
            (fire :ui-selected-player nil))
          (vreset! selected-player-cancelled? true))))))
 
-(on :select-party-member set-selected-player)
+(on :select-party-member (fn [id]
+                           (set-selected-player id)))
 
 (defn cancel-selected-player []
   (pc/set-selected-player-position)
