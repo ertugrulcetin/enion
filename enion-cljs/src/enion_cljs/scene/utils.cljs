@@ -28,7 +28,7 @@
 
 (on :finish-tutorial-step finish-tutorial-step)
 
-(defn create-char-name-text [{:keys [template-entity username race class other-player? enemy? npc?]}]
+(defn create-char-name-text [{:keys [template-entity username race class other-player? enemy? y-offset]}]
   (let [username-text-entity (pc/clone (pc/find-by-name "char_name"))]
     (j/assoc-in! username-text-entity [:element :text] username)
     (j/assoc-in! username-text-entity [:element :color] st/username-color)
@@ -41,8 +41,8 @@
                    (= class "warrior")))
       (when other-player?
         (pc/set-loc-pos username-text-entity 0 0.05 0)))
-    (when npc?
-      (pc/set-loc-pos username-text-entity 0 0.3 0))
+    (when y-offset
+      (pc/set-loc-pos username-text-entity 0 y-offset 0))
     (j/assoc-in! username-text-entity [:script :enabled] true)))
 
 (defn add-skill-effects [template-entity]

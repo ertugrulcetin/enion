@@ -17,6 +17,22 @@
 
 (defonce npcs (atom {}))
 
+(defn- distance [point1 point2]
+  (let [dx (- (first point1) (first point2))
+        dy (- (second point1) (second point2))]
+    (Math/sqrt (+ (* dx dx) (* dy dy)))))
+
+(defn- generate-points [origin radius num-points min-distance]
+  (->> (loop [points []]
+         (if (< (count points) num-points)
+           (let [point (vector (+ (first origin) (* radius (rand))) (+ (second origin) (* radius (rand))))]
+             (if (some #(<= (distance % point) min-distance) points)
+               (recur points)
+               (recur (conj points point))))
+           points))
+       (map-indexed vector)
+       (into {})))
+
 (def slots
   {0 {0 [27.87 -33.66]
       1 [27.42 -31.79]
@@ -26,14 +42,56 @@
       5 [29.48 -32.48]
       6 [28.32 -32.72]
       7 [29.22 -34.18]}
-   1 {0 [25.61 -36.75]
-      1 [23.57 -36.72]
-      2 [25.1 -38.65]
-      3 [22.9 -37.31]
-      4 [25.23 -39.32]
-      5 [24.71 -36.42]
-      6 [26.23 -37.94]
-      7 [25.53 -39.57]}})
+   1 (generate-points [23.32 -40.88] 3.5 8 1)
+   2 {0 [35.3 -27.2]
+      1 [30.86 -27.34]
+      2 [33.7 -29.74]
+      3 [31.93 -25.77]
+      4 [31.93 -28.88]
+      5 [34.59 -24.68]
+      6 [35.2 -25.95]
+      7 [35.4 -28.53]}
+   3 (generate-points [41.57 -24.187] 3.5 8 1.0)
+   4 {0 [-32.11 31.98]
+      1 [-29.72 28.51]
+      2 [-32.75 29.47]
+      3 [-33.72 28.94]
+      4 [-30.53 28.7]
+      5 [-31.07 27.22]
+      6 [-34.19 30.32]
+      7 [-33.24 31.48]}
+   5 {0 [-18.56 39.24]
+      1 [-20.76 36.67]
+      2 [-19.88 40.06]
+      3 [-21.02 38.52]
+      4 [-17.47 37.87]
+      5 [-20.72 35.47]
+      6 [-22.49 38.52]
+      7 [-20.72 40.23]}
+   6 {0 [-34.23 21.98]
+      1 [-36.57 23.47]
+      2 [-37.6 19.89]
+      3 [-34.83 20.95]
+      4 [-38.61 21.51]
+      5 [-37.7 22.92]
+      6 [-34.98 22.47]
+      7 [-38.5 19.71]}
+   7 {0 [-43.3 24.32]
+      1 [-45.31 21.86]
+      2 [-47.02 24.16]
+      3 [-44.17 26.01]
+      4 [-44.81 20.75]
+      5 [-43.2 22.97]
+      6 [-47.16 22.6]
+      7 [-46.18 26.12]}
+   8 {0 [25.59 41.2]
+      1 [23.49 38.87]
+      2 [28.33 37.92]
+      3 [27.45 41.71]
+      4 [29.92 38.2]
+      5 [24.62 35.58]
+      6 [24.55 40.01]
+      7 [29.63 41.25]}})
 
 (def npc-types
   {:skeleton-warrior (merge
@@ -50,7 +108,22 @@
                                :count-fn #(utils/rand-between 1 3)}
                         :target-locked-threshold 10000
                         :target-pos-gap-threshold 0.2
-                        :re-spawn-interval 12000})})
+                        :re-spawn-interval 12000})
+   :skeleton-champion (merge
+                        (:skeleton-champion common.npc/npcs)
+                        {:attack-range-threshold 0.6
+                         :change-pos-interval 15000
+                         :change-pos-speed 0.02
+                         :chase-range-threshold 20
+                         :chase-speed 0.12
+                         :cooldown 2000
+                         :damage-buffer-size 150
+                         :damage-fn #(utils/rand-between 300 450)
+                         :drop {:items [:hp-potion :mp-potion]
+                                :count-fn #(utils/rand-between 3 8)}
+                         :target-locked-threshold 10000
+                         :target-pos-gap-threshold 0.2
+                         :re-spawn-interval 14000})})
 
 (defn create-npc [{:keys [init-pos slot-id type taken-slot-pos-id]}]
   (let [attrs (npc-types type)
@@ -381,12 +454,15 @@
                  npc)}})
 
 (defn init-npcs []
-  (doseq [{:keys [type slot-id count]} [{:type :skeleton-warrior
-                                         :slot-id 0
-                                         :count 5}
-                                        {:type :skeleton-warrior
-                                         :slot-id 1
-                                         :count 5}]]
+  (doseq [{:keys [type slot-id count]} [{:type :skeleton-warrior :slot-id 0 :count 5}
+                                        {:type :skeleton-warrior :slot-id 1 :count 5}
+                                        {:type :skeleton-warrior :slot-id 2 :count 5}
+                                        {:type :skeleton-warrior :slot-id 3 :count 5}
+                                        {:type :skeleton-warrior :slot-id 4 :count 5}
+                                        {:type :skeleton-warrior :slot-id 5 :count 5}
+                                        {:type :skeleton-warrior :slot-id 6 :count 5}
+                                        {:type :skeleton-warrior :slot-id 7 :count 5}
+                                        {:type :skeleton-champion :slot-id 8 :count 5}]]
     (dotimes [_ count]
       (add-npc npcs {:type type
                      :slot-id slot-id}))))
@@ -406,6 +482,7 @@
   (NaN? (get-in @npcs [23 :pos 0]))
   (NaN? 1)
   @npcs
+
   (init-npcs)
   (clear-npcs)
 

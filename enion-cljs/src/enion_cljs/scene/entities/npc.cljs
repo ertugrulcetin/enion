@@ -10,12 +10,14 @@
     [enion-cljs.scene.utils :as utils]
     [enion-cljs.utils :as common.utils]))
 
-(defonce npc-template-entities (delay {:skeleton-warrior (pc/find-by-name "skeleton_warrior")}))
+(defonce npc-template-entities (delay {:skeleton-warrior (pc/find-by-name "skeleton_warrior")
+                                       :skeleton-champion (pc/find-by-name "skeleton_champion")}))
 
 (defn init-npcs [npcs]
   (doseq [[npc-type ids] npcs
           id ids
           :let [entity (pc/clone (npc-type @npc-template-entities))
+                _ (pc/enable entity)
                 npc-type-name (csk/->snake_case_string npc-type)
                 model (pc/find-by-name entity (str npc-type-name "_model"))
                 effects (utils/add-skill-effects model)
@@ -32,7 +34,7 @@
     (utils/create-char-name-text {:template-entity entity
                                   :username npc-name
                                   :enemy? true
-                                  :npc? true})
+                                  :y-offset (-> common.npc/npcs npc-type :char-name-y-offset)})
     (pc/add-child (pc/root) entity)
     ;; due to 0.002 scale, we had to multiply by 500
     (pc/set-loc-scale effects-entity 500)
@@ -55,11 +57,13 @@
                                    :lod-0 lod-0
                                    :lod-1 lod-1
                                    :lod-2 lod-2
-                                   :anim-component (j/get model :anim)}))))
+                                   :anim-component (j/get model :anim)
+                                   :npc-type-name npc-type-name}))))
 
 (comment
   st/npcs
   (init-npcs)
+  (st/remove-npcs)
   (effects/apply-effect-attack-slow-down (j/get st/npcs 1))
   (effects/apply-effect-attack-dagger (j/get st/npcs 1))
   (effects/apply-effect-attack-flame (j/get st/npcs 1))

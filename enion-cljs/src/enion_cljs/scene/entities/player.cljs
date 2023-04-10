@@ -76,7 +76,7 @@
       (fn [id]
         (let [npc (st/get-npc id)
               model-entity (j/get npc :model-entity)
-              prefix "skeleton_warrior"
+              prefix (j/get npc :npc-type-name)
               mesh-names [(str prefix "_mesh_lod_0")
                           (str prefix "_mesh_lod_1")
                           (str prefix "_mesh_lod_2")]
@@ -229,6 +229,7 @@
     (let [result (st/get-closest-terrain-hit e)
           hit-entity-name (j/get-in result [:entity :name])]
       (when (= "terrain" hit-entity-name)
+        ;; (println (j/get-in result [:point]))
         (let [x (j/get-in result [:point :x])
               y (j/get-in result [:point :y])
               z (j/get-in result [:point :z])
