@@ -37,8 +37,12 @@
 (defmethod skills/skill-response "attackOneHand" [params]
   (fire :ui-cooldown "attackOneHand")
   (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)]
-    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+        damage (-> params :skill :damage)
+        npc? (-> params :skill :npc?)
+        enemy (if npc?
+                (st/get-npc selected-player-id)
+                (st/get-other-player selected-player-id))]
+    (fire :ui-send-msg {:to (j/get enemy :username)
                         :hit damage})
     (when (not (utils/tutorial-finished? :how-to-cast-skills?))
       (utils/finish-tutorial-step :how-to-cast-skills?))))
@@ -46,8 +50,12 @@
 (defmethod skills/skill-response "attackSlowDown" [params]
   (fire :ui-cooldown "attackSlowDown")
   (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)]
-    (fire :ui-send-msg {:to (j/get (st/get-other-player selected-player-id) :username)
+        damage (-> params :skill :damage)
+        npc? (-> params :skill :npc?)
+        enemy (if npc?
+                (st/get-npc selected-player-id)
+                (st/get-other-player selected-player-id))]
+    (fire :ui-send-msg {:to (j/get enemy :username)
                         :hit damage})))
 
 (defmethod skills/skill-response "shieldWall" [_]
@@ -78,8 +86,7 @@
     (skills/idle-run-states active-state)
     (skills/skill-pressed? e "attackOneHand")
     (st/cooldown-ready? "attackOneHand")
-    (st/enemy-selected? selected-player-id)
-    (st/alive? selected-player-id)
+    (skills/can-attack-to-enemy? selected-player-id)
     (st/enough-mana? attack-one-hand-required-mana)
     (skills/close-for-attack? selected-player-id)))
 
@@ -88,8 +95,7 @@
     (skills/idle-run-states active-state)
     (skills/skill-pressed? e "attackSlowDown")
     (st/cooldown-ready? "attackSlowDown")
-    (st/enemy-selected? selected-player-id)
-    (st/alive? selected-player-id)
+    (skills/can-attack-to-enemy? selected-player-id)
     (st/enough-mana? attack-slow-down-required-mana)
     (skills/close-for-attack? selected-player-id)))
 
@@ -109,7 +115,8 @@
   (when (and (not (-> e .-event .-repeat)) (st/alive?))
     (let [model-entity (st/get-model-entity)
           active-state (pc/get-anim-state model-entity)
-          selected-player-id (st/get-selected-player-id)]
+          selected-player-id (st/get-selected-player-id)
+          npc? (st/npc-selected?)]
       (m/process-cancellable-skills
         ["attackOneHand" "attackSlowDown" "attackR"]
         (j/get-in e [:event :code])
@@ -122,7 +129,9 @@
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
           (pc/set-anim-boolean model-entity "attackOneHand" false)
           (pc/set-anim-boolean model-entity "attackR" true)
-          (st/look-at-selected-player))
+          (st/look-at-selected-player)
+          (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackR"] npc?))
 
         (one-hand-combo? e active-state selected-player-id)
         (do
@@ -132,7 +141,9 @@
           (pc/set-anim-boolean model-entity "attackOneHand" true)
           (vreset! last-one-hand-combo (js/Date.now))
           (st/play-sound "attackOneHand")
-          (st/look-at-selected-player))
+          (st/look-at-selected-player)
+          (j/assoc-in! player [:skill->selected-player-id "attackOneHand"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackOneHand"] npc?))
 
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
@@ -143,6 +154,7 @@
         (attack-one-hand? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackOneHand"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackOneHand"] npc?)
           (pc/set-anim-boolean (st/get-model-entity) "attackOneHand" true)
           (st/play-sound "attackOneHand")
           (st/look-at-selected-player))
@@ -150,6 +162,7 @@
         (attack-slow-down? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackSlowDown"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackSlowDown"] npc?)
           (pc/set-anim-boolean (st/get-model-entity) "attackSlowDown" true)
           (st/play-sound "attackSlowDown")
           (st/look-at-selected-player))
@@ -157,6 +170,7 @@
         (skills/attack-r? e active-state selected-player-id)
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackR"] npc?)
           (pc/set-anim-boolean model-entity "attackR" true)
           (st/look-at-selected-player))
 

@@ -119,7 +119,11 @@
   (if-let [target (:target-pos npc)]
     (let [pos (:pos npc)
           target (if (= target pos) (v2/add target temp-to-add) target)
-          new-pos (-> target (v2/sub pos) v2/normalize (v2/scale (:change-pos-speed npc)) (v2/add pos))]
+          change-pos-speed (if (and (:last-time-slow-down npc)
+                                    (< (- (System/currentTimeMillis) (:last-time-slow-down npc)) 5000))
+                             (/ (:change-pos-speed npc) 3)
+                             (:change-pos-speed npc))
+          new-pos (-> target (v2/sub pos) v2/normalize (v2/scale change-pos-speed) (v2/add pos))]
       (if (<= (v2/dist target new-pos) (:target-pos-gap-threshold npc))
         (assoc npc :pos new-pos :target-pos nil)
         (assoc npc :pos new-pos)))
@@ -199,7 +203,7 @@
                          :players players})
     npc))
 
-(defn make-player-attack! [{:keys [skill player npc]}]
+(defn make-player-attack! [{:keys [skill player npc slow-down?]}]
   (try
     (let [attacker-id (:id player)
           attacker-party-id (:party-id player)
@@ -209,12 +213,15 @@
           health-after-damage (Math/max ^long health-after-damage 0)
           npc-id (:id npc)]
       (swap! npcs (fn [npcs]
-                    (-> npcs
-                        (update-in [npc-id :damage-buffer] #(conj % {:attacker-id attacker-id
-                                                                     :attacker-party-id attacker-party-id
-                                                                     :damage damage
-                                                                     :time (System/currentTimeMillis)}))
-                        (assoc-in [npc-id :health] health-after-damage))))
+                    (let [npcs (-> npcs
+                                   (update-in [npc-id :damage-buffer] #(conj % {:attacker-id attacker-id
+                                                                                :attacker-party-id attacker-party-id
+                                                                                :damage damage
+                                                                                :time (System/currentTimeMillis)}))
+                                   (assoc-in [npc-id :health] health-after-damage))]
+                      (if slow-down?
+                        (assoc-in npcs [npc-id :last-time-slow-down] (System/currentTimeMillis))
+                        npcs))))
       damage)
     (catch Exception e
       (println "Error in make-player-attack!")
@@ -245,7 +252,11 @@
     (let [target [(:px player) (:pz player)]
           pos (:pos npc)
           target (if (= target pos) (v2/add target temp-to-add) target)
-          dir (-> target (v2/sub pos) v2/normalize (v2/scale (:chase-speed npc)))
+          chase-speed (if (and (:last-time-slow-down npc)
+                               (< (- (System/currentTimeMillis) (:last-time-slow-down npc)) 5000))
+                        (/ (:chase-speed npc) 3)
+                        (:chase-speed npc))
+          dir (-> target (v2/sub pos) v2/normalize (v2/scale chase-speed))
           new-pos (v2/add pos dir)]
       (when (NaN? (first new-pos))
         (println "Change pos is NAN"))
@@ -342,10 +353,10 @@
                   (dispatch-in :drop {:data {:top-damager (find-top-damager (:damage-buffer npc))
                                              :npc npc}})
                   (-> npc
-                      (assoc-in [:last-time :died] (System/currentTimeMillis))
+                      (assoc :last-time-died (System/currentTimeMillis))
                       (assoc :damage-buffer (ring-buffer (:damage-buffer-size npc)))))
          :update (fn [npc _ _]
-                   (if (>= (- (System/currentTimeMillis) (-> npc :last-time :died)) (:re-spawn-interval npc))
+                   (if (>= (- (System/currentTimeMillis) (:last-time-died npc)) (:re-spawn-interval npc))
                      (let [slot-id (:slot-id npc)
                            available-slot-pos-id (find-available-slot-pos-id npcs slot-id)
                            pos (get-in slots [slot-id available-slot-pos-id])]

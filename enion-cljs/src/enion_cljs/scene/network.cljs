@@ -571,6 +571,7 @@
       (let [pos (-> params :re-spawn :pos)
             health (-> params :re-spawn :health)
             mana (-> params :re-spawn :mana)]
+        (pc/set-anim-int (st/get-model-entity) "health" 100)
         (when (st/asas?)
           (j/call-in st/player [:skills :appear]))
         (st/move-player pos)
@@ -578,7 +579,6 @@
         (fire :ui-re-spawn)
         (st/set-mana mana)
         (st/set-health health)
-        (pc/set-anim-int (st/get-model-entity) "health" 100)
         (st/cancel-target-pos)
         (poki/gameplay-start)))))
 

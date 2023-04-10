@@ -629,7 +629,8 @@
                              skill
                              player
                              ping
-                             validate-attack-skill-fn]}]
+                             validate-attack-skill-fn
+                             slow-down?]}]
   (when-let [npc (get @bots/npcs selected-player-id)]
     (let [player-world-state (get current-world id)]
       (if-let [err (validate-attack-skill-fn {:id id
@@ -644,7 +645,8 @@
               required-mana (get-required-mana skill)
               damage (bots/make-player-attack! {:skill skill
                                                 :player player
-                                                :npc npc})]
+                                                :npc npc
+                                                :slow-down? slow-down?})]
           (swap! world update-in [id :mana] - required-mana)
           (add-effect-to-npc effect selected-player-id)
           (make-asas-appear-if-hidden id)

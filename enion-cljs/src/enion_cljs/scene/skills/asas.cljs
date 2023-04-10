@@ -232,7 +232,9 @@
           (dlog "R combo!")
           (pc/set-anim-boolean model-entity "attackDagger" false)
           (pc/set-anim-boolean model-entity "attackR" true)
-          (st/look-at-selected-player))
+          (st/look-at-selected-player)
+          (j/assoc-in! player [:skill->selected-player-id "attackR"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackR"] npc?))
 
         (dagger-combo? e active-state selected-player-id)
         (do
@@ -241,7 +243,9 @@
           (pc/set-anim-boolean model-entity "attackDagger" true)
           (vreset! last-one-hand-combo (js/Date.now))
           (st/play-sound "attackDagger")
-          (st/look-at-selected-player))
+          (st/look-at-selected-player)
+          (j/assoc-in! player [:skill->selected-player-id "attackDagger"] selected-player-id)
+          (j/assoc-in! player [:skill->selected-enemy-npc? "attackDagger"] npc?))
 
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)
