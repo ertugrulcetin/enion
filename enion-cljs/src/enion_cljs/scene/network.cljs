@@ -40,8 +40,7 @@
   ([pro data]
    (if (and @open? @socket (st/tab-visible?))
      (j/call @socket :send (msg/pack {:pro pro
-                                      :data data
-                                      :timestamp (js/Date.now)}))
+                                      :data data}))
      (js/console.error "Connection closed, can't send the payload!"))))
 
 (defmulti dispatch-pro-response ffirst)

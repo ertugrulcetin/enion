@@ -1110,12 +1110,10 @@
             (fn [payload]
               (try
                 (let [id (-> socket meta :id)
-                      now (Instant/now)
-                      payload (msg/unpack payload)
-                      ping (- (.toEpochMilli now) (:timestamp payload))]
+                      payload (msg/unpack payload)]
                   (dispatch (:pro payload) {:id id
                                             :data (:data payload)
-                                            :ping ping
+                                            :ping (get-in @players [id :ping] 0)
                                             :current-players @players
                                             :current-world @world
                                             :req req
