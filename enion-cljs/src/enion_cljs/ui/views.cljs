@@ -1105,14 +1105,14 @@
        err
        (str err " Please click to try again.")
 
+       @(subscribe [::subs/connecting-to-server])
+       "Connecting..."
+
        (nil? @(subscribe [::subs/servers]))
        "Fetching servers list..."
 
        (not @(subscribe [::subs/available-servers]))
        "Finding available servers..."
-
-       @(subscribe [::subs/connecting-to-server])
-       "Connecting..."
 
        :else
        "Click to Join"))])

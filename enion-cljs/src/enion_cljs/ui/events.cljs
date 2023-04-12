@@ -534,7 +534,7 @@
 (reg-event-fx
   ::connect-to-server
   (fn [{:keys [db]} [_ server-name ws-url username race class]]
-    (when-not (-> db :servers :connecting?)
+    (when-not (-> db :servers :connecting)
       {:db (assoc-in db [:servers :connecting] server-name)
        ::fire [:connect-to-server {:server-name server-name
                                    :ws-url ws-url
@@ -547,7 +547,7 @@
   [(inject-cofx ::inject/sub [:enion-cljs.ui.subs/available-servers])]
   (fn [{:keys [db]
         :enion-cljs.ui.subs/keys [available-servers]}]
-    (when (and (not (-> db :servers :connecting?))
+    (when (and (not (-> db :servers :connecting))
                (seq available-servers))
       (let [server (first available-servers)]
         {:db (assoc-in db [:servers :connecting] (:name server))
