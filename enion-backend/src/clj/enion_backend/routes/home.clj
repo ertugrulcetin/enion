@@ -407,7 +407,6 @@
 (reg-pro
   :init
   (fn [{:keys [id current-players] {:keys [username race class]} :data}]
-    (Thread/sleep 3000)
     (cond
       (full?) {:error :server-full}
       (and (= race "human") (human-race-full?)) {:error :human-race-full}
