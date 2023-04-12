@@ -27,4 +27,7 @@
             :defense-break? false}
    :servers {:list (when dev?
                      {"local" {:ws-url "ws://localhost:3000/ws"
-                               :stats-url "http://localhost:3000/stats"}})}})
+                               :stats-url "http://localhost:3000/stats"
+                               :nmae "local"
+                               :number-of-players 0
+                               :max-number-of-players 40}})}})

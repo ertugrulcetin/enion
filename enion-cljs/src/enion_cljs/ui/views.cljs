@@ -20,6 +20,8 @@
 (def how-often-to-show-ad 2)
 (def death-count (atom 0))
 
+(defonce game-init? (r/atom false))
+
 (defn- img->img-url [img]
   (str "img/" img))
 
@@ -1096,6 +1098,46 @@
      :on-click #(dispatch [::events/clear-init-modal-error])}
     "OK"]])
 
+(defn- click-to-join-indicator-text []
+  [:span (styles/click-to-join-indicator-text)
+   (let [err @(subscribe [::subs/init-modal-error])]
+     (cond
+       err
+       (str err " Please click to try again.")
+
+       (nil? @(subscribe [::subs/servers]))
+       "Fetching servers list..."
+
+       (not @(subscribe [::subs/available-servers]))
+       "Finding available servers..."
+
+       @(subscribe [::subs/connecting-to-server])
+       "Connecting..."
+
+       :else
+       "Click to Join"))])
+
+(defn- click-to-join-modal []
+  (r/create-class
+    {:component-did-mount #(dispatch [::events/notify-ui-is-ready])
+     :component-will-mount #(when-not dev? (dispatch [::events/fetch-server-list true]))
+     :component-will-unmount #(fire :on-ui-element? false)
+     :reagent-render
+     (fn []
+       [:div (styles/click-to-join-modal)
+        [:a
+         {:href "https://discord.gg/rmaTrYdV5V"
+          :target "_blank"}
+         [:img
+          {:src "img/dc.png"
+           :class (styles/discord)}]]
+        [:div
+         {:class (styles/click-to-join-modal-container)
+          :on-click #(do
+                       (dispatch [::events/clear-init-modal-error])
+                       (dispatch [::events/connect-to-available-server]))}
+         [click-to-join-indicator-text]]])}))
+
 (defn- init-modal []
   (let [username (r/atom nil)
         race (r/atom nil)
@@ -1254,7 +1296,9 @@
        (on :ui-set-server-stats #(dispatch [::events/set-server-stats %]))
        (on :ui-set-score-board #(dispatch [::events/set-score-board %]))
        (on :ui-set-connection-lost #(dispatch [::events/set-connection-lost]))
-       (on :ui-player-ready #(dispatch [::events/update-settings]))
+       (on :ui-player-ready #(do
+                               (reset! game-init? true)
+                               (dispatch [::events/update-settings])))
        (on :ui-update-ping #(dispatch [::events/update-ping %]))
        (on :ui-update-hp-potions #(dispatch [::events/update-hp-potions %]))
        (on :ui-update-mp-potions #(dispatch [::events/update-mp-potions %]))
@@ -1271,6 +1315,9 @@
         (cond
           device-dec/isMobile
           [mobile-user-modal]
+
+          (not @game-init?)
+          [click-to-join-modal]
 
           @(subscribe [::subs/init-modal-open?])
           [init-modal]

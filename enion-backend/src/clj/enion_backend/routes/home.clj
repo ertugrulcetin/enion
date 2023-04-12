@@ -408,7 +408,6 @@
   :init
   (fn [{:keys [id current-players] {:keys [username race class]} :data}]
     (cond
-      ;; TODO add ping check here, because users could wait others...
       (full?) {:error :server-full}
       (and (= race "human") (human-race-full?)) {:error :human-race-full}
       (and (= race "orc") (orc-race-full?)) {:error :orc-race-full}

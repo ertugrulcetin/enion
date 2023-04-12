@@ -81,9 +81,9 @@
               :username-taken "Username is already taken."
               :invalid-race "Race is not selected."
               :invalid-class "Class is not selected."
-              :server-full "Server is full. Please wait a bit and try again."
-              :orc-race-full "Orc race is full. Please wait a bit and try again."
-              :human-race-full "Human race is full. Please wait a bit and try again.")))
+              :server-full "Server is full."
+              :orc-race-full "Orc race is full."
+              :human-race-full "Human race is full.")))
     (let [potions (get-potions)
           tutorials (get-tutorials)
           data (merge (:init params) potions {:tutorials tutorials})]
