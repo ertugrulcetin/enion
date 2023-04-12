@@ -9,7 +9,8 @@
     [enion-cljs.ui.db :as db]
     [enion-cljs.ui.utils :as ui.utils]
     [enion-cljs.utils :as common.utils]
-    [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx reg-cofx inject-cofx]]))
+    [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx reg-cofx inject-cofx]]
+    [vimsical.re-frame.cofx.inject :as inject]))
 
 (defonce throttle-timeouts (atom {}))
 
@@ -245,7 +246,7 @@
              (assoc db :skill-description nil
                     :show-skill-description? false)
 
-             (and still-hovering? prev-skill  (= prev-skill skill))
+             (and still-hovering? prev-skill (= prev-skill skill))
              (assoc db :skill-description skill
                     :show-skill-description? true)
 
@@ -419,6 +420,11 @@
         (assoc-in [:init-modal :error] error))))
 
 (reg-event-db
+  ::clear-init-modal-error
+  (fn [db]
+    (assoc-in db [:init-modal :error] nil)))
+
+(reg-event-db
   ::open-score-board
   (fn [db]
     (assoc-in db [:score-board :open?] true)))
@@ -504,11 +510,6 @@
   (fn [db [_ show-ui-panel?]]
     (assoc db :show-ui-panel? show-ui-panel?)))
 
-(reg-event-db
-  ::clear-init-modal-error
-  (fn [db]
-    (assoc-in db [:init-modal :error] nil)))
-
 (reg-event-fx
   ::fetch-server-stats
   (fn [{:keys [db]} [_ server-name stats-url]]
@@ -542,26 +543,46 @@
                                    :class class}]})))
 
 (reg-event-fx
+  ::connect-to-available-server
+  [(inject-cofx ::inject/sub [:enion-cljs.ui.subs/available-servers])]
+  (fn [{:keys [db]
+        :enion-cljs.ui.subs/keys [available-servers]}]
+    (when (and (not (-> db :servers :connecting?))
+               (seq available-servers))
+      (let [server (first available-servers)]
+        {:db (assoc-in db [:servers :connecting] (:name server))
+         ::fire [:connect-to-server {:server-name (:name server)
+                                     :ws-url (:ws-url server)}]}))))
+
+(reg-event-fx
   ::fetch-server-list
-  (fn []
+  (fn [_ [_ click-to-join?]]
     {:http {:method :get
             :uri "https://enion.io/servers"
-            :on-success [::fetch-server-list-success]
-            :on-failure [::fetch-server-list-failure]}}))
+            :on-success [::fetch-server-list-success click-to-join?]
+            :on-failure [::fetch-server-list-failure click-to-join?]}}))
 
 (defn- update-keys [f m]
   (into {} (map (fn [[k v]] [(f k) v]) m)))
 
-(reg-event-db
+(reg-event-fx
   ::fetch-server-list-success
-  (fn [db [_ response]]
-    (assoc-in db [:servers :list] (update-keys name response))))
+  (fn [{:keys [db]} [_ click-to-join? response]]
+    (let [servers (reduce-kv (fn [acc k v]
+                               (assoc acc k (assoc v :name k))) {} (update-keys name response))
+          db (assoc-in db [:servers :list] servers)]
+      (cond-> {:db db}
+        click-to-join? (assoc :dispatch-n (reduce-kv
+                                            (fn [acc k v]
+                                              (conj acc [::fetch-server-stats k (:stats-url v)]))
+                                            []
+                                            servers))))))
 
 (reg-event-fx
   ::fetch-server-list-failure
-  (fn []
+  (fn [_ [_ click-to-join?]]
     {:dispatch-later [{:ms 2000
-                       :dispatch [::fetch-server-list]}]}))
+                       :dispatch [::fetch-server-list click-to-join?]}]}))
 
 (reg-event-db
   ::finish-initializing

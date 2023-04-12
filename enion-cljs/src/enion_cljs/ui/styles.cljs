@@ -832,3 +832,8 @@
   {:composes [(get-hp-mp-potions-for-free)]
    :font-size "18px"
    :left :unset})
+
+(defattrs click-to-join-indicator-text []
+  {:font-size "48px"
+   :padding "48px"
+   :color "white"})

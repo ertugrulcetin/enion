@@ -303,6 +303,19 @@
     (-> db :servers :list)))
 
 (reg-sub
+  ::available-servers
+  :<- [::servers]
+  (fn [servers]
+    (->> servers
+         vals
+         (filter (fn [{:keys [number-of-players max-number-of-players]}]
+                   (and number-of-players
+                        max-number-of-players
+                        (< number-of-players max-number-of-players))))
+         (sort-by :ping)
+         seq)))
+
+(reg-sub
   ::current-server
   (fn [db]
     (-> db :servers :current-server)))
