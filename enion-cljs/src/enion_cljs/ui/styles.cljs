@@ -833,6 +833,21 @@
    :font-size "18px"
    :left :unset})
 
+(defattrs click-to-join-modal []
+  {:display "flex"
+   :justify-content "center"
+   :align-items "center"
+   :width "100%"
+   :height "100%"})
+
+(defclass click-to-join-modal-container []
+  {:z-index 3
+   :width "100%"
+   :height "100%"
+   :display "flex"
+   :justify-content "center"
+   :align-items "center"})
+
 (defattrs click-to-join-indicator-text []
   {:font-size "48px"
    :padding "48px"

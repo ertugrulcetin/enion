@@ -1102,7 +1102,8 @@
   [:span (styles/click-to-join-indicator-text)
    (let [err @(subscribe [::subs/init-modal-error])]
      (cond
-       err (str err " Please click to try again.")
+       err
+       (str err " Please click to try again.")
 
        (nil? @(subscribe [::subs/servers]))
        "Fetching servers list..."
@@ -1119,17 +1120,11 @@
 (defn- click-to-join-modal []
   (r/create-class
     {:component-did-mount #(dispatch [::events/notify-ui-is-ready])
-     ;; :component-will-mount #(when-not dev? (dispatch [::events/fetch-server-list true]))
-     :component-will-mount #(dispatch [::events/fetch-server-list true])
+     :component-will-mount #(when-not dev? (dispatch [::events/fetch-server-list true]))
      :component-will-unmount #(fire :on-ui-element? false)
      :reagent-render
      (fn []
-       [:div
-        {:style {:display "flex"
-                 :justify-content "center"
-                 :align-items "center"
-                 :width "100%"
-                 :height "100%"}}
+       [:div (styles/click-to-join-modal)
         [:a
          {:href "https://discord.gg/rmaTrYdV5V"
           :target "_blank"}
@@ -1137,15 +1132,10 @@
           {:src "img/dc.png"
            :class (styles/discord)}]]
         [:div
-         {:on-click #(do
+         {:class (styles/click-to-join-modal-container)
+          :on-click #(do
                        (dispatch [::events/clear-init-modal-error])
-                       (dispatch [::events/connect-to-available-server]))
-          :style {:z-index 3
-                  :width "100%"
-                  :height "100%"
-                  :display "flex"
-                  :justify-content "center"
-                  :align-items "center"}}
+                       (dispatch [::events/connect-to-available-server]))}
          [click-to-join-indicator-text]]])}))
 
 (defn- init-modal []
@@ -1154,8 +1144,7 @@
         class (r/atom nil)]
     (r/create-class
       {:component-did-mount #(dispatch [::events/notify-ui-is-ready])
-       :component-will-mount #(when dev? (dispatch [::events/fetch-server-list]))
-       ;; :component-will-mount #(when-not dev? (dispatch [::events/fetch-server-list]))
+       :component-will-mount #(when-not dev? (dispatch [::events/fetch-server-list]))
        :component-will-unmount #(fire :on-ui-element? false)
        :reagent-render
        (fn []
@@ -1327,8 +1316,8 @@
           device-dec/isMobile
           [mobile-user-modal]
 
-          ;; (not @game-init?)
-          ;; [click-to-join-modal]
+          (not @game-init?)
+          [click-to-join-modal]
 
           @(subscribe [::subs/init-modal-open?])
           [init-modal]

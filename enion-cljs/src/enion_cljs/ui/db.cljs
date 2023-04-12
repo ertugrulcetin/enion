@@ -25,9 +25,7 @@
    :player {:skills []
             :skill-move nil
             :defense-break? false}
-   :servers {:list
-             nil
-             #_(when dev?
+   :servers {:list (when dev?
                      {"local" {:ws-url "ws://localhost:3000/ws"
                                :stats-url "http://localhost:3000/stats"
                                :nmae "local"
