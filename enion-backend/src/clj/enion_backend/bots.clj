@@ -93,6 +93,12 @@
       6 [24.55 40.01]
       7 [29.63 41.25]}})
 
+(defn calculate-exp [{:keys [player-level base-exp decay-rate min-exp]
+                      :or {decay-rate 0.1}}]
+  (max min-exp (Math/round (* base-exp (Math/pow (Math/E) (- (* player-level decay-rate)))))))
+
+;; (calculate-exp {:player-level 1 :base-exp 100 :decay-rate 0.1 :min-exp 10})
+
 (def npc-types
   {:skeleton-warrior (merge
                        (:skeleton-warrior common.npc/npcs)

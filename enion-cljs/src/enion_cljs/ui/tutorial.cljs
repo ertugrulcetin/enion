@@ -99,17 +99,17 @@
     :intro "Press the <b>E</b> key to rotate the camera to the right."}])
 
 (def tutorials-order
-  [[:how-to-rotate-camera? "Adjust your camera rotation" how-to-rotate-camera]
-   [:rotate-camera-to-the-left "Rotate the camera to the left" how-to-rotate-camera-to-the-left]
-   [:rotate-camera-to-the-right "Rotate the camera to the right" how-to-rotate-camera-to-the-right]
-   [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster true]
+  [[:how-to-navigate? "Navigate with WASD Keys" navigation-steps]
+   [:how-to-rotate-camera? "Adjust your camera rotation" how-to-rotate-camera]
+   [:rotate-camera-to-the-left "Rotate camera to the left with Key Q" how-to-rotate-camera-to-the-left]
+   [:rotate-camera-to-the-right "Rotate camera to the right with Key E" how-to-rotate-camera-to-the-right]
+   ;; [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster true]
    [:how-to-use-portal? "Use portal to teleport to the forest" how-to-use-portal]
    [:how-to-cast-skills? "Use your skills to defeat enemies" how-to-cast-skills true]
    [:what-is-the-first-quest? "Get your first quest" what-is-the-first-quest]
    [:how-to-change-skill-order? "Change your skill order" how-to-change-skill-order true]])
 
 (on :ui-init-tutorial-data (fn [data] (reset! state data)))
-(on :ui-start-navigation-steps (fn [] (start-intro (navigation-steps))))
 
 (comment
 

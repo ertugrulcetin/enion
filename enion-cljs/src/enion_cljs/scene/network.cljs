@@ -449,14 +449,19 @@
 (defmethod dispatch-pro-response :connect-to-world-state [params]
   (when (:connect-to-world-state params)
     (let [tutorials (get-tutorials)
-          how-to-navigate? (:how-to-navigate? tutorials)]
+          how-to-navigate? (:how-to-navigate? tutorials)
+          how-to-navigate-done? (atom how-to-navigate?)
+          wasd-codes #{"KeyW" "KeyA" "KeyS" "KeyD"}
+          wasd-key-down-fn (fn [e]
+                             (when (and (not @how-to-navigate-done?) (wasd-codes (j/get-in e [:event :code])))
+                               (reset! how-to-navigate-done? true)
+                               (utils/finish-tutorial-step :how-to-navigate?)))]
       (send-states-to-server)
       (dispatch-pro :request-all-players)
       (fire :ui-player-ready)
       (create-ping-interval)
       (when-not how-to-navigate?
-        (fire :ui-start-navigation-steps)
-        (utils/set-item "tutorials" (pr-str (assoc tutorials :how-to-navigate? true)))))))
+        (pc/on-keyboard :EVENT_KEYDOWN wasd-key-down-fn)))))
 
 (defmethod dispatch-pro-response :request-all-players [params]
   (let [params (:request-all-players params)
