@@ -30,4 +30,5 @@
                                :stats-url "http://localhost:3000/stats"
                                :name "local"
                                :number-of-players 0
-                               :max-number-of-players 40}})}})
+                               :max-number-of-players 40}})
+             :last-list-fetched-time (js/Date.now)}})

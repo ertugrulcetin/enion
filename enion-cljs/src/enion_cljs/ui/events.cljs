@@ -548,6 +548,7 @@
   (fn [{:keys [db]
         :enion-cljs.ui.subs/keys [available-servers]}]
     (when (and (not (-> db :servers :connecting))
+               available-servers
                (seq available-servers))
       (let [server (first available-servers)]
         {:db (assoc-in db [:servers :connecting] (:name server))
@@ -570,7 +571,9 @@
   (fn [{:keys [db]} [_ click-to-join? response]]
     (let [servers (reduce-kv (fn [acc k v]
                                (assoc acc k (assoc v :name k))) {} (update-keys name response))
-          db (assoc-in db [:servers :list] servers)]
+          db (-> db
+                 (assoc-in [:servers :list] servers)
+                 (assoc-in [:servers :last-list-fetched-time] (js/Date.now)))]
       (cond-> {:db db}
         click-to-join? (assoc :dispatch-n (reduce-kv
                                             (fn [acc k v]
