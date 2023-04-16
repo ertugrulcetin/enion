@@ -36,6 +36,7 @@
 (defn close-for-skill? [selected-player-id]
   (let [close? (or (nil? selected-player-id)
                    (st/enemy-selected? selected-player-id)
+                   (st/npc-selected?)
                    (and selected-player-id
                         (st/ally-selected? selected-player-id)
                         (<= (st/distance-to selected-player-id) common.skills/priest-skills-distance-threshold)))]

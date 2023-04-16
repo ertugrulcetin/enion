@@ -93,10 +93,17 @@
    :human-ghoul-right-2 (generate-points [-25.09 44.48] 2.5 10 1)
    :human-skeleton-warrior-left-1 (generate-points [-28.69 17.24] 2.5 10 1)
    :human-skeleton-warrior-left-2 (generate-points [-44.73 8.65] 2.5 10 1)
-   :demon (generate-points [46.35 -3.27] 4 20 1.2)
+   :orc-demon (generate-points [44.85 -20.86] 4 20 1.2)
+   :human-demon (generate-points [-18.58 37.38] 4 20 1.2)
    :gravestalker-1 (generate-points [7.16 2.96] 6 20 1.2)
    :gravestalker-2 (generate-points [-7.7 -7.06] 6 20 1.2)
-   :skeleton-champion-portal (generate-points [26.8 38.34] 4.5 10 1)})
+   :skeleton-champion-portal (generate-points [26.8 38.34] 4.5 10 1)
+   :deruvish-1 (generate-points [-28.17 -28.46] 3 10 1)
+   :deruvish-2 (generate-points [-44.45 -39.63] 3.5 12 1)
+   :deruvish-forest (generate-points [41.2 21.21] 3.5 12 1)
+   :orc-burning-skeleton-forest-1 (generate-points [35.95 -4.81] 3 12 1)
+   :orc-burning-skeleton-forest-2 (generate-points [43.9 10.14] 3 12 1)
+   :orc-burning-skeleton-forest-3 (generate-points [29.01 20.75] 3 12 1)})
 
 (defn calculate-exp [{:keys [player-level base-exp decay-rate min-exp]
                       :or {decay-rate 0.1}}]
@@ -139,6 +146,21 @@
                          :target-locked-threshold 10000
                          :target-pos-gap-threshold 0.2
                          :re-spawn-interval 14000})
+   :burning-skeleton (merge
+                       (:burning-skeleton common.npc/npcs)
+                       {:attack-range-threshold 0.6
+                        :change-pos-interval 15000
+                        :change-pos-speed 0.02
+                        :chase-range-threshold 20
+                        :chase-speed 0.12
+                        :cooldown 2000
+                        :damage-buffer-size 150
+                        :damage-fn #(utils/rand-between 200 350)
+                        :drop {:items [:hp-potion :mp-potion]
+                               :count-fn #(utils/rand-between 3 8)}
+                        :target-locked-threshold 10000
+                        :target-pos-gap-threshold 0.2
+                        :re-spawn-interval 14000})
    :squid (merge
             (:squid common.npc/npcs)
             {:attack-range-threshold 1.5
@@ -187,7 +209,7 @@
    :gravestalker (merge
                    (:gravestalker common.npc/npcs)
                    {:attack-range-threshold 0.5
-                    :change-pos-interval 22000
+                    :change-pos-interval 42000
                     :change-pos-speed 0.005
                     :chase-range-threshold 15
                     :chase-speed 0.13
@@ -198,7 +220,23 @@
                            :count-fn #(utils/rand-between 1 2)}
                     :target-locked-threshold 10000
                     :target-pos-gap-threshold 0.2
-                    :re-spawn-interval 22000})})
+                    :re-spawn-interval 22000})
+   :deruvish (merge
+               (:deruvish common.npc/npcs)
+               {:attack-range-threshold 7
+                :change-pos-interval 24000
+                :change-pos-speed 0.02
+                :chase-range-threshold 25
+                :chase-speed 0.12
+                :attack-when-close-range-threshold 2
+                :cooldown 1200
+                :damage-buffer-size 150
+                :damage-fn #(utils/rand-between 300 400)
+                :drop {:items [:hp-potion :mp-potion]
+                       :count-fn #(utils/rand-between 1 2)}
+                :target-locked-threshold 10000
+                :target-pos-gap-threshold 0.2
+                :re-spawn-interval 21000})})
 
 (defn create-npc [{:keys [init-pos slot-id type taken-slot-pos-id]}]
   (let [attrs (npc-types type)
@@ -255,7 +293,17 @@
                                   (<= (v2/dist (:init-pos npc) player-pos) (:chase-range-threshold npc))
                                   (not (hide? attacker-id players))))))
                  last
-                 :attacker-id))))
+                 :attacker-id)
+        (and (:attack-when-close-range-threshold npc)
+             (->> (keys players)
+                  (filter (fn [player-id]
+                            (let [player (get world player-id)
+                                  player-pos [(:px player) (:pz player)]]
+                              (and player
+                                   (alive? player)
+                                   (<= (v2/dist (:pos npc) player-pos) (:attack-when-close-range-threshold npc))
+                                   (not (hide? player-id players))))))
+                  first)))))
 
 (defn- player-close-for-attack? [npc player-id world]
   (let [player (get world player-id)
@@ -548,9 +596,16 @@
                                         {:type :skeleton-warrior :slot-id :human-skeleton-warrior-left-1 :count 5}
                                         {:type :skeleton-warrior :slot-id :human-skeleton-warrior-left-2 :count 5}
                                         {:type :skeleton-champion :slot-id :skeleton-champion-portal :count 5}
-                                        {:type :demon :slot-id :demon :count 5}
+                                        {:type :demon :slot-id :orc-demon :count 5}
+                                        {:type :demon :slot-id :human-demon :count 5}
                                         {:type :gravestalker :slot-id :gravestalker-1 :count 6}
-                                        {:type :gravestalker :slot-id :gravestalker-2 :count 6}]]
+                                        {:type :gravestalker :slot-id :gravestalker-2 :count 6}
+                                        {:type :deruvish :slot-id :deruvish-1 :count 5}
+                                        {:type :deruvish :slot-id :deruvish-2 :count 5}
+                                        {:type :deruvish :slot-id :deruvish-forest :count 5}
+                                        {:type :burning-skeleton :slot-id :orc-burning-skeleton-forest-1 :count 5}
+                                        {:type :burning-skeleton :slot-id :orc-burning-skeleton-forest-2 :count 5}
+                                        {:type :burning-skeleton :slot-id :orc-burning-skeleton-forest-3 :count 5}]]
     (dotimes [_ count]
       (add-npc npcs {:type type
                      :slot-id slot-id}))))
