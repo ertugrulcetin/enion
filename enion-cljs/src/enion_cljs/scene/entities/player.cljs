@@ -12,7 +12,8 @@
     [enion-cljs.scene.skills.priest :as skills.priest]
     [enion-cljs.scene.skills.warrior :as skills.warrior]
     [enion-cljs.scene.states :as st :refer [player other-players npcs]]
-    [enion-cljs.scene.utils :as utils])
+    [enion-cljs.scene.utils :as utils]
+    [enion-cljs.utils :as common.utils])
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
@@ -229,7 +230,9 @@
     (let [result (st/get-closest-terrain-hit e)
           hit-entity-name (j/get-in result [:entity :name])]
       (when (= "terrain" hit-entity-name)
-        ;; (println (j/get-in result [:point]))
+        (println
+          (common.utils/parse-float (j/get-in result [:point :x]) 2)
+          (common.utils/parse-float (j/get-in result [:point :z]) 2))
         (let [x (j/get-in result [:point :x])
               y (j/get-in result [:point :y])
               z (j/get-in result [:point :z])

@@ -28,6 +28,47 @@
            :mana 1500}})
 
 
+(comment
+  {:config {}
+   :tutorials {}
+   :asas {:level 1
+          :exp 0
+          :coins 0}}
+
+  (take 60 (iterate
+             (fn [x]
+               (Math/round (+ x (Math/log (Math/pow x 2)))))
+             100))
+
+  (take 60 (iterate
+             (fn [x]
+               (Math/round (+ x (Math/exp (Math/log x)))))
+             50))
+
+  (defn calculate-exp [initial-exp num-levels]
+  (loop [current-level 1
+         exp initial-exp
+         exps [initial-exp]]
+    (if (> current-level num-levels)
+      exps
+      (let [base-multiplier 1.31415
+            base-increment Math/PI
+            increment-factor (* 0.1 current-level)
+            next-exp (int (* exp base-multiplier))]
+        (recur (inc current-level)
+               (+ next-exp base-increment)
+               (conj exps (Math/round (+ next-exp base-increment))))))))
+  (map-indexed #(vector (inc %1) %2) (calculate-exp 120 30))
+
+  (defn calculate-exp [initial-exp num-levels]
+    (let [exp-seq (iterate #(Math/round (+ % (* 0.3 %))) initial-exp)]
+      (take num-levels exp-seq)))
+
+  (calculate-exp 100 30)
+
+  )
+
+
 (defn- create-damage-fn
   [start end]
   (fn [has-defense? got-break-defense?]
@@ -37,6 +78,42 @@
            got-break-defense? 1.3
            has-defense? 0.85
            :else 1)))))
+
+
+;; attacker-skill-damage-fn returns a random number with given range
+(defn calculate-damage
+  [player-defense-power
+   attacker-attack-power
+   attacker-skill-damage-fn
+   damage-reduction]
+  (let [skill-damage (attacker-skill-damage-fn)
+        base-damage (* attacker-attack-power skill-damage)
+        mitigated-damage (* player-defense-power damage-reduction)
+        final-damage (max 0 (- base-damage mitigated-damage))]
+    final-damage))
+
+
+(comment
+  (calculate-damage 10 25 (constantly 10) 0.4)
+  )
+
+
+(defn example-skill-damage-fn
+  []
+  (+ 1.0 (* 0.5 (rand))))
+
+
+;; Sample player and attacker attributes
+(def player-defense-power 50)
+(def attacker-attack-power 100)
+
+
+;; Sample damage reduction (0.4 or 40% reduction)
+(def damage-reduction 0.4)
+
+
+(comment
+  (calculate-damage 300 attacker-attack-power example-skill-damage-fn damage-reduction))
 
 
 (def skills

@@ -182,9 +182,6 @@
 (defn apply-effect-ice-spell [state]
   (effect-ice-spell (j/get-in state [:effects :attack_ice]) 0.25))
 
-(comment
-  (apply-effect-ice-spell player))
-
 (defn apply-effect-hp-potion [state]
   (effect-particle-fade-out (j/get-in state [:effects :particle_hp_potion]) 1.5))
 
@@ -196,6 +193,28 @@
 
 (defn apply-effect-fleet-foot [state]
   (effect-particle-fade-out (j/get-in state [:effects :particle_fleet_foot]) 1))
+
+(defn apply-effect-die [state]
+  (let [template-entity (j/get-in state [:effects :particle_died :entity])
+        particle-entity (pc/find-by-name template-entity "particle_1")
+        par (j/get-in particle-entity [:c :particlesystem])]
+    (pc/enable template-entity)
+    (j/call par :reset)
+    (j/call par :play)))
+
+(defn apply-effect-level-up [state]
+  (let [template-entity (j/get-in state [:effects :particle_level_up :entity])]
+    (pc/enable template-entity)
+    (doseq [p ["particle_1" "particle_2"]
+            :let [particle-entity (pc/find-by-name template-entity p)
+                  par (j/get-in particle-entity [:c :particlesystem])]]
+      (j/call par :reset)
+      (j/call par :play))))
+
+(comment
+  (apply-effect-die player)
+  (apply-effect-level-up player)
+  )
 
 (let [elapsed-time (volatile! 0)]
   (defn- update-fn [dt]

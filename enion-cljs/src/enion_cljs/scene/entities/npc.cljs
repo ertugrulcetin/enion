@@ -10,8 +10,11 @@
     [enion-cljs.scene.utils :as utils]
     [enion-cljs.utils :as common.utils]))
 
-(defonce npc-template-entities (delay {:skeleton-warrior (pc/find-by-name "skeleton_warrior")
-                                       :skeleton-champion (pc/find-by-name "skeleton_champion")}))
+(defonce npc-template-entities (delay (->> (j/get-in (pc/find-by-name "npcs") [:children])
+                                           (map (fn [c]
+                                                  (let [name (j/get c :name)]
+                                                    [(csk/->kebab-case-keyword name) (pc/find-by-name name)])))
+                                           (into {}))))
 
 (defn init-npcs [npcs]
   (doseq [[npc-type ids] npcs
@@ -184,3 +187,29 @@
           (pc/look-at model (j/get target-player-pos :x) new-y (j/get target-player-pos :z) true)
           (pc/look-at model new-x new-y new-z true)))
       (j/assoc-in! st/npcs [npc-id :prev-state] state))))
+
+(comment
+
+  (do
+    (doseq [a (pc/find-all-by-name "locater")]
+      (j/call a :destroy))
+
+    (let [name "locater"
+          e (pc/find-by-name "squid")]
+      (doseq [[x z] [[24.10118810509566 -41.42676665890647]
+ [22.413737237288668 -40.882462861510334]
+ [22.746067616117486 -39.06673485478516]
+ [24.370126459949823 -40.44458741812297]
+ [25.240582261709086 -39.229046596863085]
+ [25.19080946405983 -41.58223290627667]
+ [24.005997146204468 -39.175905759971684]
+ [23.220018356527312 -40.25332547275015]
+ [26.075023921366405 -39.83983757536122]
+ [23.044623319622286 -41.680237567152986]]
+              :let [entity (pc/clone e)]]
+        (j/assoc! entity :name name)
+        (pc/enable entity)
+        (pc/add-child (pc/root) entity)
+        (pc/set-pos entity x 0.55 z))))
+
+  )

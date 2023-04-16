@@ -1,0 +1,5 @@
+Class	Level 1 Health	Level 60 Health - Level 1 Mana - Level 60 Mana
+Mage	750	2500 - 1125 3750
+Asas	900	3250 - 800 2750
+Priest	1000 4000 - 900 3250
+Warrior	1200 5000 - 800 2750

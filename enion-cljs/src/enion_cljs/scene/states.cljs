@@ -2,11 +2,11 @@
   (:require
     [applied-science.js-interop :as j]
     [clojure.data :as data]
-    [enion-cljs.common :refer [fire on]]
+    [enion-cljs.common :refer [fire on dev?]]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]))
 
-(def speed 550)
+(def speed (if dev? 3000 550))
 (def speed-fleet-foot 750)
 (def speed-fleet-foot-asas 900)
 

@@ -31,6 +31,9 @@
   ([entity name]
    (j/call entity :findByName name)))
 
+(defn find-all-by-name [name]
+  (j/call-in app [:root :find] (fn [x] (= name (j/get x :name)))))
+
 (defn find-by-tag [tag]
   (j/call-in app [:root :findByTag] tag))
 
