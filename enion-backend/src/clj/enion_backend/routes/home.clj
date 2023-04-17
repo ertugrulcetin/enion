@@ -8,9 +8,9 @@
     [clojure.tools.logging :as log]
     [common.enion.skills :as common.skills]
     [enion-backend.async :as easync :refer [dispatch dispatch-in reg-pro]]
-    [enion-backend.bots :as bots]
     [enion-backend.layout :as layout]
     [enion-backend.middleware :as middleware]
+    [enion-backend.npc.core :as npc]
     [enion-backend.teatime :as tea]
     [enion-backend.utils :as utils :refer [dev?]]
     [manifold.deferred :as d]
@@ -115,7 +115,7 @@
   (mount/stop)
   (mount/start)
 
-  bots/npcs
+  npc/npcs
   )
 
 (defn- send-world-snapshots* []
@@ -132,7 +132,7 @@
           w (if (empty? effects) w (assoc w :effects effects))
           w (if (empty? kills) w (assoc w :kills kills))
           w (if (empty? npc-effects) w (assoc w :npc-effects npc-effects))
-          all-npcs (bots/update-all-npcs! w current-players)
+          all-npcs (npc/update-all-npcs! w current-players)
           w (if (empty? all-npcs) w (assoc w :npcs all-npcs))
           w (reduce-kv
               (fn [w id v]
@@ -462,7 +462,7 @@
   :request-all-players
   (fn [_]
     {:players (map #(select-keys % [:id :username :race :class :health :mana :pos]) (vals @players))
-     :npcs (bots/npc-types->ids)}))
+     :npcs (npc/npc-types->ids)}))
 
 (def ping-high {:error :ping-high})
 (def skill-failed {:error :skill-failed})
@@ -637,7 +637,7 @@
                              priest-skill?
                              break-defense?
                              dont-use-mana?]}]
-  (when-let [npc (get @bots/npcs selected-player-id)]
+  (when-let [npc (get @npc/npcs selected-player-id)]
     (let [player-world-state (get current-world id)]
       (if-let [err (when validate-attack-skill-fn
                      (validate-attack-skill-fn {:id id
@@ -650,11 +650,11 @@
                                                 :priest-skill? priest-skill?}))]
         err
         (let [_ (update-last-combat-time id)
-              damage (bots/make-player-attack! {:skill skill
-                                                :player player
-                                                :npc npc
-                                                :slow-down? slow-down?
-                                                :break-defense? break-defense?})]
+              damage (npc/make-player-attack! {:skill skill
+                                               :player player
+                                               :npc npc
+                                               :slow-down? slow-down?
+                                               :break-defense? break-defense?})]
           (when-not dont-use-mana?
             (swap! world update-in [id :mana] - (get-required-mana skill)))
           (some-> effect (add-effect-to-npc selected-player-id))
@@ -1194,5 +1194,5 @@
                        {:traces-sample-rate 1.0}))
 
 (defstate ^{:on-reload :noop} init-npcs
-  :start (bots/init-npcs)
-  :stop (bots/clear-npcs))
+  :start (npc/init-npcs)
+  :stop (npc/clear-npcs))

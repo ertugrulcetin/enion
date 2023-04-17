@@ -1,4 +1,4 @@
-(ns enion-backend.bots
+(ns enion-backend.npc.core
   (:require
     [amalloy.ring-buffer :refer :all]
     [clojure.set :as set]
@@ -6,6 +6,8 @@
     [common.enion.npc :as common.npc]
     [common.enion.skills :as common.skills]
     [enion-backend.async :refer [dispatch-in]]
+    [enion-backend.npc.slot :as slots]
+    [enion-backend.npc.type :as npc.type]
     [enion-backend.utils :as utils]
     [enion-backend.vector2 :as v2]))
 
@@ -17,94 +19,6 @@
 
 (defonce npcs (atom {}))
 
-(defn- distance [point1 point2]
-  (let [dx (- (first point1) (first point2))
-        dy (- (second point1) (second point2))]
-    (Math/sqrt (+ (* dx dx) (* dy dy)))))
-
-(defn- random-angle []
-  (* 2 Math/PI (rand)))
-
-(defn- random-point-in-circle [origin radius]
-  (let [angle (random-angle)
-        dist (* radius (Math/sqrt (rand)))
-        x (+ (first origin) (* dist (Math/cos angle)))
-        y (+ (second origin) (* dist (Math/sin angle)))]
-    [x y]))
-
-(defn- generate-points [origin radius num-points min-distance]
-  (->> (loop [points []]
-         (if (< (count points) num-points)
-           (let [point (random-point-in-circle origin radius)]
-             (if (some #(<= (distance % point) min-distance) points)
-               (recur points)
-               (recur (conj points point))))
-           points))
-       (map-indexed vector)
-       (into {})))
-
-(comment
-  (println 'a)
-  (vec (vals (generate-points [24.24 -40.34] 2 10 1)))
-
-  )
-
-;; Stats points for mage
-{:class :mage
- ;; Attack
- :str 10
- ;; Defense
- :def 10
- ;; Health
- :hp 5
- ;; Mana
- :mp 5
- ;; Luck
- :luck 5}
-
-;; Loot data
-{:item :sword
- :npcs [:skeleton-warrior]
- :chance (double (/ 1 100))}
-
-;; Player data
-{:number-of-killed-npc {:skeleton-warrior 10}
- :luck 5}
-
-;; Returns true or false
-(defn get-drop? [drop player])
-
-(def slots
-  {:orc-squid-right-1 (generate-points [26.55 -33.29] 2 10 1)
-   :orc-squid-right-2 (generate-points [24.24 -40.34] 2 10 1)
-   :orc-squid-left-1 (generate-points [32.83 -27.373] 2 10 1)
-   :orc-squid-left-2 (generate-points [41.01 -25.792] 2 10 1)
-   :orc-ghoul-left-1 (generate-points [37.25 -20.0968] 2.5 10 1)
-   :orc-ghoul-left-2 (generate-points [46.61 -29.02] 2.5 10 1)
-   :orc-ghoul-right-1 (generate-points [24.65 -46.55] 2.5 10 1)
-   :orc-skeleton-warrior-right-1 (generate-points [17.44 -28.06] 2.5 10 1)
-   :orc-skeleton-warrior-left-1 (generate-points [29.05 -16.1] 2.5 10 1)
-   :human-squid-left-1 (generate-points [-35.94 23.998] 2 10 1)
-   :human-squid-left-2 (generate-points [-44.92 23.9453] 2 10 1)
-   :human-squid-right-1 (generate-points [-31.526 29.9057] 2 10 1)
-   :human-squid-right-2 (generate-points [-24.49 36.5530] 2.5 10 1)
-   :human-ghoul-left-1 (generate-points [-39.59 18.97] 2.5 10 1)
-   :human-ghoul-right-1 (generate-points [-23.31 28.79] 2.5 10 1)
-   :human-ghoul-right-2 (generate-points [-25.09 44.48] 2.5 10 1)
-   :human-skeleton-warrior-left-1 (generate-points [-28.69 17.24] 2.5 10 1)
-   :human-skeleton-warrior-left-2 (generate-points [-44.73 8.65] 2.5 10 1)
-   :orc-demon (generate-points [44.85 -20.86] 4 20 1.2)
-   :human-demon (generate-points [-18.58 37.38] 4 20 1.2)
-   :gravestalker-1 (generate-points [7.16 2.96] 6 20 1.2)
-   :gravestalker-2 (generate-points [-7.7 -7.06] 6 20 1.2)
-   :skeleton-champion-portal (generate-points [26.8 38.34] 4.5 10 1)
-   :deruvish-1 (generate-points [-28.17 -28.46] 3 10 1)
-   :deruvish-2 (generate-points [-44.45 -39.63] 3.5 12 1)
-   :deruvish-forest (generate-points [41.2 21.21] 3.5 12 1)
-   :orc-burning-skeleton-forest-1 (generate-points [35.95 -4.81] 3 12 1)
-   :orc-burning-skeleton-forest-2 (generate-points [43.9 10.14] 3 12 1)
-   :orc-burning-skeleton-forest-3 (generate-points [29.01 20.75] 3 12 1)})
-
 (defn calculate-exp [{:keys [player-level base-exp decay-rate min-exp]
                       :or {decay-rate 0.1}}]
   (max min-exp (Math/round (* base-exp (Math/pow (Math/E) (- (* player-level decay-rate)))))))
@@ -112,134 +26,10 @@
 (comment
   (calculate-exp {:player-level 6
                   :base-exp 1200
-                  :decay-rate 0.1
                   :min-exp 10}))
 
-(def npc-types
-  {:skeleton-warrior (merge
-                       (:skeleton-warrior common.npc/npcs)
-                       {:attack-range-threshold 0.5
-                        :change-pos-interval 15000
-                        :change-pos-speed 0.02
-                        :chase-range-threshold 15
-                        :chase-speed 0.1
-                        :cooldown 2000
-                        :damage-buffer-size 100
-                        :damage-fn #(utils/rand-between 150 200)
-                        :drop {:items [:hp-potion :mp-potion]
-                               :count-fn #(utils/rand-between 1 3)}
-                        :target-locked-threshold 10000
-                        :target-pos-gap-threshold 0.2
-                        :re-spawn-interval 12000})
-   :skeleton-champion (merge
-                        (:skeleton-champion common.npc/npcs)
-                        {:attack-range-threshold 0.6
-                         :change-pos-interval 15000
-                         :change-pos-speed 0.02
-                         :chase-range-threshold 20
-                         :chase-speed 0.12
-                         :cooldown 2000
-                         :damage-buffer-size 150
-                         :damage-fn #(utils/rand-between 300 450)
-                         :drop {:items [:hp-potion :mp-potion]
-                                :count-fn #(utils/rand-between 3 8)}
-                         :target-locked-threshold 10000
-                         :target-pos-gap-threshold 0.2
-                         :re-spawn-interval 14000})
-   :burning-skeleton (merge
-                       (:burning-skeleton common.npc/npcs)
-                       {:attack-range-threshold 0.6
-                        :change-pos-interval 15000
-                        :change-pos-speed 0.02
-                        :chase-range-threshold 20
-                        :chase-speed 0.12
-                        :cooldown 2000
-                        :damage-buffer-size 150
-                        :damage-fn #(utils/rand-between 200 350)
-                        :drop {:items [:hp-potion :mp-potion]
-                               :count-fn #(utils/rand-between 3 8)}
-                        :target-locked-threshold 10000
-                        :target-pos-gap-threshold 0.2
-                        :re-spawn-interval 14000})
-   :squid (merge
-            (:squid common.npc/npcs)
-            {:attack-range-threshold 1.5
-             :change-pos-interval 8000
-             :change-pos-speed 0.02
-             :chase-range-threshold 20
-             :chase-speed 0.12
-             :cooldown 2000
-             :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 50 90)
-             :drop {:items [:hp-potion :mp-potion]
-                    :count-fn #(utils/rand-between 1 2)}
-             :target-locked-threshold 10000
-             :target-pos-gap-threshold 0.2
-             :re-spawn-interval 10000})
-   :ghoul (merge
-            (:ghoul common.npc/npcs)
-            {:attack-range-threshold 1.5
-             :change-pos-interval 8000
-             :change-pos-speed 0.02
-             :chase-range-threshold 20
-             :chase-speed 0.12
-             :cooldown 2000
-             :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 80 130)
-             :drop {:items [:hp-potion :mp-potion]
-                    :count-fn #(utils/rand-between 1 2)}
-             :target-locked-threshold 10000
-             :target-pos-gap-threshold 0.2
-             :re-spawn-interval 10000})
-   :demon (merge
-            (:demon common.npc/npcs)
-            {:attack-range-threshold 1
-             :change-pos-interval 7000
-             :change-pos-speed 0.02
-             :chase-range-threshold 15
-             :chase-speed 0.13
-             :cooldown 1500
-             :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 110 160)
-             :drop {:items [:hp-potion :mp-potion]
-                    :count-fn #(utils/rand-between 1 2)}
-             :target-locked-threshold 10000
-             :target-pos-gap-threshold 0.2
-             :re-spawn-interval 16000})
-   :gravestalker (merge
-                   (:gravestalker common.npc/npcs)
-                   {:attack-range-threshold 0.5
-                    :change-pos-interval 42000
-                    :change-pos-speed 0.005
-                    :chase-range-threshold 15
-                    :chase-speed 0.13
-                    :cooldown 2000
-                    :damage-buffer-size 100
-                    :damage-fn #(utils/rand-between 300 400)
-                    :drop {:items [:hp-potion :mp-potion]
-                           :count-fn #(utils/rand-between 1 2)}
-                    :target-locked-threshold 10000
-                    :target-pos-gap-threshold 0.2
-                    :re-spawn-interval 22000})
-   :deruvish (merge
-               (:deruvish common.npc/npcs)
-               {:attack-range-threshold 7
-                :change-pos-interval 24000
-                :change-pos-speed 0.02
-                :chase-range-threshold 25
-                :chase-speed 0.12
-                :attack-when-close-range-threshold 2
-                :cooldown 1200
-                :damage-buffer-size 150
-                :damage-fn #(utils/rand-between 300 400)
-                :drop {:items [:hp-potion :mp-potion]
-                       :count-fn #(utils/rand-between 1 2)}
-                :target-locked-threshold 10000
-                :target-pos-gap-threshold 0.2
-                :re-spawn-interval 21000})})
-
 (defn create-npc [{:keys [init-pos slot-id type taken-slot-pos-id]}]
-  (let [attrs (npc-types type)
+  (let [attrs (npc.type/npc-params type)
         change-pos-interval (:change-pos-interval attrs)]
     (merge
       attrs
@@ -258,7 +48,7 @@
   (get-in @npcs [npc-id :state :name]))
 
 (defn- find-available-slot-pos-id [npcs slot-id]
-  (let [slot-pos-ids (set (keys (get slots slot-id)))
+  (let [slot-pos-ids (set (keys (get slots/slot-positions slot-id)))
         taken-slot-pos-ids (->> (vals @npcs)
                                 (filter #(= slot-id (:slot-id %)))
                                 (map :taken-slot-pos-id)
@@ -267,7 +57,7 @@
 
 (defn- add-npc [npcs {:keys [type slot-id]}]
   (let [available-slot-pos-id (find-available-slot-pos-id npcs slot-id)
-        init-pos (get-in slots [slot-id available-slot-pos-id])
+        init-pos (get-in slots/slot-positions [slot-id available-slot-pos-id])
         npc (create-npc {:type type
                          :slot-id slot-id
                          :init-pos init-pos
@@ -331,7 +121,7 @@
         (assoc npc :pos new-pos)))
     (let [slot-id (:slot-id npc)
           available-slot-pos-id (find-available-slot-pos-id npcs slot-id)
-          target-pos (get-in slots [slot-id available-slot-pos-id])]
+          target-pos (get-in slots/slot-positions [slot-id available-slot-pos-id])]
       (assoc npc :target-pos target-pos
              :init-pos target-pos
              :taken-slot-pos-id available-slot-pos-id
@@ -566,7 +356,7 @@
                    (if (>= (- (System/currentTimeMillis) (:last-time-died npc)) (:re-spawn-interval npc))
                      (let [slot-id (:slot-id npc)
                            available-slot-pos-id (find-available-slot-pos-id npcs slot-id)
-                           pos (get-in slots [slot-id available-slot-pos-id])]
+                           pos (get-in slots/slot-positions [slot-id available-slot-pos-id])]
                        (-> npc
                            (assoc :health (get-in common.npc/npcs [(:type npc) :health])
                                   :pos pos)
@@ -577,35 +367,7 @@
                  npc)}})
 
 (defn init-npcs []
-  (doseq [{:keys [type slot-id count]} [{:type :squid :slot-id :orc-squid-right-1 :count 5}
-                                        {:type :squid :slot-id :orc-squid-right-2 :count 5}
-                                        {:type :squid :slot-id :orc-squid-left-1 :count 5}
-                                        {:type :squid :slot-id :orc-squid-left-2 :count 5}
-                                        {:type :ghoul :slot-id :orc-ghoul-left-1 :count 5}
-                                        {:type :ghoul :slot-id :orc-ghoul-left-2 :count 5}
-                                        {:type :ghoul :slot-id :orc-ghoul-right-1 :count 5}
-                                        {:type :skeleton-warrior :slot-id :orc-skeleton-warrior-right-1 :count 5}
-                                        {:type :skeleton-warrior :slot-id :orc-skeleton-warrior-left-1 :count 5}
-                                        {:type :squid :slot-id :human-squid-left-1 :count 5}
-                                        {:type :squid :slot-id :human-squid-left-2 :count 5}
-                                        {:type :squid :slot-id :human-squid-right-1 :count 5}
-                                        {:type :squid :slot-id :human-squid-right-2 :count 5}
-                                        {:type :ghoul :slot-id :human-ghoul-left-1 :count 5}
-                                        {:type :ghoul :slot-id :human-ghoul-right-1 :count 5}
-                                        {:type :ghoul :slot-id :human-ghoul-right-2 :count 5}
-                                        {:type :skeleton-warrior :slot-id :human-skeleton-warrior-left-1 :count 5}
-                                        {:type :skeleton-warrior :slot-id :human-skeleton-warrior-left-2 :count 5}
-                                        {:type :skeleton-champion :slot-id :skeleton-champion-portal :count 5}
-                                        {:type :demon :slot-id :orc-demon :count 5}
-                                        {:type :demon :slot-id :human-demon :count 5}
-                                        {:type :gravestalker :slot-id :gravestalker-1 :count 6}
-                                        {:type :gravestalker :slot-id :gravestalker-2 :count 6}
-                                        {:type :deruvish :slot-id :deruvish-1 :count 5}
-                                        {:type :deruvish :slot-id :deruvish-2 :count 5}
-                                        {:type :deruvish :slot-id :deruvish-forest :count 5}
-                                        {:type :burning-skeleton :slot-id :orc-burning-skeleton-forest-1 :count 5}
-                                        {:type :burning-skeleton :slot-id :orc-burning-skeleton-forest-2 :count 5}
-                                        {:type :burning-skeleton :slot-id :orc-burning-skeleton-forest-3 :count 5}]]
+  (doseq [{:keys [type slot-id count]} slots/slots]
     (dotimes [_ count]
       (add-npc npcs {:type type
                      :slot-id slot-id}))))

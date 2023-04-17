@@ -1,7 +1,7 @@
 (ns enion-backend.routes.mage
   (:require
     [common.enion.skills :as common.skills]
-    [enion-backend.bots :as bots]
+    [enion-backend.npc.core :as npc]
     [enion-backend.routes.home :refer :all]
     [enion-backend.teatime :as tea]))
 
@@ -51,7 +51,7 @@
                                            :x x
                                            :y y
                                            :z z})
-              npcs @bots/npcs
+              npcs @npc/npcs
               damaged-enemies (doall
                                 (for [enemy-id (keys current-players)
                                       :let [enemy-world-state (get current-world enemy-id)]

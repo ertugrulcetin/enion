@@ -28,6 +28,71 @@
            :mana 1500}})
 
 
+(def level->exp-table
+  {1 100
+   2 190
+   3 342
+   4 581
+   5 929
+   6 1393
+   7 1950
+   8 2535
+   9 5070
+   10 6084
+   11 7300
+   12 8760
+   13 10512
+   14 12612
+   15 15136
+   16 18163
+   17 21795
+   18 26134
+   19 52308
+   20 60154
+   21 69177
+   22 79553
+   23 91485
+   24 105207
+   25 120988
+   26 139139
+   27 160006
+   28 184006
+   29 268012})
+
+
+(def level->attack-power-table
+  {1 100
+   2 109
+   3 118
+   4 128
+   5 138
+   6 148
+   7 158
+   8 168
+   9 178
+   10 188
+   11 198
+   12 209
+   13 220
+   14 231
+   15 242
+   16 253
+   17 264
+   18 275
+   19 286
+   20 297
+   21 308
+   22 319
+   23 331
+   24 343
+   25 355
+   26 367
+   27 379
+   28 391
+   29 403
+   30 415})
+
+
 (comment
   {:config {}
    :tutorials {}
@@ -35,7 +100,7 @@
           :exp 0
           :coins 0}}
 
-  (take 60 (iterate
+  (take 30 (iterate
              (fn [x]
                (Math/round (+ x (Math/log (Math/pow x 2)))))
              100))
@@ -45,26 +110,35 @@
                (Math/round (+ x (Math/exp (Math/log x)))))
              50))
 
-  (defn calculate-exp [initial-exp num-levels]
-  (loop [current-level 1
-         exp initial-exp
-         exps [initial-exp]]
-    (if (> current-level num-levels)
-      exps
-      (let [base-multiplier 1.31415
-            base-increment Math/PI
-            increment-factor (* 0.1 current-level)
-            next-exp (int (* exp base-multiplier))]
-        (recur (inc current-level)
-               (+ next-exp base-increment)
-               (conj exps (Math/round (+ next-exp base-increment))))))))
-  (map-indexed #(vector (inc %1) %2) (calculate-exp 120 30))
-
-  (defn calculate-exp [initial-exp num-levels]
-    (let [exp-seq (iterate #(Math/round (+ % (* 0.3 %))) initial-exp)]
-      (take num-levels exp-seq)))
-
-  (calculate-exp 100 30)
+  (into (sorted-map) (map-indexed #(vector (inc %) (Integer/parseInt %2)) ["100"
+                                                                           "190"
+                                                                           "342"
+                                                                           "581"
+                                                                           "929"
+                                                                           "1393"
+                                                                           "1950"
+                                                                           "2535"
+                                                                           "5070"
+                                                                           "6084"
+                                                                           "7300"
+                                                                           "8760"
+                                                                           "10512"
+                                                                           "12612"
+                                                                           "15136"
+                                                                           "18163"
+                                                                           "21795"
+                                                                           "26134"
+                                                                           "52308"
+                                                                           "60154"
+                                                                           "69177"
+                                                                           "79553"
+                                                                           "91485"
+                                                                           "105207"
+                                                                           "120988"
+                                                                           "139139"
+                                                                           "160006"
+                                                                           "184006"
+                                                                           "268012"]))
 
   )
 
