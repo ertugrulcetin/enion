@@ -799,6 +799,12 @@
      {:class (styles/online-counter ping? fps?)}
      (str "Online: " (or online "-") " (" server ")")]))
 
+(defn- join-discord []
+  [:button
+   {:class (styles/join-discord)
+    :on-click #(js/window.open "https://discord.gg/rmaTrYdV5V" "_blank")}
+   "Join Discord"])
+
 (defn- tutorials []
   (let [settings @(subscribe [::subs/settings])
         ping? (:ping? settings)
@@ -1333,6 +1339,7 @@
              (when @(subscribe [::subs/ping?])
                [ping-counter])
              [online-counter]
+             [join-discord]
              [tutorials]
              [change-server-button]
              (when-not @(subscribe [::subs/in-iframe?])

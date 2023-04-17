@@ -246,6 +246,8 @@
         (st/set-health health)
         (st/set-mana mana)
         (pc/set-anim-int (st/get-model-entity) "health" 0)
+        (effects/apply-effect-die st/player)
+        (st/play-sound "die")
         (fire :show-re-spawn-modal #(dispatch-pro :re-spawn))
         (poki/gameplay-stop))
 

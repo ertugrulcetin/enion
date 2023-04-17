@@ -638,6 +638,16 @@
           (and (not ping?) fps?) "50px")}
   [:&:hover {:border "2px solid #10131dcc"}])
 
+(defclass join-discord []
+  {:composes [(button)]
+   :position :absolute
+   :left "120px"
+   :top "10px"
+   :font-size "18px"
+   :opacity 1
+   :cursor :pointer
+   :z-index 5})
+
 (defattrs tutorial-container [ping-and-fps?]
   {:position :absolute
    :left "5px"

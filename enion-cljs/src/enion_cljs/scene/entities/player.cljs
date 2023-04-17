@@ -230,9 +230,10 @@
     (let [result (st/get-closest-terrain-hit e)
           hit-entity-name (j/get-in result [:entity :name])]
       (when (= "terrain" hit-entity-name)
-        (println
-          (common.utils/parse-float (j/get-in result [:point :x]) 2)
-          (common.utils/parse-float (j/get-in result [:point :z]) 2))
+        (when dev?
+          (println
+            (common.utils/parse-float (j/get-in result [:point :x]) 2)
+            (common.utils/parse-float (j/get-in result [:point :z]) 2)))
         (let [x (j/get-in result [:point :x])
               y (j/get-in result [:point :y])
               z (j/get-in result [:point :z])
