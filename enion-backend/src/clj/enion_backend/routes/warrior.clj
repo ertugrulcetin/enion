@@ -23,6 +23,7 @@
     (and npc-world-state
          (not (alive? npc-world-state))) skill-failed
     (not (enough-mana? skill player-world-state)) not-enough-mana
+    (not (satisfies-level? skill player)) skill-failed
     (not (cooldown-finished? skill player)) skill-failed
     (and other-player-world-state
          (not (close-for-attack? player-world-state other-player-world-state))) too-far
@@ -52,6 +53,7 @@
                       :skill skill
                       :player player
                       :ping ping
+                      :attack-power (get common.skills/level->attack-power-table (player :level))
                       :validate-attack-skill-fn validate-warrior-attack-skill})
       (when (get current-players selected-player-id)
         (let [player-world-state (get current-world id)
@@ -66,10 +68,11 @@
             err
             (let [_ (update-last-combat-time id selected-player-id)
                   required-mana (get-required-mana skill)
-                  ;; TODO update damage, player might have defense or poison etc.
+                  attack-power (get common.skills/level->attack-power-table (player :level))
                   damage ((-> common.skills/skills (get skill) :damage-fn)
                           (has-defense? selected-player-id)
-                          (has-break-defense? selected-player-id))
+                          (has-break-defense? selected-player-id)
+                          attack-power)
                   damage (increase-damage-if-has-battle-fury damage current-players id)
                   health-after-damage (- (:health other-player-world-state) damage)
                   health-after-damage (Math/max ^long health-after-damage 0)]

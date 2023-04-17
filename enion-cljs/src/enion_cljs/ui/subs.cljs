@@ -1,6 +1,7 @@
 (ns enion-cljs.ui.subs
   (:require
     [breaking-point.core :as bp]
+    [clojure.string :as str]
     [common.enion.skills :as common.skills]
     [enion-cljs.ui.tutorial :as tutorials]
     [re-frame.core :refer [reg-sub]]))
@@ -99,6 +100,21 @@
     (-> db :player :mp-potions (or 0))))
 
 (reg-sub
+  ::level
+  (fn [db]
+    (-> db :player :level)))
+
+(reg-sub
+  ::exp
+  (fn [db]
+    (-> db :player :exp)))
+
+(reg-sub
+  ::required-exp
+  (fn [db]
+    (-> db :player :required-exp)))
+
+(reg-sub
   ::race
   (fn [db]
     (-> db :player :race)))
@@ -122,10 +138,12 @@
         :else false))))
 
 (reg-sub
-  ::not-enough-mana?
+  ::not-enough-mana-or-level?
   (fn [db [_ skill]]
-    (let [player-mana (-> db :player :mana)]
-      (-> common.skills/skills (get skill) :required-mana (> player-mana)))))
+    (let [player-mana (-> db :player :mana)
+          level (-> db :player :level)]
+      (or (-> common.skills/skills (get skill) :required-mana (> player-mana))
+          (-> common.skills/skills (get skill) :required-level (> level))))))
 
 (reg-sub
   ::selected-player
@@ -281,9 +299,10 @@
     (:congrats-text? db)))
 
 (reg-sub
-  ::adblock-warning-text?
+  ::global-message
   (fn [db]
-    (:adblock-warning-text? db)))
+    (and (not (str/blank? (:global-message db)))
+         (:global-message db))))
 
 (reg-sub
   ::show-hp-mp-potions-ads-button?

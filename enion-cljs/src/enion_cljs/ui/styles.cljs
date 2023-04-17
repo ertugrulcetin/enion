@@ -108,6 +108,18 @@
    :padding-left "4px"
    :user-select :none})
 
+(defattrs exp-bar []
+  {:composes [(hp-bar)]
+   :margin-top "4px"})
+
+(defattrs exp [exp]
+  {:composes [(hp exp nil)]
+   :background "linear-gradient(0deg, #FAA244 0%, #cb853c 49%, #FAA244 50%)"})
+
+(defattrs exp-hit [exp]
+  {:composes [(hp-hit exp)]
+   :background "#2a4fdf94"})
+
 (defattrs skill-bar []
   {:background-color "#10131ca3"
    :padding "2px"
@@ -126,13 +138,13 @@
    :border "3px solid #293c40"
    :cursor :unset})
 
-(defclass skill-img [blocked? not-enough-mana]
+(defclass skill-img [blocked? not-enough-mana-or-level]
   (cond-> {:position :absolute
            :width "40px"
            :height "40px"
            :pointer-events :none}
     blocked? (assoc :filter "opacity(0.5)")
-    not-enough-mana (assoc :filter "grayscale(1)")))
+    not-enough-mana-or-level (assoc :filter "grayscale(1)")))
 
 (defattrs skill-number []
   {:color "#5b858e"
@@ -260,7 +272,8 @@
    [:&.skill {:color "#e1dedeff"}]
    [:&.hp-recover {:color "#53b226ff"}]
    [:&.mp-recover {:color "#2691b2ff"}]
-   [:&.skill-failed {:color "#ffc301c8"}]]
+   [:&.skill-failed {:color "#ffc301c8"}]
+   [:&.npc-exp {:color "#fffa00c8"}]]
   (at-media {:max-width "1250px"}
             {:height "110px"}))
 
@@ -862,3 +875,18 @@
   {:font-size "48px"
    :padding "48px"
    :color "white"})
+
+(defattrs global-message []
+  {:position :absolute
+   :top "20%"
+   :left "calc(50% + 25px)"
+   :transform "translate(-50%, -50%)"
+   :font-size "32px"
+   :z-index 99
+   :color :white}
+  [:span
+   {:background "#10131d5e"
+    :padding "5px"
+    :border-radius "5px"
+    :line-height "50px"
+    :text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}])

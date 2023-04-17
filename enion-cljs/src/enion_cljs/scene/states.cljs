@@ -394,3 +394,9 @@
 
 (defn party-member? [player-id]
   (some #(= % (js/parseInt player-id)) @party-member-ids))
+
+(defn level-up [{:keys [exp level health mana]}]
+  (set-health health)
+  (set-mana mana)
+  (j/assoc! player :exp exp
+            :level level))

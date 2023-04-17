@@ -109,6 +109,9 @@
   (doseq [a (get-hidden-enemy-asases)]
     (j/call-in a [:skills :hide])))
 
+(defn satisfies-level? [skill player]
+  (>= (j/get player :level) (get-in common.skills/skills [skill :required-level])))
+
 (defn attack-r? [e active-state selected-player-id]
   (and
     (idle-run-states active-state)
@@ -126,6 +129,7 @@
 
 (defn fleet-foot? [e]
   (and
+    (satisfies-level? "fleetFoot" player)
     (skill-pressed? e "fleetFoot")
     (st/cooldown-ready? "fleetFoot")
     (st/enough-mana? fleet-food-required-mana)
@@ -209,11 +213,13 @@
     (st/play-sound "attackR")))
 
 (defmethod skill-response "npcDamage" [params]
-  (let [damage (-> params :skill :damage)
-        npc-id (-> params :skill :npc-id)]
+  (let [{:keys [damage npc-id exp lost-exp]} (:skill params)]
     (skills.effects/apply-effect-attack-cauldron player)
     (fire :ui-send-msg {:npc {:name (npc/get-npc-name npc-id)
                               :damage damage}})
+    (when lost-exp
+      (fire :ui-send-msg {:lost-exp lost-exp})
+      (fire :ui-set-exp exp))
     (st/play-sound "attackR")))
 
 (defn register-skill-events [events]

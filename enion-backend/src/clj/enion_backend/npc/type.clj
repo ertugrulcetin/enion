@@ -4,21 +4,102 @@
     [enion-backend.utils :as utils]))
 
 (def npc-params
-  {:skeleton-warrior (merge
+  {:squid (merge
+            (:squid common.npc/npcs)
+            {:attack-range-threshold 1
+             :change-pos-interval 8000
+             :change-pos-speed 0.02
+             :chase-range-threshold 20
+             :chase-speed 0.12
+             :cooldown 2000
+             :damage-buffer-size 100
+             :damage-fn #(utils/rand-between 30 60)
+             :drop {:items [:hp-potion :mp-potion]
+                    :count-fn #(utils/rand-between 1 2)}
+             :exp 60
+             :target-locked-threshold 10000
+             :target-pos-gap-threshold 0.2
+             :re-spawn-interval 10000})
+   :ghoul (merge
+            (:ghoul common.npc/npcs)
+            {:attack-range-threshold 1.5
+             :change-pos-interval 8000
+             :change-pos-speed 0.02
+             :chase-range-threshold 20
+             :chase-speed 0.12
+             :cooldown 1750
+             :damage-buffer-size 100
+             :damage-fn #(utils/rand-between 60 120)
+             :drop {:items [:hp-potion :mp-potion]
+                    :count-fn #(utils/rand-between 1 2)}
+             :exp 120
+             :target-locked-threshold 10000
+             :target-pos-gap-threshold 0.2
+             :re-spawn-interval 10000})
+   :demon (merge
+            (:demon common.npc/npcs)
+            {:attack-range-threshold 1.75
+             :change-pos-interval 7000
+             :change-pos-speed 0.02
+             :chase-range-threshold 15
+             :chase-speed 0.13
+             :cooldown 1500
+             :damage-buffer-size 100
+             :damage-fn #(utils/rand-between 120 165)
+             :drop {:items [:hp-potion :mp-potion]
+                    :count-fn #(utils/rand-between 1 2)}
+             :exp 300
+             :target-locked-threshold 10000
+             :target-pos-gap-threshold 0.2
+             :re-spawn-interval 16000})
+   :skeleton-warrior (merge
                        (:skeleton-warrior common.npc/npcs)
                        {:attack-range-threshold 0.5
                         :change-pos-interval 15000
                         :change-pos-speed 0.02
                         :chase-range-threshold 15
                         :chase-speed 0.1
-                        :cooldown 2000
+                        :cooldown 1750
                         :damage-buffer-size 100
-                        :damage-fn #(utils/rand-between 150 200)
+                        :damage-fn #(utils/rand-between 160 220)
                         :drop {:items [:hp-potion :mp-potion]
                                :count-fn #(utils/rand-between 1 3)}
+                        :exp 550
                         :target-locked-threshold 10000
                         :target-pos-gap-threshold 0.2
                         :re-spawn-interval 12000})
+   :burning-skeleton (merge
+                       (:burning-skeleton common.npc/npcs)
+                       {:attack-range-threshold 0.75
+                        :change-pos-interval 15000
+                        :change-pos-speed 0.02
+                        :chase-range-threshold 20
+                        :chase-speed 0.12
+                        :cooldown 1500
+                        :damage-buffer-size 150
+                        :damage-fn #(utils/rand-between 240 350)
+                        :drop {:items [:hp-potion :mp-potion]
+                               :count-fn #(utils/rand-between 3 8)}
+                        :exp 1150
+                        :target-locked-threshold 10000
+                        :target-pos-gap-threshold 0.2
+                        :re-spawn-interval 14000})
+   :gravestalker (merge
+                   (:gravestalker common.npc/npcs)
+                   {:attack-range-threshold 0.5
+                    :change-pos-interval 42000
+                    :change-pos-speed 0.005
+                    :chase-range-threshold 15
+                    :chase-speed 0.13
+                    :cooldown 1500
+                    :damage-buffer-size 100
+                    :damage-fn #(utils/rand-between 300 400)
+                    :drop {:items [:hp-potion :mp-potion]
+                           :count-fn #(utils/rand-between 1 2)}
+                    :exp 1500
+                    :target-locked-threshold 10000
+                    :target-pos-gap-threshold 0.2
+                    :re-spawn-interval 22000})
    :skeleton-champion (merge
                         (:skeleton-champion common.npc/npcs)
                         {:attack-range-threshold 0.6
@@ -31,84 +112,10 @@
                          :damage-fn #(utils/rand-between 300 450)
                          :drop {:items [:hp-potion :mp-potion]
                                 :count-fn #(utils/rand-between 3 8)}
+                         :exp 2500
                          :target-locked-threshold 10000
                          :target-pos-gap-threshold 0.2
                          :re-spawn-interval 14000})
-   :burning-skeleton (merge
-                       (:burning-skeleton common.npc/npcs)
-                       {:attack-range-threshold 0.6
-                        :change-pos-interval 15000
-                        :change-pos-speed 0.02
-                        :chase-range-threshold 20
-                        :chase-speed 0.12
-                        :cooldown 2000
-                        :damage-buffer-size 150
-                        :damage-fn #(utils/rand-between 200 350)
-                        :drop {:items [:hp-potion :mp-potion]
-                               :count-fn #(utils/rand-between 3 8)}
-                        :target-locked-threshold 10000
-                        :target-pos-gap-threshold 0.2
-                        :re-spawn-interval 14000})
-   :squid (merge
-            (:squid common.npc/npcs)
-            {:attack-range-threshold 1.5
-             :change-pos-interval 8000
-             :change-pos-speed 0.02
-             :chase-range-threshold 20
-             :chase-speed 0.12
-             :cooldown 2000
-             :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 50 90)
-             :drop {:items [:hp-potion :mp-potion]
-                    :count-fn #(utils/rand-between 1 2)}
-             :target-locked-threshold 10000
-             :target-pos-gap-threshold 0.2
-             :re-spawn-interval 10000})
-   :ghoul (merge
-            (:ghoul common.npc/npcs)
-            {:attack-range-threshold 1.5
-             :change-pos-interval 8000
-             :change-pos-speed 0.02
-             :chase-range-threshold 20
-             :chase-speed 0.12
-             :cooldown 2000
-             :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 80 130)
-             :drop {:items [:hp-potion :mp-potion]
-                    :count-fn #(utils/rand-between 1 2)}
-             :target-locked-threshold 10000
-             :target-pos-gap-threshold 0.2
-             :re-spawn-interval 10000})
-   :demon (merge
-            (:demon common.npc/npcs)
-            {:attack-range-threshold 1
-             :change-pos-interval 7000
-             :change-pos-speed 0.02
-             :chase-range-threshold 15
-             :chase-speed 0.13
-             :cooldown 1500
-             :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 110 160)
-             :drop {:items [:hp-potion :mp-potion]
-                    :count-fn #(utils/rand-between 1 2)}
-             :target-locked-threshold 10000
-             :target-pos-gap-threshold 0.2
-             :re-spawn-interval 16000})
-   :gravestalker (merge
-                   (:gravestalker common.npc/npcs)
-                   {:attack-range-threshold 0.5
-                    :change-pos-interval 42000
-                    :change-pos-speed 0.005
-                    :chase-range-threshold 15
-                    :chase-speed 0.13
-                    :cooldown 2000
-                    :damage-buffer-size 100
-                    :damage-fn #(utils/rand-between 300 400)
-                    :drop {:items [:hp-potion :mp-potion]
-                           :count-fn #(utils/rand-between 1 2)}
-                    :target-locked-threshold 10000
-                    :target-pos-gap-threshold 0.2
-                    :re-spawn-interval 22000})
    :deruvish (merge
                (:deruvish common.npc/npcs)
                {:attack-range-threshold 7
@@ -122,6 +129,7 @@
                 :damage-fn #(utils/rand-between 300 400)
                 :drop {:items [:hp-potion :mp-potion]
                        :count-fn #(utils/rand-between 1 2)}
+                :exp 3500
                 :target-locked-threshold 10000
                 :target-pos-gap-threshold 0.2
                 :re-spawn-interval 21000})})

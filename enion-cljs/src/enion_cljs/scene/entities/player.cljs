@@ -336,7 +336,19 @@
     (pc/add-child entity character-template-entity)
     [character-template-entity character-model-entity]))
 
-(defn- init-player [{:keys [id username class race mana health pos hp-potions mp-potions tutorials]} player-entity]
+(defn- init-player [{:keys [id
+                            username
+                            class
+                            race
+                            mana
+                            health
+                            pos
+                            hp-potions
+                            mp-potions
+                            tutorials
+                            level
+                            exp
+                            required-exp]} player-entity]
   (let [[x y z] pos]
     (j/assoc! player
               :id id
@@ -349,6 +361,9 @@
               :total-mana mana
               :hp-potions hp-potions
               :mp-potions mp-potions
+              :level level
+              :exp exp
+              :required-exp required-exp
               :tutorials tutorials
               :heal-counter 0)
     (when pos

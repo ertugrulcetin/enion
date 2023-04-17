@@ -429,16 +429,20 @@
                     pos (if (= "orc" race)
                           (common.skills/random-pos-for-orc)
                           (common.skills/random-pos-for-human))
-                    health (get-in common.skills/classes [class :health])
-                    mana (get-in common.skills/classes [class :mana])
                     username (generate-username username race class current-players)
+                    level 1
+                    exp 0
+                    {:keys [health mana]} (get-in common.skills/level->health-mana-table [level class])
                     attrs {:id id
                            :username username
                            :race race
                            :class class
                            :health health
                            :mana mana
-                           :pos pos}]
+                           :pos pos
+                           :level level
+                           :required-exp (get common.skills/level->exp-table level)
+                           :exp exp}]
                 (swap! players update id merge attrs)
                 (notify-players-for-new-join id attrs)
                 attrs)))))
@@ -475,6 +479,9 @@
 
 (defn enough-mana? [skill state]
   (>= (:mana state) (-> common.skills/skills (get skill) :required-mana)))
+
+(defn satisfies-level? [skill player]
+  (>= (:level player) (-> common.skills/skills (get skill) :required-level)))
 
 (defn asas? [id]
   (= "asas" (get-in @players [id :class])))
@@ -603,6 +610,7 @@
     (add-killing player-id enemy-id)
     (cancel-all-tasks-of-player enemy-id)
     (swap! players assoc-in [enemy-id :last-time :died] (now))
+    (add-effect :die enemy-id)
     (if-let [party-id (get-in players* [player-id :party-id])]
       (let [member-ids (find-player-ids-by-party-id players* party-id)
             party-size (count member-ids)
@@ -626,6 +634,7 @@
     damage))
 
 (defn attack-to-npc [{:keys [id
+                             attack-power
                              selected-player-id
                              current-world
                              effect
@@ -651,6 +660,7 @@
         err
         (let [_ (update-last-combat-time id)
               damage (npc/make-player-attack! {:skill skill
+                                               :attack-power attack-power
                                                :player player
                                                :npc npc
                                                :slow-down? slow-down?
@@ -800,20 +810,31 @@
     {:skill (:skill data)
      :damage damage}))
 
-(defmethod apply-skill "npcDamage" [{:keys [id current-world data]}]
+(defmethod apply-skill "npcDamage" [{:keys [id current-world current-players data]}]
   (update-last-combat-time id)
-  (let [damage (:damage data)
-        player-world-state (get current-world id)
-        health-after-damage (- (:health player-world-state) damage)
-        health-after-damage (Math/max ^long health-after-damage 0)]
-    (swap! world assoc-in [id :health] health-after-damage)
-    (add-effect :attack-base id)
-    (when (= 0 health-after-damage)
-      (cancel-all-tasks-of-player id)
-      (swap! players assoc-in [id :last-time :died] (now)))
-    {:skill (:skill data)
-     :npc-id (:npc-id data)
-     :damage damage}))
+  (when-let [player (get current-players id)]
+    (let [damage (:damage data)
+          player-world-state (get current-world id)
+          health-after-damage (- (:health player-world-state) damage)
+          health-after-damage (Math/max ^long health-after-damage 0)
+          exp (player :exp)
+          required-exp (player :required-exp)
+          exp-to-lose (Math/round (* required-exp 0.05))
+          exp (Math/max ^long (- exp exp-to-lose) 0)]
+      (swap! world assoc-in [id :health] health-after-damage)
+      (add-effect :attack-base id)
+      (when (= 0 health-after-damage)
+        (cancel-all-tasks-of-player id)
+        (add-effect :die id)
+        (swap! players (fn [players]
+                         (-> players
+                             (assoc-in [id :last-time :died] (now))
+                             (assoc-in [id :exp] exp)))))
+      (cond-> {:skill (:skill data)
+               :npc-id (:npc-id data)
+               :damage damage}
+        (= 0 health-after-damage) (assoc :lost-exp exp-to-lose
+                                         :exp exp)))))
 
 (defmethod apply-skill "restoreHpMp" [{:keys [current-players current-world]}]
   (let [now (now)
@@ -893,9 +914,50 @@
 
 (def valid-drop-range 12)
 
-(defn can-player-get-the-drop? [player-id current-world npc]
-  (let [player (get current-world player-id)]
+(defn can-player-get-the-drop? [player-id current-players current-world npc]
+  (let [player (and (get current-players player-id)
+                    (get current-world player-id))]
     (and player (alive? player) (close-npc-distance? player npc valid-drop-range))))
+
+(defn- process-drop [drop exp current-players player-id party-size]
+  (let [player (get current-players player-id)
+        class (player :class)
+        level (player :level)
+        current-exp (player :exp)
+        required-exp (player :required-exp)
+        exp (npc/calculate-exp level exp)
+        exp (if party-size
+              (Math/round (/ exp (+ (double (/ party-size 10)) 1.1)))
+              exp)
+        level-up? (>= (+ current-exp exp) required-exp)
+        new-exp (if level-up? 0 (+ current-exp exp))
+        new-level (when level-up? (inc level))
+        {:keys [health mana]} (when level-up? (get-in common.skills/level->health-mana-table [new-level class]))
+        new-required-exp (when level-up? (get common.skills/level->exp-table new-level))]
+    (send! player-id :drop (cond-> {:drop drop
+                                    :npc-exp exp
+                                    :exp new-exp}
+                             level-up? (assoc :level-up? true
+                                              :level new-level
+                                              :required-exp new-required-exp
+                                              :health health
+                                              :mana mana)))
+    (when level-up?
+      (add-effect :level-up player-id))
+    (if level-up?
+      (do
+        (swap! players (fn [players]
+                         (-> players
+                             (assoc-in [player-id :exp] new-exp)
+                             (assoc-in [player-id :level] new-level)
+                             (assoc-in [player-id :health] health)
+                             (assoc-in [player-id :mana] mana)
+                             (assoc-in [player-id :required-exp] new-required-exp))))
+        (swap! world (fn [world]
+                       (-> world
+                           (assoc-in [player-id :health] health)
+                           (assoc-in [player-id :mana] mana)))))
+      (swap! players assoc-in [player-id :exp] new-exp))))
 
 (reg-pro
   :drop
@@ -907,13 +969,15 @@
           current-players @players
           current-world @world]
       (when party-id
-        (let [player-ids (find-player-ids-by-party-id current-players party-id)]
+        (let [player-ids (find-player-ids-by-party-id current-players party-id)
+              party-size (count player-ids)]
           (doseq [player-id player-ids]
-            (when (can-player-get-the-drop? player-id current-world npc)
-              (send! player-id :drop drop)))))
+            (when (can-player-get-the-drop? player-id current-players current-world npc)
+              (send! player-id :drop drop)
+              (process-drop drop (:exp npc) current-players player-id party-size)))))
       (when player-id
-        (when (can-player-get-the-drop? player-id current-world npc)
-          (send! player-id :drop drop)))
+        (when (can-player-get-the-drop? player-id current-players current-world npc)
+          (process-drop drop (:exp npc) current-players player-id nil)))
       nil)))
 
 (comment
@@ -1144,14 +1208,15 @@
   {:status 200
    :body {"EU-1" {:ws-url "wss://enion-eu-1.fly.dev:443/ws"
                   :stats-url "https://enion-eu-1.fly.dev/stats"}
-          "EU-2" {:ws-url "wss://enion-eu-2.fly.dev:443/ws"
-                  :stats-url "https://enion-eu-2.fly.dev/stats"}
-          "EU-3" {:ws-url "wss://enion-eu-3.fly.dev:443/ws"
-                  :stats-url "https://enion-eu-3.fly.dev/stats"}
-          "BR-1" {:ws-url "wss://enion-br-1.fly.dev:443/ws"
-                  :stats-url "https://enion-br-1.fly.dev/stats"}
-          "BR-2" {:ws-url "wss://enion-br-2.fly.dev:443/ws"
-                  :stats-url "https://enion-br-2.fly.dev/stats"}}})
+          ;; "EU-2" {:ws-url "wss://enion-eu-2.fly.dev:443/ws"
+          ;;        :stats-url "https://enion-eu-2.fly.dev/stats"}
+          ;; "EU-3" {:ws-url "wss://enion-eu-3.fly.dev:443/ws"
+          ;;        :stats-url "https://enion-eu-3.fly.dev/stats"}
+          ;; "BR-1" {:ws-url "wss://enion-br-1.fly.dev:443/ws"
+          ;;        :stats-url "https://enion-br-1.fly.dev/stats"}
+          ;; "BR-2" {:ws-url "wss://enion-br-2.fly.dev:443/ws"
+          ;;        :stats-url "https://enion-br-2.fly.dev/stats"}
+          }})
 
 (defn home-routes
   []

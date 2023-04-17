@@ -19,14 +19,36 @@
 
 (defonce npcs (atom {}))
 
-(defn calculate-exp [{:keys [player-level base-exp decay-rate min-exp]
-                      :or {decay-rate 0.1}}]
-  (max min-exp (Math/round (* base-exp (Math/pow (Math/E) (- (* player-level decay-rate)))))))
+(defn calculate-exp [level base-exp]
+  (max
+    ;; min exp
+    (int (/ base-exp 10))
+    (Math/round (* base-exp (Math/pow (Math/E) (- (* level
+                                                     ;; decay-rate
+                                                     0.1)))))))
 
 (comment
-  (calculate-exp {:player-level 6
-                  :base-exp 1200
-                  :min-exp 10}))
+  (into
+    (sorted-map)
+    (map
+      (fn [level]
+        [level (map
+                 (fn [[type params]]
+                   (let [exp (calculate-exp {:player-level level
+                                             :base-exp (:exp params)
+                                             :min-exp (/ (:exp params) 10)})
+                         required-exp (get common.skills/level->exp-table level)
+                         how-many-npcs-to-kill (Math/round (double (/ required-exp exp)))
+                         how-many-npcs-to-kill (if (= 0 how-many-npcs-to-kill)
+                                                 1
+                                                 how-many-npcs-to-kill)
+                         attack-power (get common.skills/level->attack-power-table level)]
+                     {:type type
+                      :how-many-npcs-to-kill how-many-npcs-to-kill
+                      :attack-power attack-power
+                      :exp exp}))
+                 npc.type/npc-params)])
+      (range 1 30))))
 
 (defn create-npc [{:keys [init-pos slot-id type taken-slot-pos-id]}]
   (let [attrs (npc.type/npc-params type)
@@ -195,14 +217,19 @@
                          :players players})
     npc))
 
-(defn make-player-attack! [{:keys [skill player npc slow-down? break-defense?]}]
+(defn make-player-attack! [{:keys [skill player npc slow-down? break-defense? attack-power]}]
   (try
     (let [attacker-id (:id player)
           attacker-party-id (:party-id player)
           now (System/currentTimeMillis)
           damage-fn (some-> common.skills/skills (get skill) :damage-fn)
-          damage (if damage-fn (damage-fn false false) 0)
-          damage (int (* damage 1.25))
+          damage (if damage-fn
+                   (if attack-power
+                     (damage-fn false false attack-power)
+                     (damage-fn false false))
+                   0)
+          npc-damage-ratio (+ 1 (double (/ (utils/rand-between 20 27) 100)))
+          damage (int (* damage npc-damage-ratio))
           last-break-defense (:last-time-break-defense npc)
           damage (if (and last-break-defense
                           (< (- now last-break-defense) (-> common.skills/skills (get "breakDefense") :effect-duration)))

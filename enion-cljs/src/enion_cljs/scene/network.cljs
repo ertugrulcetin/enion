@@ -364,6 +364,8 @@
        :heal (effects/add-player-id-to-healed-ids id)
        :cure (effects/apply-effect-got-cure player-or-npc-state)
        :break-defense (effects/apply-effect-got-defense-break player-or-npc-state)
+       :die (effects/apply-effect-die player-or-npc-state)
+       :level-up (effects/apply-effect-level-up player-or-npc-state)
        :else (js/console.error "Unknown effect: " e)))))
 
 (let [temp-pos (pc/vec3)]
@@ -557,8 +559,8 @@
 (defmethod dispatch-pro-response :earned-bp [params]
   (fire :ui-send-msg {:bp (:earned-bp params)}))
 
-(defmethod dispatch-pro-response :drop [params]
-  (let [{:keys [hp-potion mp-potion]} (:drop params)
+(defn- process-drop [params]
+  (let [{:keys [hp-potion mp-potion]} (-> params :drop :drop)
         count (or hp-potion mp-potion)
         type (if hp-potion :hp :mp)
         particle-entity (j/get-in st/player [:drop type])
@@ -569,6 +571,21 @@
     (drop/inc-potion type count)
     (fire :ui-send-msg {:drop {:potion (str/upper-case (name type))
                                :count count}})))
+
+(defn- process-exp [params]
+  (let [{:keys [exp npc-exp level-up?] :as opts} (:drop params)]
+    (if level-up?
+      (do
+        (effects/apply-effect-level-up st/player)
+        (st/level-up opts)
+        (fire :ui-level-up opts)
+        (st/play-sound "levelUp"))
+      (fire :ui-set-exp exp))
+    (fire :ui-send-msg {:npc-exp npc-exp})))
+
+(defmethod dispatch-pro-response :drop [params]
+  (process-drop params)
+  (process-exp params))
 
 (let [re-spawn-error-msg {:re-spawn-error "Re-spawn failed. Try again."}]
   (defmethod dispatch-pro-response :re-spawn [params]

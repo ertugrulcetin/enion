@@ -370,7 +370,17 @@
 
 (reg-event-db
   ::init-game
-  (fn [db [_ {:keys [id username race class hp-potions mp-potions tutorials server-name]}]]
+  (fn [db [_ {:keys [id
+                     username
+                     race
+                     class
+                     hp-potions
+                     mp-potions
+                     tutorials
+                     server-name
+                     level
+                     exp
+                     required-exp]}]]
     (-> db
         (assoc-in [:player :id] id)
         (assoc-in [:player :username] username)
@@ -378,6 +388,9 @@
         (assoc-in [:player :class] class)
         (assoc-in [:player :hp-potions] hp-potions)
         (assoc-in [:player :mp-potions] mp-potions)
+        (assoc-in [:player :level] level)
+        (assoc-in [:player :exp] exp)
+        (assoc-in [:player :required-exp] required-exp)
         (assoc-in [:servers :current-server] server-name)
         (assoc :tutorials tutorials))))
 
@@ -487,18 +500,6 @@
     (let [db (update db :tutorials #(select-keys % [:what-is-the-first-quest?]))]
       {:db db
        ::fire [:reset-tutorials (:tutorials db)]})))
-
-(reg-event-db
-  ::hide-adblock-warning-text
-  (fn [db]
-    (assoc db :adblock-warning-text? false)))
-
-(reg-event-fx
-  ::show-adblock-warning-text
-  (fn [{:keys [db]}]
-    {:db (assoc db :adblock-warning-text? true)
-     :dispatch-later [{:ms 5000
-                       :dispatch [::hide-adblock-warning-text]}]}))
 
 (reg-event-db
   ::set-ws-connected
@@ -621,3 +622,27 @@
   ::set-fullscreen-mode
   (fn [db [_ fullscreen?]]
     (assoc db :fullscreen? fullscreen?)))
+
+(reg-event-fx
+  ::show-global-message
+  (fn [{:keys [db]} [_ text duration]]
+    {:db (assoc db :global-message text)
+     :dispatch-later [(when-not (str/blank? text)
+                        {:ms (or duration 1500)
+                         :dispatch [::show-global-message nil]})]}))
+
+(reg-event-fx
+  ::level-up
+  (fn [{:keys [db]} [_ {:keys [exp required-exp level health mana]}]]
+    {:db (-> db
+             (assoc-in [:player :total-health] health)
+             (assoc-in [:player :total-mana] mana)
+             (assoc-in [:player :exp] exp)
+             (assoc-in [:player :required-exp] required-exp)
+             (assoc-in [:player :level] level))
+     :dispatch [::show-global-message (str "Level up! You are now level " level) 5000]}))
+
+(reg-event-db
+  ::set-exp
+  (fn [db [_ exp]]
+    (assoc-in db [:player :exp] exp)))

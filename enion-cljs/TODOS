@@ -1,3 +1,4 @@
+Notify player died via message, do not check health in the client.(process-world-snapshot-for-player)
 Sometimes players global state have players without socket, so handle this case. Remove them from the global state. Also notify the other players that the player is disconnected.
 Show orcs defeat in green color.
 Make party chat enabled by default.

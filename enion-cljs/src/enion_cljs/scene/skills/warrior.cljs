@@ -92,6 +92,7 @@
 
 (defn- attack-slow-down? [e active-state selected-player-id]
   (and
+    (skills/satisfies-level? "attackSlowDown" player)
     (skills/idle-run-states active-state)
     (skills/skill-pressed? e "attackSlowDown")
     (st/cooldown-ready? "attackSlowDown")
@@ -101,12 +102,14 @@
 
 (defn- shield-wall? [e]
   (and
+    (skills/satisfies-level? "shieldWall" player)
     (skills/skill-pressed? e "shieldWall")
     (st/cooldown-ready? "shieldWall")
     (st/enough-mana? shield-required-mana)))
 
 (defn- battle-fury? [e]
   (and
+    (skills/satisfies-level? "battleFury" player)
     (skills/skill-pressed? e "battleFury")
     (st/cooldown-ready? "battleFury")
     (st/enough-mana? battle-fury-required-mana)))

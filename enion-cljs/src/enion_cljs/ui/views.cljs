@@ -11,6 +11,7 @@
     [enion-cljs.ui.subs :as subs]
     [enion-cljs.ui.tutorial :as tutorial]
     [enion-cljs.ui.utils :as ui.utils]
+    [enion-cljs.utils :as common.utils]
     [re-frame.core :refer [subscribe dispatch dispatch-sync]]
     [reagent.core :as r]))
 
@@ -70,8 +71,8 @@
   (let [offset-width (r/atom 0)
         offset-height (r/atom 0)]
     (fn []
-      (when-let [{:keys [name description cooldown required-mana]} (and (nil? @(subscribe [::subs/skill-move]))
-                                                                        @(subscribe [::subs/skill-description]))]
+      (when-let [{:keys [name description cooldown required-mana required-level]} (and (nil? @(subscribe [::subs/skill-move]))
+                                                                                       @(subscribe [::subs/skill-description]))]
         (let [width @(subscribe [::bp/screen-width])
               offset-top (if (< width 1250) -15 5)]
           [:div
@@ -92,7 +93,11 @@
             [:span.info "Cooldown: " (/ cooldown 1000) "s"]
             [:br]
             (when required-mana
-              [:span.info "Required MP: " required-mana])]])))))
+              [:span.info "Required MP: " required-mana])
+            (when required-level
+              [:<>
+               [:br]
+               [:span.info "Required Level: " required-level]])]])))))
 
 (defn- cooldown [skill]
   (let [cooldown-secs (-> skill common.skills/skills :cooldown)]
@@ -115,6 +120,7 @@
       (let [skill-move @(subscribe [::subs/skill-move])
             hp-potions @(subscribe [::subs/hp-potions])
             mp-potions @(subscribe [::subs/mp-potions])
+            level @(subscribe [::subs/level])
             change-skill-order-completed? @(subscribe [::subs/tutorials :how-to-change-skill-order?])]
         [:div {:id (str "skill-" skill)
                :ref (fn [ref]
@@ -152,8 +158,9 @@
          (when-not (= :none skill)
            [:div (styles/childs-overlayed)
             [:img {:class (styles/skill-img
-                            (or @(subscribe [::subs/blocked-skill? skill]) @(subscribe [::subs/died?]))
-                            @(subscribe [::subs/not-enough-mana? skill]))
+                            (or @(subscribe [::subs/blocked-skill? skill])
+                                @(subscribe [::subs/died?]))
+                            @(subscribe [::subs/not-enough-mana-or-level? skill level]))
                    :src (skill->img skill)}]
             (when @(subscribe [::subs/cooldown-in-progress? skill])
               [cooldown skill])])]))))
@@ -176,10 +183,20 @@
      [:div (styles/mp mana-perc)]
      [:span (styles/hp-mp-text) (str mana "/" total-mana)]]))
 
+(defn- exp-bar []
+  (let [exp @(subscribe [::subs/exp])
+        required-exp @(subscribe [::subs/required-exp])
+        exp-perc (/ (* 100 exp) required-exp)]
+    [:div (styles/exp-bar)
+     [:div (styles/exp-hit exp-perc)]
+     [:div (styles/exp exp-perc)]
+     [:span (styles/hp-mp-text) (str (common.utils/parse-float exp-perc 2) "%")]]))
+
 (defn- hp-mp-bars []
   [:div (styles/hp-mp-container)
    [hp-bar]
-   [mp-bar]])
+   [mp-bar]
+   [exp-bar]])
 
 (defn- party-member-hp-bar [health total-health break-defense?]
   (let [health-perc (/ (* 100 health) total-health)]
@@ -367,6 +384,8 @@
     (:party-request-failed message) "skill-failed"
     (:no-selected-player message) "skill-failed"
     (:re-spawn-error message) "skill-failed"
+    (:npc-exp message) "npc-exp"
+    (:lost-exp message) "npc-exp"
     :else "skill"))
 
 (let [hp-message (-> "hpPotion" common.skills/skills :hp (str " HP recovered"))
@@ -403,7 +422,9 @@
                            (if (= 1 (-> message :drop :count))
                              " potion"
                              " potions"))
-      (:break-defense message) (str (:break-defense message) " infected with Toxic Spores"))))
+      (:break-defense message) (str (:break-defense message) " infected with Toxic Spores")
+      (:npc-exp message) (str "Earned " (:npc-exp message) " Experience Points")
+      (:lost-exp message) (str "You lost " (:lost-exp message) " Experience Points!"))))
 
 (defn- info-message [message]
   [:<>
@@ -725,7 +746,7 @@
       :on-click (if open?
                   #(dispatch [::events/close-change-server-modal])
                   #(dispatch [::events/open-change-server-modal]))}
-     "Change server"]))
+     "Main Menu"]))
 
 (defn enter-fullscreen []
   (let [el (j/get js/document :documentElement)]
@@ -830,7 +851,8 @@
      :reagent-render
      (fn []
        [:div (styles/party-request-modal)
-        [:p "Do you want to exit the game and select a different server?"]
+        [:p "Do you want to return to the main menu?"]
+        [:p "You can choose a different class or server from the main menu"]
         [:div (styles/party-request-buttons-container)
          [:button
           {:class (styles/party-request-accept-button)
@@ -1114,10 +1136,10 @@
        @(subscribe [::subs/connecting-to-server])
        "Connecting..."
 
-       (nil? @(subscribe [::subs/servers]))
+       (and (not dev?) (nil? @(subscribe [::subs/servers])))
        "Fetching servers list..."
 
-       (not @(subscribe [::subs/available-servers]))
+       (and (not dev?) (not @(subscribe [::subs/available-servers])))
        "Finding available servers..."
 
        :else
@@ -1214,20 +1236,10 @@
      [:span
       "\uD83C\uDF89"]]))
 
-(defn- adblock-warning-text []
-  (when @(subscribe [::subs/adblock-warning-text?])
-    [:div
-     {:style {:position :absolute
-              :background-color :black
-              :border-radius "5px"
-              :padding "10px"
-              :top "20%"
-              :left "calc(50%)"
-              :transform "translate(-50%, -50%)"
-              :font-size "32px"
-              :z-index 99
-              :color :white}}
-     [:span "You need to disable Adblock!"]]))
+(defn- global-message []
+  (when-let [message @(subscribe [::subs/global-message])]
+    [:div (styles/global-message)
+     [:span message]]))
 
 (defn- add-mouse-listeners []
   (js/document.addEventListener "mousedown" on-mouse-down)
@@ -1310,11 +1322,13 @@
        (on :ui-update-mp-potions #(dispatch [::events/update-mp-potions %]))
        (on :ui-finish-tutorial-progress #(dispatch [::events/finish-tutorial-progress %]))
        (on :ui-show-congrats-text #(dispatch [::events/show-congrats-text]))
-       (on :ui-show-adblock-warning-text #(dispatch [::events/show-adblock-warning-text]))
+       (on :ui-show-adblock-warning-text #(dispatch [::events/show-global-message "You need to disable Adblock!" 3500]))
        (on :ui-ws-connected #(dispatch [::events/set-ws-connected]))
        (on :ui-show-panel? #(dispatch [::events/show-ui-panel? %]))
        (on :ui-got-defense-break #(dispatch [::events/got-defense-break %]))
-       (on :ui-cured #(dispatch [::events/cured])))
+       (on :ui-cured #(dispatch [::events/cured]))
+       (on :ui-level-up #(dispatch [::events/level-up %]))
+       (on :ui-set-exp #(dispatch [::events/set-exp %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -1332,7 +1346,7 @@
           (when @(subscribe [::subs/show-ui-panel?])
             [:<>
              [congrats-text]
-             [adblock-warning-text]
+             [global-message]
              [temp-container-for-fps-ping-online]
              (when @(subscribe [::subs/connection-lost?])
                [connection-lost-modal])
