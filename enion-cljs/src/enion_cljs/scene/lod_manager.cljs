@@ -2,6 +2,7 @@
   (:require
     [applied-science.js-interop :as j]
     [clojure.set :as set]
+    [common.enion.npc :as common.npc]
     [enion-cljs.common :refer [on]]
     [enion-cljs.scene.pc :as pc :refer [app]]
     [enion-cljs.scene.states :as st]
@@ -179,10 +180,14 @@
 (defn- disable-npc-username [npc-id]
   (j/assoc-in! st/npcs [npc-id :char-name :enabled] false))
 
-(let [lod-0-threshold 3
-      lod-1-threshold 6
-      lod-2-threshold 20
-      animation-on-threshold 17]
+(comment
+  (j/get-in st/npcs [id :anim-component :enabled])
+  )
+
+(let [lod-0-threshold 1.5
+      lod-1-threshold 5
+      lod-2-threshold common.npc/lod-2-threshold
+      animation-on-threshold 13]
   (defn- process-npcs [world-layer]
     (j/call visible-npc-ids :clear)
     (j/call non-visible-npc-ids :clear)

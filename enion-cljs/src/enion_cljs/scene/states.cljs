@@ -372,9 +372,26 @@
   (let [tab-hidden? (j/get settings :tab-hidden)]
     (or (nil? tab-hidden?) (not tab-hidden?))))
 
+(defn- disable-enable-npcs [hidden?]
+  (if hidden?
+    (doseq [id (js/Object.keys npcs)]
+      (j/assoc-in! npcs [id :entity :enabled] (not hidden?)))
+    (js/setTimeout
+      (fn []
+        (doseq [id (js/Object.keys npcs)]
+          (j/assoc-in! npcs [id :entity :enabled] (not hidden?))))
+      1500)))
+
+(comment
+  (disable-enable-npcs true)
+  (doseq [id (js/Object.keys npcs)]
+      (j/assoc-in! npcs [id :entity :enabled] false))
+  )
+
 (on :tab-hidden
     (fn [hidden?]
       (process-running)
+      (disable-enable-npcs hidden?)
       (j/assoc! settings :tab-hidden hidden?)))
 
 (on :re-init

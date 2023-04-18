@@ -1,6 +1,6 @@
 (ns enion-backend.npc.slot)
 
-(defn- distance [point1 point2]
+(defn distance [point1 point2]
   (let [dx (- (first point1) (first point2))
         dy (- (second point1) (second point2))]
     (Math/sqrt (+ (* dx dx) (* dy dy)))))
@@ -58,8 +58,9 @@
    :orc-burning-skeleton-forest-3 (generate-positions [29.01 20.75] 3 12 1)})
 
 (def slots
-  [{:type :squid :slot-id :orc-squid-right-1 :count 3}]
-  #_[{:type :squid :slot-id :orc-squid-right-1 :count 5}
+  ;; []
+  ;; [{:type :squid :slot-id :orc-squid-right-1 :count 3}]
+  [{:type :squid :slot-id :orc-squid-right-1 :count 5}
    {:type :squid :slot-id :orc-squid-right-2 :count 5}
    {:type :squid :slot-id :orc-squid-left-1 :count 5}
    {:type :squid :slot-id :orc-squid-left-2 :count 5}

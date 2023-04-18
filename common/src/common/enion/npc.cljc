@@ -1,5 +1,7 @@
 (ns common.enion.npc)
 
+(def lod-2-threshold 15)
+
 
 (def npcs
   {:squid {:health 1000

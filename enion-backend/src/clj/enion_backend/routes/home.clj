@@ -133,7 +133,6 @@
           w (if (empty? kills) w (assoc w :kills kills))
           w (if (empty? npc-effects) w (assoc w :npc-effects npc-effects))
           all-npcs (npc/update-all-npcs! w current-players)
-          w (if (empty? all-npcs) w (assoc w :npcs all-npcs))
           w (reduce-kv
               (fn [w id v]
                 (assoc w id (if (= "asas" (get-in current-players [id :class]))
@@ -145,7 +144,8 @@
               :let [party-id (get-in current-players [player-id :party-id])
                     w (if-let [members-ids (seq (get party-id->players party-id))]
                         (assoc w :break-defense (set members-ids))
-                        w)]]
+                        w)
+                    w (if (empty? all-npcs) w (assoc w :npcs (npc/filter-npcs-by-player w player-id all-npcs)))]]
         (send! player-id :world-snapshot w)))
     (catch Exception e
       (println e)
@@ -633,6 +633,9 @@
     (int (* damage 1.1))
     damage))
 
+(defn get-attack-power [player]
+  (get common.skills/level->attack-power-table (player :level)))
+
 (defn attack-to-npc [{:keys [id
                              attack-power
                              selected-player-id
@@ -693,6 +696,7 @@
     (and (nil? npc-world-state)
          (not (enemy? id selected-player-id))) skill-failed
     (not (enough-mana? skill player-world-state)) not-enough-mana
+    (not (satisfies-level? skill player)) skill-failed
     (not (cooldown-finished? skill player)) skill-failed
     (and other-player-world-state
          (not (close-for-attack? player-world-state other-player-world-state))) too-far
@@ -710,6 +714,7 @@
                         :effect :attack-r
                         :skill skill
                         :player player
+                        :attack-power (get-attack-power player)
                         :validate-attack-skill-fn validate-attack-r})
         (when (get players* selected-player-id)
           (let [w @world
@@ -725,10 +730,11 @@
               err
               (let [_ (update-last-combat-time id selected-player-id)
                     required-mana (get-required-mana skill)
-                    ;; TODO update damage, player might have defense or poison etc.
+                    attack-power (get-attack-power player)
                     damage ((-> common.skills/skills (get skill) :damage-fn)
                             (has-defense? selected-player-id)
-                            (has-break-defense? selected-player-id))
+                            (has-break-defense? selected-player-id)
+                            attack-power)
                     damage (increase-damage-if-has-battle-fury damage players* id)
                     health-after-damage (- (:health other-player-world-state) damage)
                     health-after-damage (Math/max ^long health-after-damage 0)]
@@ -927,7 +933,7 @@
         required-exp (player :required-exp)
         exp (npc/calculate-exp level exp)
         exp (if party-size
-              (Math/round (/ exp (+ (double (/ party-size 10)) 1.1)))
+              (Math/round (/ exp (+ (double (/ party-size 10)) 1.2)))
               exp)
         level-up? (>= (+ current-exp exp) required-exp)
         new-exp (if level-up? 0 (+ current-exp exp))

@@ -153,12 +153,17 @@
 
 (defn- create-damage-fn
   ([damage-multiplier]
-   (fn [_ _ attack-power]
+   (fn [has-defense? got-break-defense? attack-power]
      (let [damage-multiplier-range-constant (double (/ damage-multiplier 15))]
        (int
-         (* attack-power
-            (random-double (- damage-multiplier damage-multiplier-range-constant)
-                           (+ damage-multiplier damage-multiplier-range-constant)))))))
+         (Math/abs
+           (* attack-power
+              (random-double (- damage-multiplier damage-multiplier-range-constant)
+                             (+ damage-multiplier damage-multiplier-range-constant))
+              (cond
+                got-break-defense? 1.3
+                has-defense? 0.85
+                :else 1)))))))
   ([start end]
    (fn [has-defense? got-break-defense?]
      (int
@@ -207,13 +212,13 @@
                     :required-mana 50
                     :damage-fn (create-damage-fn 1.75)
                     :required-level 1}
-   "attackSlowDown" {:cooldown 10000
+   "attackSlowDown" {:cooldown 12000
                      :name "Slowing Slice"
                      :description (str "This skill has a 50% chance to apply a "
                                        "slowing effect on the target, reducing their movement "
                                        "speed for 5 seconds")
                      :required-mana 200
-                     :damage-fn (create-damage-fn 100 200)
+                     :damage-fn (create-damage-fn 1.15)
                      :effect-duration 5000
                      :required-level 7}
    "shieldWall" {:cooldown (* 125 1000)
@@ -286,7 +291,7 @@
    ;; Common
    "attackR" {:required-mana 25
               :cooldown 200
-              :damage-fn (create-damage-fn 20 50)
+              :damage-fn (create-damage-fn 0.25)
               :required-level 1}
 
    "fleetFoot" {:cooldown 26500

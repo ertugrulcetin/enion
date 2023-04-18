@@ -206,6 +206,10 @@
         (:target-player-id npc) (assoc :target-player-id (:target-player-id npc))))
     @npcs))
 
+(defn filter-npcs-by-player [world player-id npcs]
+  (when-let [{:keys [px pz]} (get world player-id)]
+    (filter #(<= (slots/distance [px pz] [(:px %) (:pz %)]) common.enion.npc/lod-2-threshold) npcs)))
+
 (defn attack-to-player [npc player-id world players]
   (let [damage ((:damage-fn npc))
         npc (assoc npc :last-time-attacked (System/currentTimeMillis))]

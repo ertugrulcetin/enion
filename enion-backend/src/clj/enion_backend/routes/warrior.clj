@@ -39,6 +39,7 @@
     (ping-too-high? ping) ping-high
     (not (warrior? id)) skill-failed
     (not (alive? world-state)) skill-failed
+    (not (satisfies-level? skill player)) skill-failed
     (not (enough-mana? skill world-state)) not-enough-mana
     (not (cooldown-finished? skill player)) skill-failed))
 
@@ -53,7 +54,7 @@
                       :skill skill
                       :player player
                       :ping ping
-                      :attack-power (get common.skills/level->attack-power-table (player :level))
+                      :attack-power (get-attack-power player)
                       :validate-attack-skill-fn validate-warrior-attack-skill})
       (when (get current-players selected-player-id)
         (let [player-world-state (get current-world id)
@@ -68,7 +69,7 @@
             err
             (let [_ (update-last-combat-time id selected-player-id)
                   required-mana (get-required-mana skill)
-                  attack-power (get common.skills/level->attack-power-table (player :level))
+                  attack-power (get-attack-power player)
                   damage ((-> common.skills/skills (get skill) :damage-fn)
                           (has-defense? selected-player-id)
                           (has-break-defense? selected-player-id)
@@ -100,6 +101,7 @@
                       :effect :attack-slow-down
                       :skill skill
                       :player player
+                      :attack-power (get-attack-power player)
                       :ping ping
                       :slow-down? (prob? 0.5)
                       :validate-attack-skill-fn validate-warrior-attack-skill})
@@ -116,10 +118,11 @@
             err
             (let [_ (update-last-combat-time id selected-player-id)
                   required-mana (get-required-mana skill)
-                  ;; TODO update damage, player might have defense or poison etc.
+                  attack-power (get-attack-power player)
                   damage ((-> common.skills/skills (get skill) :damage-fn)
                           (has-defense? selected-player-id)
-                          (has-break-defense? selected-player-id))
+                          (has-break-defense? selected-player-id)
+                          attack-power)
                   damage (increase-damage-if-has-battle-fury damage current-players id)
                   health-after-damage (- (:health other-player-world-state) damage)
                   health-after-damage (Math/max ^long health-after-damage 0)

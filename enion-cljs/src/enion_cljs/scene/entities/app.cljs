@@ -59,7 +59,9 @@
                   entity (j/get-in components [id :entity])
                   component (j/get entity :anim)
                   component-data (j/get component :data)]
-              (when (and (j/get component-data :enabled) (j/get-in component [:entity :enabled]) (j/get component :playing))
+              (when (and (j/get component-data :enabled)
+                         (j/get-in component [:entity :enabled])
+                         (j/get component :playing))
                 (if-let [id (or player-id npc-id)]
                   (let [distance (st/distance-to-player id (boolean npc-id))
                         fixed-timestep (cond
@@ -98,5 +100,5 @@
                   (poki/init)
                   (let [{:keys [hidden visibility-change]} (visibility-props)]
                     (when hidden
-                      (js/document.addEventListener visibility-change #(fire :tab-hidden (j/get js/document hidden)))))
+                      (js/document.addEventListener visibility-change #(fire :tab-hidden (boolean (j/get js/document hidden))))))
                   (optimize-animation-on-update))}))

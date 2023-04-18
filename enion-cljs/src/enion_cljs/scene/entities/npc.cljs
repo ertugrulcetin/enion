@@ -143,7 +143,7 @@
   (doseq [npc npcs-world-state
           :let [npc-id (:id npc)
                 npc-entity (j/get-in st/npcs [npc-id :entity])]
-          :when npc-entity]
+          :when (and npc-entity (pc/enabled? npc-entity))]
     (let [model (j/get-in st/npcs [npc-id :model-entity])
           state (:state npc)
           new-x (:px npc)
