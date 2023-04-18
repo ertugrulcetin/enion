@@ -430,7 +430,7 @@
                           (common.skills/random-pos-for-orc)
                           (common.skills/random-pos-for-human))
                     username (generate-username username race class current-players)
-                    level 1
+                    level 10
                     exp 0
                     {:keys [health mana]} (get-in common.skills/level->health-mana-table [level class])
                     attrs {:id id
@@ -611,6 +611,7 @@
     (cancel-all-tasks-of-player enemy-id)
     (swap! players assoc-in [enemy-id :last-time :died] (now))
     (add-effect :die enemy-id)
+    (send! enemy-id :died true)
     (if-let [party-id (get-in players* [player-id :party-id])]
       (let [member-ids (find-player-ids-by-party-id players* party-id)
             party-size (count member-ids)
@@ -811,6 +812,7 @@
     (swap! world assoc-in [id :health] health-after-damage)
     (add-effect :attack-base id)
     (when (= 0 health-after-damage)
+      (send! id :died true)
       (cancel-all-tasks-of-player id)
       (swap! players assoc-in [id :last-time :died] (now)))
     {:skill (:skill data)
@@ -830,6 +832,7 @@
       (swap! world assoc-in [id :health] health-after-damage)
       (add-effect :attack-base id)
       (when (= 0 health-after-damage)
+        (send! id :died true)
         (cancel-all-tasks-of-player id)
         (add-effect :die id)
         (swap! players (fn [players]

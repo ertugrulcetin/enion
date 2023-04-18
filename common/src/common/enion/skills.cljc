@@ -180,15 +180,15 @@
                    :name "Twin Blades"
                    :description (str "Fast and deadly attack that allows the assassin "
                                      "to wield two daggers with deadly precision")
-                   :required-mana 100
-                   :damage-fn (create-damage-fn 225 300)
+                   :required-mana 50
+                   :damage-fn (create-damage-fn 1.45)
                    :required-level 1}
    "attackStab" {:cooldown 12000
                  :name "Dark Stab"
                  :description (str "A lethal close-range attack that lets the Assassin deliver a quick "
                                    "and deadly strike with a hidden blade")
                  :required-mana 200
-                 :damage-fn (create-damage-fn 500 600)
+                 :damage-fn (create-damage-fn 2.55)
                  :required-level 7}
    "phantomVision" {:cooldown 60000
                     :name "Phantom Vision"
@@ -255,10 +255,10 @@
            :required-level 10}
    "attackPriest" {:cooldown 1000
                    :name "Divine Hammerstrike"
-                   :damage-fn (create-damage-fn 150 250)
+                   :damage-fn (create-damage-fn 1.25)
                    :description (str "Powerful close combat skill that allows the Priest to "
                                      "channel holy energy into their hammer, delivering a crushing blow to their enemies")
-                   :required-mana 100
+                   :required-mana 50
                    :required-level 1}
    ;; Mage
    "attackRange" {:cooldown 15000
@@ -266,21 +266,21 @@
                   :description (str "Powerful fire-based attack that unleashes a burst "
                                     "of intense flames in a certain radius")
                   :required-mana 300
-                  :damage-fn (create-damage-fn 350 450)
+                  :damage-fn (create-damage-fn 2.15)
                   :required-level 10}
    "attackSingle" {:cooldown 2000
                    :name "Flame Strike"
                    :description (str "Long range fire-based attack that unleashes a "
                                      "devastating blast of flame on a single enemy")
-                   :required-mana 150
-                   :damage-fn (create-damage-fn 200 275)
+                   :required-mana 50
+                   :damage-fn (create-damage-fn 1.4)
                    :required-level 1}
-   "attackIce" {:cooldown 4000
+   "attackIce" {:cooldown 5000
                 :name "Frostfall"
                 :description (str "Ice skill has a 20% chance of freezing enemies. "
                                   "Slows the target's movement speed for 2.5 seconds")
                 :required-mana 200
-                :damage-fn (create-damage-fn 150 250)
+                :damage-fn (create-damage-fn 1.75)
                 :effect-duration 2500
                 :required-level 5}
    "teleport" {:cooldown 1000

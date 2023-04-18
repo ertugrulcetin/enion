@@ -93,9 +93,10 @@
   (get-in players [attacker-id :effects :hide :result]))
 
 (defn- get-player-id-to-attack [npc world players]
-  (let [locker-player-id (:locked-player-id npc)]
-    (or (and (not (hide? locker-player-id players))
-             locker-player-id)
+  (let [locked-player-id (:locked-player-id npc)
+        attacked-player-ids (some->> npc :damage-buffer (map :attacker-id) set)]
+    (or (and (not (hide? locked-player-id players))
+             locked-player-id)
         (some->> npc
                  :damage-buffer
                  (filter (fn [{:keys [attacker-id]}]
@@ -106,6 +107,17 @@
                                   (not (hide? attacker-id players))))))
                  last
                  :attacker-id)
+        (and (:attack-when-close-chase-range-threshold npc)
+             (->> (keys players)
+                  (filter (fn [player-id]
+                            (let [player (get world player-id)
+                                  player-pos [(:px player) (:pz player)]]
+                              (and player
+                                   (attacked-player-ids player-id)
+                                   (alive? player)
+                                   (<= (v2/dist (:pos npc) player-pos) (:attack-when-close-chase-range-threshold npc))
+                                   (not (hide? player-id players))))))
+                  first))
         (and (:attack-when-close-range-threshold npc)
              (->> (keys players)
                   (filter (fn [player-id]
@@ -208,7 +220,7 @@
 
 (defn filter-npcs-by-player [world player-id npcs]
   (when-let [{:keys [px pz]} (get world player-id)]
-    (filter #(<= (slots/distance [px pz] [(:px %) (:pz %)]) common.enion.npc/lod-2-threshold) npcs)))
+    (filter #(< (slots/distance [px pz] [(:px %) (:pz %)]) common.enion.npc/lod-2-threshold) npcs)))
 
 (defn attack-to-player [npc player-id world players]
   (let [damage ((:damage-fn npc))

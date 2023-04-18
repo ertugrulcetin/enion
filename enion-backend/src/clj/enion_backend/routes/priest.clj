@@ -18,6 +18,7 @@
     (not (alive? world-state)) skill-failed
     (not (alive? other-player-world-state)) skill-failed
     (not (enough-mana? skill world-state)) not-enough-mana
+    (not (satisfies-level? skill player)) skill-failed
     (not (cooldown-finished? skill player)) skill-failed
     (and (not= id selected-player-id)
          (not (close-for-priest-skills? world-state other-player-world-state))) too-far))
@@ -99,6 +100,7 @@
     (and npc-world-state
          (not (alive? npc-world-state))) skill-failed
     (not (enough-mana? skill player-world-state)) not-enough-mana
+    (not (satisfies-level? skill player)) skill-failed
     (not (cooldown-finished? skill player)) skill-failed
     (and other-player-world-state
          (not priest-skill?)
@@ -176,6 +178,7 @@
                       :skill skill
                       :player player
                       :ping ping
+                      :attack-power (get-attack-power player)
                       :validate-attack-skill-fn validate-priest-skill})
       (when (get current-players selected-player-id)
         (let [player-world-state (get current-world id)
@@ -190,9 +193,11 @@
             err
             (let [_ (update-last-combat-time id selected-player-id)
                   required-mana (get-required-mana skill)
+                  attack-power (get-attack-power player)
                   damage ((-> common.skills/skills (get skill) :damage-fn)
                           (has-defense? selected-player-id)
-                          (has-break-defense? selected-player-id))
+                          (has-break-defense? selected-player-id)
+                          attack-power)
                   health-after-damage (- (:health other-player-world-state) damage)
                   health-after-damage (Math/max ^long health-after-damage 0)]
               (swap! world (fn [world]

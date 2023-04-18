@@ -55,6 +55,7 @@
    :skeleton-warrior (merge
                        (:skeleton-warrior common.npc/npcs)
                        {:attack-range-threshold 0.5
+                        :attack-when-close-chase-range-threshold 3
                         :change-pos-interval 15000
                         :change-pos-speed 0.02
                         :chase-range-threshold 15
@@ -71,6 +72,7 @@
    :burning-skeleton (merge
                        (:burning-skeleton common.npc/npcs)
                        {:attack-range-threshold 0.75
+                        :attack-when-close-chase-range-threshold 5
                         :change-pos-interval 15000
                         :change-pos-speed 0.02
                         :chase-range-threshold 20
@@ -103,10 +105,12 @@
    :skeleton-champion (merge
                         (:skeleton-champion common.npc/npcs)
                         {:attack-range-threshold 0.6
+                         :attack-when-close-chase-range-threshold 5
+                         :attack-when-close-range-threshold 0.5
                          :change-pos-interval 15000
                          :change-pos-speed 0.02
                          :chase-range-threshold 20
-                         :chase-speed 0.12
+                         :chase-speed 0.1
                          :cooldown 2000
                          :damage-buffer-size 150
                          :damage-fn #(utils/rand-between 300 450)
@@ -118,11 +122,11 @@
                          :re-spawn-interval 14000})
    :deruvish (merge
                (:deruvish common.npc/npcs)
-               {:attack-range-threshold 7
+               {:attack-range-threshold 6
                 :change-pos-interval 24000
                 :change-pos-speed 0.02
                 :chase-range-threshold 25
-                :chase-speed 0.12
+                :chase-speed 0.08
                 :attack-when-close-range-threshold 2
                 :cooldown 1200
                 :damage-buffer-size 150

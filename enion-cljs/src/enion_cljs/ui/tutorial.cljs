@@ -64,7 +64,7 @@
 
 (defn what-is-the-first-quest []
   [{:title "First quest!"
-    :intro (str "Find the chest in the forest to get <b50 health and mana</b> potions.<br/><br/>"
+    :intro (str "Find the chest in the forest to get <b>25 health and mana</b> potions.<br/><br/>"
                 "You can use the portal located at your base.<br/>"
                 "<img src=\"img/chest.png\" style=\"position: relative;left: calc(50% - 90px);top: 20px;\">")}])
 

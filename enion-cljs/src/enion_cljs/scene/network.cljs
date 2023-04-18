@@ -245,18 +245,7 @@
   (let [health (:health state)
         mana (:mana state)
         current-health (st/get-health)]
-    (cond
-      (and (= health 0) (not= 0 current-health))
-      (do
-        (st/set-health health)
-        (st/set-mana mana)
-        (pc/set-anim-int (st/get-model-entity) "health" 0)
-        (effects/apply-effect-die st/player)
-        (st/play-sound "die")
-        (fire :show-re-spawn-modal #(dispatch-pro :re-spawn))
-        (poki/gameplay-stop))
-
-      (not (and (= health 0) (= 0 current-health)))
+    (when (not (and (= health 0) (= 0 current-health)))
       (do
         (st/set-health health)
         (st/set-mana mana)))))
@@ -402,27 +391,28 @@
                                  :killed killed-username}))))
 
 (defmethod dispatch-pro-response :world-snapshot [params]
-  (let [ws (:world-snapshot params)
-        effects (:effects ws)
-        npc-effects (:npc-effects ws)
-        kills (:kills ws)
-        members-with-break-defense (:break-defense ws)
-        npcs (:npcs ws)
-        ws (dissoc ws :effects :npc-effects :kills :break-defense :npcs)
-        attack-ranges (get effects :attack-range)
-        effects (dissoc effects :attack-range)]
-    (set! world ws)
-    (process-world-snapshot-for-player (get ws current-player-id))
-    (process-world-snapshot (dissoc ws current-player-id))
-    (process-effects effects)
-    (process-effects npc-effects true)
-    (process-attack-ranges attack-ranges)
-    (process-kills kills)
-    (npc/process-npcs current-player-id npcs)
-    (when-let [ids (seq @st/party-member-ids)]
-      (fire :update-party-members {:healths (reduce (fn [acc id]
-                                                      (assoc acc id (get-in ws [id :health]))) {} ids)
-                                   :members-with-break-defense members-with-break-defense}))))
+  (when (utils/tab-visible?)
+    (let [ws (:world-snapshot params)
+          effects (:effects ws)
+          npc-effects (:npc-effects ws)
+          kills (:kills ws)
+          members-with-break-defense (:break-defense ws)
+          npcs (:npcs ws)
+          ws (dissoc ws :effects :npc-effects :kills :break-defense :npcs)
+          attack-ranges (get effects :attack-range)
+          effects (dissoc effects :attack-range)]
+      (set! world ws)
+      (process-world-snapshot-for-player (get ws current-player-id))
+      (process-world-snapshot (dissoc ws current-player-id))
+      (process-effects effects)
+      (process-effects npc-effects true)
+      (process-attack-ranges attack-ranges)
+      (process-kills kills)
+      (npc/process-npcs current-player-id npcs)
+      (when-let [ids (seq @st/party-member-ids)]
+        (fire :update-party-members {:healths (reduce (fn [acc id]
+                                                        (assoc acc id (get-in ws [id :health]))) {} ids)
+                                     :members-with-break-defense members-with-break-defense})))))
 
 (defn send-states-to-server []
   (if-let [id @send-state-interval-id]
@@ -609,6 +599,15 @@
         (st/set-health health)
         (st/cancel-target-pos)
         (poki/gameplay-start)))))
+
+(defmethod dispatch-pro-response :died [_]
+  (st/set-health 0)
+  (st/set-mana 0)
+  (pc/set-anim-int (st/get-model-entity) "health" 0)
+  (effects/apply-effect-die st/player)
+  (st/play-sound "die")
+  (fire :show-re-spawn-modal #(dispatch-pro :re-spawn))
+  (poki/gameplay-stop))
 
 (on :close-socket-for-re-init
     (fn []
