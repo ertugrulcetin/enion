@@ -34,9 +34,7 @@
       (fn [level]
         [level (map
                  (fn [[type params]]
-                   (let [exp (calculate-exp {:player-level level
-                                             :base-exp (:exp params)
-                                             :min-exp (/ (:exp params) 10)})
+                   (let [exp (calculate-exp level (:exp params))
                          required-exp (get common.skills/level->exp-table level)
                          how-many-npcs-to-kill (Math/round (double (/ required-exp exp)))
                          how-many-npcs-to-kill (if (= 0 how-many-npcs-to-kill)
@@ -48,7 +46,7 @@
                       :attack-power attack-power
                       :exp exp}))
                  npc.type/npc-params)])
-      (range 1 30))))
+      (range 1 15))))
 
 (defn create-npc [{:keys [init-pos slot-id type taken-slot-pos-id]}]
   (let [attrs (npc.type/npc-params type)

@@ -122,7 +122,27 @@
    10 {"warrior" {:health 1650 :mana 1000}
        "asas" {:health 1400 :mana 1200}
        "priest" {:health 1350 :mana 1300}
-       "mage" {:health 1200 :mana 1500}}})
+       "mage" {:health 1200 :mana 1500}}
+   11 {"warrior" {:health 1732 :mana 1050}
+       "asas" {:health 1470 :mana 1260}
+       "priest" {:health 1417 :mana 1365}
+       "mage" {:health 1260 :mana 1575}}
+   12 {"warrior" {:health 1815 :mana 1100}
+       "asas" {:health 1540 :mana 1320}
+       "priest" {:health 1485 :mana 1430}
+       "mage" {:health 1320 :mana 1650}}
+   13 {"warrior" {:health 1897 :mana 1150}
+       "asas" {:health 1610 :mana 1380}
+       "priest" {:health 1553 :mana 1495}
+       "mage" {:health 1380 :mana 1725}}
+   14 {"warrior" {:health 1980 :mana 1200}
+       "asas" {:health 1680 :mana 1440}
+       "priest" {:health 1619 :mana 1560}
+       "mage" {:health 1440 :mana 1800}}
+   15 {"warrior" {:health 2475 :mana 1500}
+       "asas" {:health 2100 :mana 1800}
+       "priest" {:health 2025 :mana 1950}
+       "mage" {:health 1800 :mana 2250}}})
 
 
 (comment
