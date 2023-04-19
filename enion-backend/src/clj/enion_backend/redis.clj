@@ -25,6 +25,14 @@
       (println e)
       (log/error e))))
 
+(defn update-username [token username]
+  (set token (assoc (get token) :username username)))
+
+(defn update-bp [players id bp]
+  (when-let [player (get-in @players [id])]
+    (let [{:keys [token]} player]
+      (set token (assoc (get token) :bp bp)))))
+
 (comment
   (set "abc" {:username {:name "abc" :password "123"}})
   (get "abc")

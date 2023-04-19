@@ -14,8 +14,10 @@
        (= "visible" (j/get js/document :visibilityState))))
 
 (defn set-item [k v]
-  (when-let [ls (common.utils/get-local-storage)]
-    (.setItem ls k v)))
+  (some-> (common.utils/get-local-storage) (j/call :setItem k v)))
+
+(defn get-item [k]
+  (some-> (common.utils/get-local-storage) (j/call :getItem k)))
 
 (defn finish-tutorial-step [tutorial-step]
   (j/update! st/player :tutorials assoc tutorial-step true)

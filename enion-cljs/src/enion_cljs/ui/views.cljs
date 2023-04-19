@@ -462,6 +462,86 @@
          [:div (styles/info-box)
           [info-message-box]])])))
 
+(defn inventory-squares []
+  (for [_ (range 24)]
+    [:div {:class (styles/inventory-square)}]))
+
+(defn- char-name []
+  [:tr
+   [:td {:class [(styles/char-info-cell :left) (styles/char-info-cell-top)]} "Name"]
+   [:td {:class [(styles/char-info-cell :right) (styles/char-info-cell-top)]} @(subscribe [::subs/username])]])
+
+(defn- char-race []
+  [:tr
+   [:td {:class (styles/char-info-cell :left)} "Race"]
+   [:td {:class (styles/char-info-cell :right)} (if (= "orc" @(subscribe [::subs/race])) "Orc" "Human")]])
+
+(defn- char-class []
+  [:tr
+   [:td {:class (styles/char-info-cell :left)} "Class"]
+   [:td {:class (styles/char-info-cell :right)} (case @(subscribe [::subs/class])
+                                                  "mage" "Mage"
+                                                  "warrior" "Warrior"
+                                                  "asas" "Assassin"
+                                                  "priest" "Priest")]])
+
+(defn- char-ap []
+  [:tr
+   [:td {:class (styles/char-info-cell :left)} "Attack Power"]
+   [:td {:class (styles/char-info-cell :right)} "-"]])
+
+(defn- char-level []
+  [:tr
+   [:td {:class (styles/char-info-cell :left)} "Level"]
+   [:td {:class (styles/char-info-cell :right)} @(subscribe [::subs/level])]])
+
+(defn- char-exp []
+  [:tr
+   [:td {:class (styles/char-info-cell :left)} "Experience Points"]
+   [:td {:class (styles/char-info-cell :right)} (str @(subscribe [::subs/exp]) "/" @(subscribe [::subs/required-exp]))]])
+
+(defn- char-bp []
+  [:tr
+   [:td {:class (styles/char-info-cell :left)} "Battle Points"]
+   [:td {:class (styles/char-info-cell :right)} "-"]])
+
+(defn- char-coins []
+  [:tr
+   [:td {:class (styles/char-info-cell :left)} "Coins"]
+   [:td {:class (styles/char-info-cell :right)} "-"]])
+
+(defn character-panel []
+  [:div {:class (styles/char-panel)
+         :on-mouse-over #(fire :on-ui-element? true)
+         :on-mouse-out #(fire :on-ui-element? false)}
+   [:div {:class (styles/char-panel-container)}
+    [:table {:class (styles/char-info-table)}
+     [:thead
+      [char-name]
+      [char-race]
+      [char-class]
+      [char-ap]
+      [char-level]
+      [char-exp]
+      [char-bp]
+      [char-coins]]]
+    [:div (styles/char-panel-header)
+     [:span "Equipment"]]
+    [:div {:class (styles/equip)}
+     [:div {:class (styles/section-overlay)} "Equip System Coming Soon..."]
+     [:div {:class (styles/equip-square)}]
+     [:div {:class (styles/equip-square)}]
+     [:div {:class (styles/equip-square)}]
+     [:div {:class (styles/equip-square)}]
+     [:div {:class (styles/equip-square)}]
+     [:div {:class (styles/equip-square)}]]
+    [:div (styles/char-panel-header)
+     [:span "Inventory"]]
+    [:div {:class (styles/inventory-wrapper)}
+     [:div {:class (styles/inventory-container)}
+      (inventory-squares)
+      [:div {:class (styles/section-overlay)} "Inventory System Coming Soon..."]]]]])
+
 (defn- selected-player []
   (when-let [{:keys [username health enemy?]} @(subscribe [::subs/selected-player])]
     [:div (styles/selected-player)
@@ -1370,6 +1450,7 @@
              [chat]
              [party-request-modal]
              [info-box]
+             [character-panel]
              (when @(subscribe [::subs/score-board-open?])
                [score-modal])
              [re-spawn-modal]

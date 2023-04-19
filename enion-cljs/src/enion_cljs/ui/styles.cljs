@@ -21,6 +21,126 @@
     :background-color :white
     :letter-spacing "1px"}])
 
+(def char-panel-width "30%")
+(def char-panel-height "95%")
+(def grid-gap "10px")
+(def disabled-overlay-color "rgba(128, 128, 128, 0.7)")
+
+(defclass char-panel []
+  {:position "fixed"
+   :left "10px"
+   :width char-panel-width
+   :height char-panel-height
+   :display "grid"
+   :grid-template-rows "auto 1fr auto"
+   :grid-gap grid-gap
+   :top "50%"
+   :transform "translateY(-50%)"
+   :color :white
+   :z-index 99
+   :pointer-events :all
+   :user-select :none}
+  (at-media {:max-width "1250px"}
+            {:margin-top "10px"
+             :left "5px"
+             :width "45%"
+             :height "100%"
+             :font-size "10px"}))
+
+(defclass char-panel-container []
+  {:background-color "#10131dcc"
+   :border "3px solid #293c40"
+   :border-radius "5px"
+   :overflow "hidden"})
+
+(defclass char-info-table []
+  {:width "100%"
+   :border-collapse "collapse"})
+
+(defclass char-info-cell [type]
+  (cond-> {:padding "8px"
+           :border "2px solid #293c40"
+           :border-radius "5px"
+           :overflow-wrap "break-word"}
+    (= type :left) (assoc :border-left "unset")
+    (= type :right) (assoc :border-right "unset")))
+
+(defclass char-info-cell-top []
+  {:border-top "unset"})
+
+(defattrs char-panel-header []
+  {:text-align "center"
+   :padding "5px"
+   :font-size "18px"}
+  (at-media {:max-width "1250px"}
+            {:font-size "12px"}))
+
+(defclass equip []
+  {:position "relative"
+   :display "grid"
+   :grid-template-columns "repeat(6, 1fr)"
+   :grid-gap "5px"
+   :height "50px"
+   :align-items "center"
+   :justify-items "center"
+   :border-top "2px solid #293c40"
+   :border-bottom "2px solid #293c40"
+   :padding "10px"}
+  (at-media {:max-width "1250px"}
+            {:height "30px"}))
+
+(defclass equip-square []
+  {:width "45px"
+   :height "45px"
+   :border "3px solid #293c40"
+   :border-radius "5px"
+   :filter "blur(2px)"}
+  (at-media {:max-width "1250px"}
+            {:width "20px"
+             :height "20px"}))
+
+(defclass inventory-wrapper []
+  {:display "flex"
+   :align-items "center"
+   :justify-content "center"})
+
+;; Add this class to your styles
+(defclass inventory-container []
+  {:position "relative"
+   :display "grid"
+   :grid-template-columns "repeat(6, 1fr)"
+   :grid-gap "10px"
+   :width "min-content"
+   :height "min-content"
+   :margin-bottom "15px"})
+
+(defclass inventory-square []
+  {:width "50px"
+   :height "50px"
+   :border "3px solid #293c40"
+   :border-radius "5px"
+   :filter "blur(2px)"}
+  (at-media {:max-width "1250px"}
+            {:width "20px"
+             :height "20px"}))
+
+(defclass section-overlay []
+  {:position "absolute"
+   :top "0"
+   :left "0"
+   :width "100%"
+   :height "100%"
+   :display "flex"
+   :justify-content "center"
+   :align-items "center"
+   :font-weight "bold"
+   :color "#FFF"
+   :text-shadow "1px 1px 2px #000"
+   :text-align "center"
+   :font-size "18px"}
+  (at-media {:max-width "1250px"}
+            {:font-size "12px"}))
+
 (defattrs ui-panel []
   {:position :absolute
    :top 0
@@ -548,7 +668,7 @@
 (defclass score-modal []
   {:composes [(party-request-modal)]
    :max-height "65%"
-   :width "60%"
+   :width "80%"
    :z-index 20
    :font-size "16px"
    :overflow-y :auto
@@ -562,7 +682,9 @@
   [:th
    {:border "1px solid #888"}]
   [:td
-   {:border "1px solid #888"}])
+   {:border "1px solid #888"}]
+  (at-media {:max-width "1250px"}
+            {:width "90% !important"}))
 
 (defattrs connection-lost-modal []
   {:composes [(party-request-modal)]

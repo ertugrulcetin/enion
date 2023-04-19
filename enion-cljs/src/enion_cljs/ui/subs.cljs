@@ -125,6 +125,11 @@
     (-> db :player :class)))
 
 (reg-sub
+  ::username
+  (fn [db]
+    (-> db :player :username)))
+
+(reg-sub
   ::blocked-skill?
   (fn [db [_ skill]]
     (let [hp-potions (-> db :player :hp-potions (or 0))

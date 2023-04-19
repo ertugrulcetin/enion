@@ -11,6 +11,7 @@
     [enion-backend.layout :as layout]
     [enion-backend.middleware :as middleware]
     [enion-backend.npc.core :as npc]
+    [enion-backend.redis :as redis]
     [enion-backend.teatime :as tea]
     [enion-backend.utils :as utils :refer [dev?]]
     [manifold.deferred :as d]
@@ -18,6 +19,7 @@
     [mount.core :as mount :refer [defstate]]
     [msgpack.clojure-extensions]
     [msgpack.core :as msg]
+    [nano-id.core :refer [nano-id]]
     [ring.util.http-response :as response]
     [ring.util.response]
     [sentry-clj.core :as sentry])
@@ -115,6 +117,7 @@
   (mount/stop)
   (mount/start)
 
+  (redis/get "abc")
   npc/npcs
   )
 
@@ -429,20 +432,29 @@
                     pos (if (= "orc" race)
                           (common.skills/random-pos-for-orc)
                           (common.skills/random-pos-for-human))
+                    username? (not (str/blank? username))
                     username (generate-username username race class current-players)
-                    level 10
+                    level 1
                     exp 0
                     {:keys [health mana]} (get-in common.skills/level->health-mana-table [level class])
+                    token (get-in current-players [id :token])
+                    new-player? (str/blank? token)
+                    token (if new-player? (nano-id) token)
+                    data (get-in current-players [id :data])
+                    _ (when (and username? data)
+                        (redis/update-username token username))
                     attrs {:id id
-                           :username username
+                           :username (or (and username? username) (some-> data :username) username)
                            :race race
                            :class class
-                           :health health
-                           :mana mana
+                           :health (or (some-> data (get class) :health) health)
+                           :mana (or (some-> data (get class) :mana) mana)
                            :pos pos
-                           :level level
-                           :required-exp (get common.skills/level->exp-table level)
-                           :exp exp}]
+                           :level (or (some-> data (get class) :level) level)
+                           :required-exp (or (some-> data (get class) :required-exp) (get common.skills/level->exp-table level))
+                           :exp (or (some-> data (get class) :exp) exp)
+                           :token token
+                           :new-player? new-player?}]
                 (swap! players update id merge attrs)
                 (notify-players-for-new-join id attrs)
                 attrs)))))
@@ -605,23 +617,25 @@
     (doseq [t (->> player :effects vals (keep :task))]
       (tea/cancel! t))))
 
-(defn process-if-enemy-died [player-id enemy-id health-after-damage players*]
+(defn process-if-enemy-died [player-id enemy-id health-after-damage current-players]
   (when (= 0 health-after-damage)
     (add-killing player-id enemy-id)
     (cancel-all-tasks-of-player enemy-id)
     (swap! players assoc-in [enemy-id :last-time :died] (now))
     (add-effect :die enemy-id)
     (send! enemy-id :died true)
-    (if-let [party-id (get-in players* [player-id :party-id])]
-      (let [member-ids (find-player-ids-by-party-id players* party-id)
+    (if-let [party-id (get-in current-players [player-id :party-id])]
+      (let [member-ids (find-player-ids-by-party-id current-players party-id)
             party-size (count member-ids)
             bp (battle-points-by-party-size party-size)]
         (doseq [id member-ids]
           (send! id :earned-bp bp)
-          (swap! players update-in [id :bp] (fnil + 0) bp)))
+          (swap! players update-in [id :bp] (fnil + 0) bp)
+          (redis/update-bp players id bp)))
       (let [bp (battle-points-by-party-size 1)]
         (send! player-id :earned-bp bp)
-        (swap! players update-in [player-id :bp] (fnil + 0) bp)))))
+        (swap! players update-in [player-id :bp] (fnil + 0) bp)
+        (redis/update-bp players player-id bp)))))
 
 (defn ping-too-high? [ping]
   (> ping 5000))
@@ -942,7 +956,8 @@
         new-exp (if level-up? 0 (+ current-exp exp))
         new-level (when level-up? (inc level))
         {:keys [health mana]} (when level-up? (get-in common.skills/level->health-mana-table [new-level class]))
-        new-required-exp (when level-up? (get common.skills/level->exp-table new-level))]
+        new-required-exp (when level-up? (get common.skills/level->exp-table new-level))
+        token (player :token)]
     (send! player-id :drop (cond-> {:drop drop
                                     :npc-exp exp
                                     :exp new-exp}
@@ -965,7 +980,14 @@
         (swap! world (fn [world]
                        (-> world
                            (assoc-in [player-id :health] health)
-                           (assoc-in [player-id :mana] mana)))))
+                           (assoc-in [player-id :mana] mana))))
+
+        (redis/set token (merge (redis/get token)
+                                {class {:level new-level
+                                        :exp new-exp
+                                        :health health
+                                        :mana mana
+                                        :required-exp new-required-exp}})))
       (swap! players assoc-in [player-id :exp] new-exp))))
 
 (reg-pro
@@ -1159,13 +1181,20 @@
       (d/chain
         (fn [socket]
           (let [now* (now)
-                player-id (swap! utils/id-generator inc)]
+                player-id (swap! utils/id-generator inc)
+                token (-> req :params :token)
+                player-data (some-> token redis/get)]
             (alter-meta! socket assoc :id player-id)
             (swap! players (fn [players]
                              (-> players
                                  (assoc-in [player-id :id] player-id)
                                  (assoc-in [player-id :socket] socket)
-                                 (assoc-in [player-id :time] now*))))
+                                 (assoc-in [player-id :time] now*)
+                                 (assoc-in [player-id :token] token)
+                                 (update player-id (fn [player]
+                                                     (if player-data
+                                                       (assoc player :data player-data)
+                                                       player))))))
             (s/on-closed socket
                          (fn []
                            (cancel-all-tasks-of-player player-id)
@@ -1270,3 +1299,4 @@
 (defstate ^{:on-reload :noop} init-npcs
   :start (npc/init-npcs)
   :stop (npc/clear-npcs))
+

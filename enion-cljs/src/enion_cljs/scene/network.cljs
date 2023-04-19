@@ -75,6 +75,13 @@
           default))
       default)))
 
+(defn- get-player-token []
+  (utils/get-item "token"))
+
+(defn- save-token-if-new-player [data]
+  (when (:new-player? data)
+    (utils/set-item "token" (:token data))))
+
 (defmethod dispatch-pro-response :init [params]
   (if-let [error (-> params :init :error)]
     (do
@@ -97,6 +104,7 @@
       (set! current-player-id (-> params :init :id))
       (fire :ui-init-game (assoc data :server-name @server-name))
       (fire :ui-init-tutorial-data data)
+      (save-token-if-new-player data)
       (chest/register-chest-trigger-events (not (:what-is-the-first-quest? tutorials)))
       (poki/gameplay-start))))
 
@@ -486,7 +494,7 @@
 
 (on :connect-to-server
     (fn [{:keys [ws-url] :as params}]
-      (connect {:url ws-url
+      (connect {:url (or (some->> (get-player-token) (str "?token=") (str ws-url)) ws-url)
                 :on-message (fn [event]
                               (dispatch-pro-response (msg/unpack (j/get event :data))))
                 :on-open (fn []
