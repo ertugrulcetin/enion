@@ -30,6 +30,8 @@
                 lod-2 (pc/find-by-name model (str npc-type-name "_mesh_lod_2"))
                 id-str (str id)
                 npc-name (-> common.npc/npcs npc-type :name)]]
+    ;; NPCs start at 0,0,0, so we need to move them to -30 Y to be hidden
+    (pc/set-pos entity 0 -30 0)
     (j/assoc! model :npc_id id-str)
     (j/assoc! lod-0 :npc_id id-str)
     (j/assoc! lod-1 :npc_id id-str)
