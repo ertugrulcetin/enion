@@ -564,7 +564,7 @@
   ::fetch-server-list
   (fn [_ [_ click-to-join?]]
     {:http {:method :get
-            :uri "https://enion.io/servers"
+            :uri "https://enion-eu-2.fly.dev/servers"
             :on-success [::fetch-server-list-success click-to-join?]
             :on-failure [::fetch-server-list-failure click-to-join?]}}))
 
@@ -660,6 +660,8 @@
 (reg-event-fx
   ::toggle-char-panel
   (fn [{:keys [db]}]
-    (let [open? (-> db :char-panel-open? not)]
+    (let [open? (-> db :char-panel-open? not)
+          fps? (-> db :settings :fps?)]
       {:db (assoc db :char-panel-open? open?)
-       ::fire [:toggle-fps (not open?)]})))
+       :fx [(when fps?
+              [::fire [:toggle-fps (not open?)]])]})))
