@@ -657,7 +657,9 @@
   (fn [db [_ bp]]
     (assoc-in db [:player :bp] bp)))
 
-(reg-event-db
+(reg-event-fx
   ::toggle-char-panel
-  (fn [db]
-    (update db :char-panel-open? not)))
+  (fn [{:keys [db]}]
+    (let [open? (-> db :char-panel-open? not)]
+      {:db (assoc db :char-panel-open? open?)
+       ::fire [:toggle-fps (not open?)]})))

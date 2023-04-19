@@ -31,7 +31,7 @@
              :damage-buffer-size 100
              :damage-fn #(utils/rand-between 60 120)
              :drop {:items [:hp-potion :mp-potion]
-                    :count-fn #(utils/rand-between 1 2)}
+                    :count-fn #(utils/rand-between 2 3)}
              :exp 120
              :target-locked-threshold 10000
              :target-pos-gap-threshold 0.2
@@ -47,7 +47,7 @@
              :damage-buffer-size 100
              :damage-fn #(utils/rand-between 120 165)
              :drop {:items [:hp-potion :mp-potion]
-                    :count-fn #(utils/rand-between 1 2)}
+                    :count-fn #(utils/rand-between 2 4)}
              :exp 300
              :target-locked-threshold 10000
              :target-pos-gap-threshold 0.2
@@ -64,7 +64,7 @@
                         :damage-buffer-size 100
                         :damage-fn #(utils/rand-between 160 220)
                         :drop {:items [:hp-potion :mp-potion]
-                               :count-fn #(utils/rand-between 1 3)}
+                               :count-fn #(utils/rand-between 2 5)}
                         :exp 550
                         :target-locked-threshold 10000
                         :target-pos-gap-threshold 0.2
@@ -97,7 +97,7 @@
                     :damage-buffer-size 100
                     :damage-fn #(utils/rand-between 300 400)
                     :drop {:items [:hp-potion :mp-potion]
-                           :count-fn #(utils/rand-between 1 2)}
+                           :count-fn #(utils/rand-between 4 9)}
                     :exp 1500
                     :target-locked-threshold 10000
                     :target-pos-gap-threshold 0.2
@@ -115,7 +115,7 @@
                          :damage-buffer-size 150
                          :damage-fn #(utils/rand-between 300 450)
                          :drop {:items [:hp-potion :mp-potion]
-                                :count-fn #(utils/rand-between 3 8)}
+                                :count-fn #(utils/rand-between 5 11)}
                          :exp 2500
                          :target-locked-threshold 10000
                          :target-pos-gap-threshold 0.2
@@ -132,7 +132,7 @@
                 :damage-buffer-size 150
                 :damage-fn #(utils/rand-between 300 400)
                 :drop {:items [:hp-potion :mp-potion]
-                       :count-fn #(utils/rand-between 1 2)}
+                       :count-fn #(utils/rand-between 6 12)}
                 :exp 3500
                 :target-locked-threshold 10000
                 :target-pos-gap-threshold 0.2

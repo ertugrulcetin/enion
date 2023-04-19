@@ -666,3 +666,9 @@
       (j/assoc! st/player :tutorials tutorials)
       (utils/set-item "tutorials" (pr-str tutorials))
       (j/assoc! entity.camera/state :right-mouse-dragged? false)))
+
+(on :toggle-fps
+    (fn [open?]
+      (if open?
+        (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :show])
+        (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :hide]))))

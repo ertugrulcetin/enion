@@ -1365,6 +1365,7 @@
      [ping-counter])
    [online-counter]
    [join-discord]
+   [tutorials]
    [chat]])
 
 (defn main-panel []
@@ -1437,7 +1438,6 @@
              [global-message]
              (when @(subscribe [::subs/connection-lost?])
                [connection-lost-modal])
-             [tutorials]
              [change-server-button]
              (when-not @(subscribe [::subs/in-iframe?])
                [fullscreen-button])
