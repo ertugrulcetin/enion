@@ -40,13 +40,13 @@
   ([pro data]
    (cond
      (not (st/tab-visible?))
-     (js/console.warning "Tab not focused, can't send the payload!")
+     (js/console.warn "Tab not focused, can't send the payload!")
 
      (and @open? @socket)
      (j/call @socket :send (msg/pack {:pro pro
                                       :data data}))
      :else
-     (js/console.warning "Connection closed, can't send the payload!"))))
+     (js/console.warn "Connection closed, can't send the payload!"))))
 
 (defmulti dispatch-pro-response ffirst)
 

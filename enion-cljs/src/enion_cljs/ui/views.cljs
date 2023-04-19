@@ -463,7 +463,8 @@
           [info-message-box]])])))
 
 (defn inventory-squares []
-  (for [_ (range 24)]
+  (for [i (range 24)]
+    ^{:key i}
     [:div {:class (styles/inventory-square)}]))
 
 (defn- char-name []
