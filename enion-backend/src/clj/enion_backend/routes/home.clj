@@ -434,25 +434,31 @@
                           (common.skills/random-pos-for-human))
                     username? (not (str/blank? username))
                     username (generate-username username race class current-players)
+                    attack-power (get common.skills/level->attack-power-table 1)
                     level 1
                     exp 0
+                    bp 0
                     {:keys [health mana]} (get-in common.skills/level->health-mana-table [level class])
                     token (get-in current-players [id :token])
                     new-player? (str/blank? token)
                     token (if new-player? (nano-id) token)
                     data (get-in current-players [id :data])
                     _ (when (and username? data)
-                        (redis/update-username token username))
+                        (redis/update-username token class username))
                     attrs {:id id
-                           :username (or (and username? username) (some-> data :username) username)
+                           :username (or (and username? username)
+                                         (some-> data (get class) :username)
+                                         username)
                            :race race
                            :class class
                            :health (or (some-> data (get class) :health) health)
                            :mana (or (some-> data (get class) :mana) mana)
                            :pos pos
                            :level (or (some-> data (get class) :level) level)
+                           :attack-power (or (some-> data (get class) :attack-power) attack-power)
                            :required-exp (or (some-> data (get class) :required-exp) (get common.skills/level->exp-table level))
                            :exp (or (some-> data (get class) :exp) exp)
+                           :bp (or (some-> data (get class) :bp) bp)
                            :token token
                            :new-player? new-player?}]
                 (swap! players update id merge attrs)
@@ -617,6 +623,13 @@
     (doseq [t (->> player :effects vals (keep :task))]
       (tea/cancel! t))))
 
+(defn not-same-player? [player-id enemy-id]
+  (when-let [player (get @players player-id)]
+    (when-let [enemy (get @players enemy-id)]
+      (let [{:keys [token]} player
+            enemy-token (:token enemy)]
+        (not (= enemy-token token))))))
+
 (defn process-if-enemy-died [player-id enemy-id health-after-damage current-players]
   (when (= 0 health-after-damage)
     (add-killing player-id enemy-id)
@@ -628,14 +641,18 @@
       (let [member-ids (find-player-ids-by-party-id current-players party-id)
             party-size (count member-ids)
             bp (battle-points-by-party-size party-size)]
-        (doseq [id member-ids]
-          (send! id :earned-bp bp)
+        (doseq [id member-ids
+                :when (not-same-player? id enemy-id)]
           (swap! players update-in [id :bp] (fnil + 0) bp)
+          (send! id :earned-bp {:bp bp
+                                :total (get-in @players [id :bp])})
           (redis/update-bp players id bp)))
-      (let [bp (battle-points-by-party-size 1)]
-        (send! player-id :earned-bp bp)
-        (swap! players update-in [player-id :bp] (fnil + 0) bp)
-        (redis/update-bp players player-id bp)))))
+      (when (not-same-player? player-id enemy-id)
+        (let [bp (battle-points-by-party-size 1)]
+          (swap! players update-in [player-id :bp] (fnil + 0) bp)
+          (send! player-id :earned-bp {:bp bp
+                                       :total (get-in @players [player-id :bp])})
+          (redis/update-bp players player-id bp))))))
 
 (defn ping-too-high? [ping]
   (> ping 5000))
@@ -957,12 +974,14 @@
         new-level (when level-up? (inc level))
         {:keys [health mana]} (when level-up? (get-in common.skills/level->health-mana-table [new-level class]))
         new-required-exp (when level-up? (get common.skills/level->exp-table new-level))
-        token (player :token)]
+        token (player :token)
+        attack-power (when level-up? (get common.skills/level->attack-power-table new-level))]
     (send! player-id :drop (cond-> {:drop drop
                                     :npc-exp exp
                                     :exp new-exp}
                              level-up? (assoc :level-up? true
                                               :level new-level
+                                              :attack-power attack-power
                                               :required-exp new-required-exp
                                               :health health
                                               :mana mana)))
@@ -984,6 +1003,7 @@
 
         (redis/set token (merge (redis/get token)
                                 {class {:level new-level
+                                        :attack-power attack-power
                                         :exp new-exp
                                         :health health
                                         :mana mana
@@ -1012,7 +1032,6 @@
       nil)))
 
 (comment
-  (clojure.pprint/pprint @players)
   (clojure.pprint/pprint @world)
   ;;close all connections, fetch :socket attribute and call s/close!
   (doseq [id (keys @players)]

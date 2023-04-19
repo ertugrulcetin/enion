@@ -105,9 +105,19 @@
     (-> db :player :level)))
 
 (reg-sub
+  ::attack-power
+  (fn [db]
+    (-> db :player :attack-power)))
+
+(reg-sub
   ::exp
   (fn [db]
     (-> db :player :exp)))
+
+(reg-sub
+  ::bp
+  (fn [db]
+    (or (-> db :player :bp) 0)))
 
 (reg-sub
   ::required-exp
@@ -379,3 +389,8 @@
   ::in-iframe?
   (fn [db]
     (:in-iframe? db)))
+
+(reg-sub
+  ::char-panel-open?
+  (fn [db]
+    (:char-panel-open? db)))

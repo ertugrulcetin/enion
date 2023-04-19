@@ -17,17 +17,6 @@
   (+ (Math/floor (* (Math/random) (inc (- max min)))) min))
 
 
-(def classes
-  {"warrior" {:health 1650
-              :mana 1000}
-   "asas" {:health 1400
-           :mana 1200}
-   "priest" {:health 1350
-             :mana 1300}
-   "mage" {:health 1200
-           :mana 1500}})
-
-
 (def level->exp-table
   {1 100
    2 190

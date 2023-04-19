@@ -371,6 +371,8 @@
 (reg-event-db
   ::init-game
   (fn [db [_ {:keys [id
+                     attack-power
+                     bp
                      username
                      race
                      class
@@ -391,6 +393,8 @@
         (assoc-in [:player :level] level)
         (assoc-in [:player :exp] exp)
         (assoc-in [:player :required-exp] required-exp)
+        (assoc-in [:player :attack-power] attack-power)
+        (assoc-in [:player :bp] bp)
         (assoc-in [:servers :current-server] server-name)
         (assoc :tutorials tutorials))))
 
@@ -633,16 +637,27 @@
 
 (reg-event-fx
   ::level-up
-  (fn [{:keys [db]} [_ {:keys [exp required-exp level health mana]}]]
+  (fn [{:keys [db]} [_ {:keys [attack-power exp required-exp level health mana]}]]
     {:db (-> db
              (assoc-in [:player :total-health] health)
              (assoc-in [:player :total-mana] mana)
              (assoc-in [:player :exp] exp)
              (assoc-in [:player :required-exp] required-exp)
-             (assoc-in [:player :level] level))
+             (assoc-in [:player :level] level)
+             (assoc-in [:player :attack-power] attack-power))
      :dispatch [::show-global-message (str "Level up! You are now level " level) 5000]}))
 
 (reg-event-db
   ::set-exp
   (fn [db [_ exp]]
     (assoc-in db [:player :exp] exp)))
+
+(reg-event-db
+  ::set-bp
+  (fn [db [_ bp]]
+    (assoc-in db [:player :bp] bp)))
+
+(reg-event-db
+  ::toggle-char-panel
+  (fn [db]
+    (update db :char-panel-open? not)))

@@ -25,13 +25,14 @@
       (println e)
       (log/error e))))
 
-(defn update-username [token username]
-  (set token (assoc (get token) :username username)))
+(defn update-username [token class username]
+  (set token (assoc-in (get token) [class :username] username)))
 
 (defn update-bp [players id bp]
-  (when-let [player (get-in @players [id])]
-    (let [{:keys [token]} player]
-      (set token (assoc (get token) :bp bp)))))
+  (when-let [player (clojure.core/get @players id)]
+    (let [{:keys [token]} player
+          class (:class player)]
+      (set token (update-in (get token) [class :bp] (fnil + 0) bp)))))
 
 (comment
   (set "abc" {:username {:name "abc" :password "123"}})

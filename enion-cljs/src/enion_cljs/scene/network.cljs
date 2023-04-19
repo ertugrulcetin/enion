@@ -459,16 +459,26 @@
           how-to-navigate? (:how-to-navigate? tutorials)
           how-to-navigate-done? (atom how-to-navigate?)
           wasd-codes #{"KeyW" "KeyA" "KeyS" "KeyD"}
-          wasd-key-down-fn (fn [e]
-                             (when (and (not @how-to-navigate-done?) (wasd-codes (j/get-in e [:event :code])))
-                               (reset! how-to-navigate-done? true)
-                               (utils/finish-tutorial-step :how-to-navigate?)))]
+          wasd-key-down-fn (when-not how-to-navigate?
+                             (fn [e]
+                               (when (and (not @how-to-navigate-done?) (wasd-codes (j/get-in e [:event :code])))
+                                 (reset! how-to-navigate-done? true)
+                                 (utils/finish-tutorial-step :how-to-navigate?))))
+          how-to-open-char-panel? (:how-to-open-char-panel? tutorials)
+          how-to-open-char-panel-done? (atom how-to-open-char-panel?)
+          key-c-down-fn (when-not how-to-open-char-panel?
+                          (fn [e]
+                            (when (and (not @how-to-open-char-panel-done?) (= "KeyC" (j/get-in e [:event :code])))
+                              (reset! how-to-open-char-panel-done? true)
+                              (utils/finish-tutorial-step :how-to-open-char-panel?))))]
       (send-states-to-server)
       (dispatch-pro :request-all-players)
       (fire :ui-player-ready)
       (create-ping-interval)
       (when-not how-to-navigate?
-        (pc/on-keyboard :EVENT_KEYDOWN wasd-key-down-fn)))))
+        (pc/on-keyboard :EVENT_KEYDOWN wasd-key-down-fn))
+      (when-not how-to-open-char-panel?
+        (pc/on-keyboard :EVENT_KEYDOWN key-c-down-fn)))))
 
 (defmethod dispatch-pro-response :request-all-players [params]
   (let [params (:request-all-players params)
@@ -560,7 +570,10 @@
                                                     (st/get-username (:id msg)))))))
 
 (defmethod dispatch-pro-response :earned-bp [params]
-  (fire :ui-send-msg {:bp (:earned-bp params)}))
+  (let [bp (-> params :earned-bp :bp)
+        total-bp (-> params :earned-bp :total)]
+    (fire :ui-send-msg {:bp bp})
+    (fire :ui-set-bp total-bp)))
 
 (defn- process-drop [params]
   (let [{:keys [hp-potion mp-potion]} (-> params :drop :drop)

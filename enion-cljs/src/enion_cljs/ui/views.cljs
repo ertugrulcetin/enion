@@ -488,7 +488,7 @@
 (defn- char-ap []
   [:tr
    [:td {:class (styles/char-info-cell :left)} "Attack Power"]
-   [:td {:class (styles/char-info-cell :right)} "-"]])
+   [:td {:class (styles/char-info-cell :right)} @(subscribe [::subs/attack-power])]])
 
 (defn- char-level []
   [:tr
@@ -503,7 +503,7 @@
 (defn- char-bp []
   [:tr
    [:td {:class (styles/char-info-cell :left)} "Battle Points"]
-   [:td {:class (styles/char-info-cell :right)} "-"]])
+   [:td {:class (styles/char-info-cell :right)} @(subscribe [::subs/bp])]])
 
 (defn- char-coins []
   [:tr
@@ -511,36 +511,37 @@
    [:td {:class (styles/char-info-cell :right)} "-"]])
 
 (defn character-panel []
-  [:div {:class (styles/char-panel)
-         :on-mouse-over #(fire :on-ui-element? true)
-         :on-mouse-out #(fire :on-ui-element? false)}
-   [:div {:class (styles/char-panel-container)}
-    [:table {:class (styles/char-info-table)}
-     [:thead
-      [char-name]
-      [char-race]
-      [char-class]
-      [char-ap]
-      [char-level]
-      [char-exp]
-      [char-bp]
-      [char-coins]]]
-    [:div (styles/char-panel-header)
-     [:span "Equipment"]]
-    [:div {:class (styles/equip)}
-     [:div {:class (styles/section-overlay)} "Equip System Coming Soon..."]
-     [:div {:class (styles/equip-square)}]
-     [:div {:class (styles/equip-square)}]
-     [:div {:class (styles/equip-square)}]
-     [:div {:class (styles/equip-square)}]
-     [:div {:class (styles/equip-square)}]
-     [:div {:class (styles/equip-square)}]]
-    [:div (styles/char-panel-header)
-     [:span "Inventory"]]
-    [:div {:class (styles/inventory-wrapper)}
-     [:div {:class (styles/inventory-container)}
-      (inventory-squares)
-      [:div {:class (styles/section-overlay)} "Inventory System Coming Soon..."]]]]])
+  (when @(subscribe [::subs/char-panel-open?])
+    [:div {:class (styles/char-panel)
+           :on-mouse-over #(fire :on-ui-element? true)
+           :on-mouse-out #(fire :on-ui-element? false)}
+     [:div {:class (styles/char-panel-container)}
+      [:table {:class (styles/char-info-table)}
+       [:thead
+        [char-name]
+        [char-race]
+        [char-class]
+        [char-ap]
+        [char-level]
+        [char-exp]
+        [char-bp]
+        [char-coins]]]
+      [:div (styles/char-panel-header)
+       [:span "Equipment"]]
+      [:div {:class (styles/equip)}
+       [:div {:class (styles/section-overlay)} "Equip System Coming Soon..."]
+       [:div {:class (styles/equip-square)}]
+       [:div {:class (styles/equip-square)}]
+       [:div {:class (styles/equip-square)}]
+       [:div {:class (styles/equip-square)}]
+       [:div {:class (styles/equip-square)}]
+       [:div {:class (styles/equip-square)}]]
+      [:div (styles/char-panel-header)
+       [:span "Inventory"]]
+      [:div {:class (styles/inventory-wrapper)}
+       [:div {:class (styles/inventory-container)}
+        (inventory-squares)
+        [:div {:class (styles/section-overlay)} "Inventory System Coming Soon..."]]]]]))
 
 (defn- selected-player []
   (when-let [{:keys [username health enemy?]} @(subscribe [::subs/selected-player])]
@@ -920,10 +921,6 @@
          {:class (styles/tutorials)
           :on-click #(tutorial/start-intro (f) nil show-ui-panel?)}
          title])]]))
-
-(defn- temp-container-for-fps-ping-online []
-  [:div#temp-container-for-fps-ping-online
-   (styles/temp-container-for-fps-ping-online)])
 
 (defn- change-server-modal []
   (r/create-class
@@ -1362,6 +1359,14 @@
                                         (.preventDefault e)
                                         (dispatch [::events/close-score-board])))))))
 
+(defn- left-panel []
+  [:div (styles/left-panel @(subscribe [::subs/char-panel-open?]))
+   (when @(subscribe [::subs/ping?])
+     [ping-counter])
+   [online-counter]
+   [join-discord]
+   [chat]])
+
 (defn main-panel []
   (r/create-class
     {:component-did-mount
@@ -1408,7 +1413,9 @@
        (on :ui-got-defense-break #(dispatch [::events/got-defense-break %]))
        (on :ui-cured #(dispatch [::events/cured]))
        (on :ui-level-up #(dispatch [::events/level-up %]))
-       (on :ui-set-exp #(dispatch [::events/set-exp %])))
+       (on :ui-set-exp #(dispatch [::events/set-exp %]))
+       (on :ui-set-bp #(dispatch [::events/set-bp %]))
+       (on :ui-toggle-char-panel #(dispatch [::events/toggle-char-panel])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -1425,15 +1432,11 @@
           :else
           (when @(subscribe [::subs/show-ui-panel?])
             [:<>
+             [left-panel]
              [congrats-text]
              [global-message]
-             [temp-container-for-fps-ping-online]
              (when @(subscribe [::subs/connection-lost?])
                [connection-lost-modal])
-             (when @(subscribe [::subs/ping?])
-               [ping-counter])
-             [online-counter]
-             [join-discord]
              [tutorials]
              [change-server-button]
              (when-not @(subscribe [::subs/in-iframe?])
@@ -1447,7 +1450,6 @@
              (when @(subscribe [::subs/minimap?])
                [minimap])
              [party-list]
-             [chat]
              [party-request-modal]
              [info-box]
              [character-panel]

@@ -22,6 +22,7 @@
    :score-board {:open? false}
    :connection-lost? false
    :congrats-text? false
+   :char-panel-open? false
    :player {:skills []
             :skill-move nil
             :defense-break? false}

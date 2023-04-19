@@ -37,7 +37,7 @@
    :top "50%"
    :transform "translateY(-50%)"
    :color :white
-   :z-index 99
+   :z-index 16
    :pointer-events :all
    :user-select :none}
   (at-media {:max-width "1250px"}
@@ -61,7 +61,8 @@
   (cond-> {:padding "8px"
            :border "2px solid #293c40"
            :border-radius "5px"
-           :overflow-wrap "break-word"}
+           :overflow-wrap "break-word"
+           :width "50%"}
     (= type :left) (assoc :border-left "unset")
     (= type :right) (assoc :border-right "unset")))
 
@@ -1012,3 +1013,6 @@
     :border-radius "5px"
     :line-height "50px"
     :text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}])
+
+(defattrs left-panel [char-panel-open?]
+  {:visibility (if char-panel-open? :hidden :visible)})

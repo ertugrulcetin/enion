@@ -182,6 +182,10 @@
                   :target-pos (pc/setv (j/get player :target-pos) x y z)
                   :target-pos-available? true)))))
 
+(defn- process-char-panel [e]
+  (when (= "KeyC" (j/get-in e [:event :code]))
+    (fire :ui-toggle-char-panel)))
+
 (defn- register-keyboard-events []
   (let [class (j/get player :class)
         [process-skills events] (case class
@@ -194,6 +198,7 @@
                     (fn [e]
                       (when (st/chat-closed?)
                         (process-esc e)
+                        (process-char-panel e)
                         (when (and (not (j/get-in e [:event :metaKey]))
                                    (not (j/get-in e [:event :ctrlKey]))
                                    (not (j/get-in e [:event :altKey])))

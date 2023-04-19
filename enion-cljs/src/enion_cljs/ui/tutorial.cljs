@@ -57,6 +57,10 @@
     :intro "You can use the <b>Fleet Foot</b> skill to run faster."
     :element (j/call js/document :getElementById "skill-fleetFoot")}])
 
+(defn how-to-open-char-panel? []
+  [{:title "How to open character panel?"
+    :intro (str "You can press the <b>C key</b> to open your character's information panel.")}])
+
 (defn how-to-use-portal []
   [{:title "How to use a portal?"
     :intro (str "You can use a <b>portal</b> to teleport to the forest, and then teleport back to your base."
@@ -104,6 +108,7 @@
    [:rotate-camera-to-the-left "Rotate camera to the left with Key Q" how-to-rotate-camera-to-the-left]
    [:rotate-camera-to-the-right "Rotate camera to the right with Key E" how-to-rotate-camera-to-the-right]
    ;; [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster true]
+   [:how-to-open-char-panel? "Press Key C to see character info" how-to-open-char-panel?]
    [:how-to-use-portal? "Use portal to teleport to the forest" how-to-use-portal]
    [:how-to-cast-skills? "Use your skills to defeat enemies" how-to-cast-skills true]
    [:what-is-the-first-quest? "Get your first quest" what-is-the-first-quest]
