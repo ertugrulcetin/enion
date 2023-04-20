@@ -44,7 +44,7 @@ pc.script.createLoadingScreen(function (app) {
         var container = document.createElement('div');
         container.style.position = 'relative';
         container.style.width = '100%';
-        container.style.height = '50px'; // match the height of the image
+        container.style.height = '80px'; // match the height of the image
 
         var chrome = document.createElement('img');
         chrome.src = 'img/chrome.png';
@@ -72,6 +72,7 @@ pc.script.createLoadingScreen(function (app) {
         }
     };
 
+        
     var createCss = function () {
         var css = [
             'body {',
@@ -85,13 +86,26 @@ pc.script.createLoadingScreen(function (app) {
             '    height: 100%;',
             '    width: 100%;',
             '    background-color: #283538;',
+            '    background-image: url(bg.png);',
+            '    background-size: cover;',
+            '    background-position: center center;',
             '}',
             '',
             '#application-splash {',
             '    position: absolute;',
-            '    top: calc(50% - 184px);',
+            '    top: calc(50%);',
             '    width: 512px;',
-            '    left: calc(50% - 256px);',
+            '    left: calc(50%);',
+            '    transform: translate(-50%, -50%);',
+            '    background: #10131ddb;',
+            '    border-radius: 10px;',
+            '    padding: 15px;',
+            '}',
+            '',
+            '@media (max-width: 1250px) {',
+            ' #application-splash {',
+            '    transform: translate(-50%, -50%) scale(0.8);',
+            ' }',
             '}',
             '',
             '#application-splash img {',
@@ -100,7 +114,7 @@ pc.script.createLoadingScreen(function (app) {
             '',
             '#progress-bar-container {',
             '    margin: 20px auto 0 auto;',
-            '    height: 2px;',
+            '    height: 10px;',
             '    width: 100%;',
             '    background-color: #1d292c;',
             '}',
@@ -109,6 +123,7 @@ pc.script.createLoadingScreen(function (app) {
             '    width: 0%;',
             '    height: 100%;',
             '    background-color: #f60;',
+            '    border-radius: 5px',
             '}',
             '',
             '@media (max-width: 480px) {',
