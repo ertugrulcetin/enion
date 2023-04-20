@@ -60,8 +60,8 @@
                   component (j/get entity :anim)
                   component-data (j/get component :data)]
               (when (and (j/get component-data :enabled)
-                         (j/get-in component [:entity :enabled])
-                         (j/get component :playing))
+                      (j/get-in component [:entity :enabled])
+                      (j/get component :playing))
                 (if-let [id (or player-id npc-id)]
                   (let [distance (st/distance-to-player id (boolean npc-id))
                         fixed-timestep (cond
@@ -79,6 +79,10 @@
                       (j/assoc! component :fixedTimer 0.0)))
                   (j/call component :update dt))))))))))
 
+(defn- enable-entities []
+  (doseq [name ["forest" "towns" "portals"]]
+    (pc/enable (pc/find-by-name name))))
+
 ;;TODO when unfocus - another tab etc, then show count down from 5 seconds and block everything...
 (defn init [init-ui]
   (pc/create-script :app
@@ -88,6 +92,7 @@
              (init-ui)
              (portal/register-portals-trigger-events))
      :post-init (fn []
+                  (enable-entities)
                   ;;TODO window.Terrain/Water/Wave acik onlari da null'a setle
                   (when dev?
                     (simulation/init))
