@@ -428,8 +428,8 @@
                                        (if (and (= race "human") (human-race-full?))
                                          "orc"
                                          "human"))
-                    race (or last-played-race
-                             race
+                    race (or race
+                             last-played-race
                              (cond
                                (human-race-full?) "orc"
                                (orc-race-full?) "human"
