@@ -187,7 +187,7 @@
 (let [lod-0-threshold 1.5
       lod-1-threshold 5
       lod-2-threshold common.npc/lod-2-threshold
-      animation-on-threshold 13]
+      animation-on-threshold (- lod-2-threshold 2)]
   (defn- process-npcs [world-layer]
     (j/call visible-npc-ids :clear)
     (j/call non-visible-npc-ids :clear)

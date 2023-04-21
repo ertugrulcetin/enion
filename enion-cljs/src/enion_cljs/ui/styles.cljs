@@ -1016,3 +1016,7 @@
 
 (defattrs left-panel [char-panel-open?]
   {:visibility (if char-panel-open? :hidden :visible)})
+
+(defattrs change-server-modal []
+  {:composes [(party-request-modal)]}
+  [:b {:color "#ffc107"}])

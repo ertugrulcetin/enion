@@ -385,7 +385,7 @@
 (comment
   (disable-enable-npcs true)
   (doseq [id (js/Object.keys npcs)]
-      (j/assoc-in! npcs [id :entity :enabled] false))
+    (j/assoc-in! npcs [id :entity :enabled] false))
   )
 
 (on :tab-hidden
@@ -417,3 +417,16 @@
   (set-mana mana)
   (j/assoc! player :exp exp
             :level level))
+
+(comment
+  camera-entity
+  (js/console.log (get-player-entity))
+  (pc/get-pos camera-entity)
+  (move-player [24.849584579467773 3.627142071723938 -27.63292])
+  (js/console.log (pc/get-pos (get-player-entity)))
+
+  (do
+    (pc/set-pos (get-player-entity) 0 0 0)
+    (js/console.log (pc/get-pos (get-player-entity))))
+
+  )

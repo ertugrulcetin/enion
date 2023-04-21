@@ -928,9 +928,9 @@
     {:component-will-unmount #(fire :on-ui-element? false)
      :reagent-render
      (fn []
-       [:div (styles/party-request-modal)
+       [:div (styles/change-server-modal)
         [:p "Do you want to return to the main menu?"]
-        [:p "You can choose a different class or server from the main menu"]
+        [:p "You can choose a " [:b "different class  or server"] " from the main menu"]
         [:div (styles/party-request-buttons-container)
          [:button
           {:class (styles/party-request-accept-button)

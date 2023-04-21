@@ -423,12 +423,22 @@
               (println "Player joining...")
               (let [orcs-count (count (get-orcs current-players))
                     humans-count (count (get-humans current-players))
-                    race (or race (cond
-                                    (human-race-full?) "orc"
-                                    (orc-race-full?) "human"
-                                    (< humans-count orcs-count) "human"
-                                    :else "orc"))
-                    class (or class (find-least-repetitive-class race current-players))
+                    data (get-in current-players [id :data])
+                    last-played-race (when-let [race (:last-played-race data)]
+                                       (if (and (= race "human") (human-race-full?))
+                                         "orc"
+                                         "human"))
+                    race (or last-played-race
+                             race
+                             (cond
+                               (human-race-full?) "orc"
+                               (orc-race-full?) "human"
+                               (< humans-count orcs-count) "human"
+                               :else "orc"))
+                    data (get-in current-players [id :data])
+                    class (or class
+                              (some-> data :last-played-class)
+                              (find-least-repetitive-class race current-players))
                     pos (if (= "orc" race)
                           (common.skills/random-pos-for-orc)
                           (common.skills/random-pos-for-human))
@@ -442,7 +452,8 @@
                     token (get-in current-players [id :token])
                     new-player? (str/blank? token)
                     token (if new-player? (nano-id) token)
-                    data (get-in current-players [id :data])
+                    _ (redis/update-last-played-class token class)
+                    _ (redis/update-last-played-race token race)
                     _ (when (and username? data)
                         (redis/update-username token class username))
                     attrs {:id id

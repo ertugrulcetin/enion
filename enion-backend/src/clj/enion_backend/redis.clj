@@ -16,17 +16,25 @@
     (car/wcar my-wcar-opts (car/set k v))
     (catch Exception e
       (println e)
-      (log/error e))))
+      (log/error e)
+      (throw e))))
 
 (defn get [k]
   (try
     (car/wcar my-wcar-opts (car/get k))
     (catch Exception e
       (println e)
-      (log/error e))))
+      (log/error e)
+      (throw e))))
 
 (defn update-username [token class username]
   (set token (assoc-in (get token) [class :username] username)))
+
+(defn update-last-played-class [token class]
+  (set token (assoc (get token) :last-played-class class)))
+
+(defn update-last-played-race [token race]
+  (set token (assoc (get token) :last-played-race race)))
 
 (defn update-bp [players id bp]
   (when-let [player (clojure.core/get @players id)]
