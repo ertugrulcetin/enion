@@ -169,7 +169,8 @@
         (do
           (j/assoc-in! player [:skill->selected-player-id "attackPriest"] selected-player-id)
           (j/assoc-in! player [:skill->selected-enemy-npc? "attackPriest"] npc?)
-          (pc/set-anim-boolean (st/get-model-entity) "attackPriest" true))
+          (pc/set-anim-boolean (st/get-model-entity) "attackPriest" true)
+          (st/look-at-selected-player))
 
         (skills/run? active-state)
         (pc/set-anim-boolean model-entity "run" true)

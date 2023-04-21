@@ -27,9 +27,9 @@
              :change-pos-speed 0.02
              :chase-range-threshold 20
              :chase-speed 0.12
-             :cooldown 1750
+             :cooldown 1250
              :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 60 120)
+             :damage-fn #(utils/rand-between 90 120)
              :drop {:items [:hp-potion :mp-potion]
                     :count-fn #(utils/rand-between 2 3)}
              :exp 120
@@ -45,7 +45,7 @@
              :chase-speed 0.13
              :cooldown 1500
              :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 120 165)
+             :damage-fn #(utils/rand-between 120 175)
              :drop {:items [:hp-potion :mp-potion]
                     :count-fn #(utils/rand-between 2 4)}
              :exp 300
