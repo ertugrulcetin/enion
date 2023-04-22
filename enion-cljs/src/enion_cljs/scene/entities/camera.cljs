@@ -142,13 +142,15 @@
               :shaking? true
               :last-shake-time (js/Date.now))))
 
+(def camera-y-up-limit 2)
+
 (defn- post-update-fn [dt _]
   (let [origin-entity (j/get entity :parent)
         eulers (j/get state :eulers)
         target-y (mod (+ (j/get eulers :x) 180) 360)
         target-x (mod (j/get eulers :y) 360)
-        target-x (if (> target-x 200) 5 target-x)
-        target-x (pc/clamp target-x 5 50)
+        target-x (if (> target-x 200) camera-y-up-limit target-x)
+        target-x (pc/clamp target-x camera-y-up-limit 50)
         _ (j/assoc! eulers :y target-x)
         target-angle (j/get state :target-angle)
         page-x (j/get state :page-x)]

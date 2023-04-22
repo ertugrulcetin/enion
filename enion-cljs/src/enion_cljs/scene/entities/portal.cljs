@@ -32,20 +32,23 @@
    [31.163869857788086 1.6 35.61369323730469]])
 
 (defn- trigger-start [portal]
-  (dlog "trigger-start")
-  (st/play-sound "portal_pass")
-  (js/setTimeout
-    (fn []
-      (case portal
-        "orc_portal_model" (st/move-player (first (shuffle random-orc-forest-portal-spawn-points)))
-        "human_portal_model" (st/move-player (first (shuffle random-human-forest-portal-spawn-points)))
-        "forest_portal_model" (if (= "orc" (st/get-race))
-                                (st/move-player (common.skills/random-pos-for-orc))
-                                (st/move-player (common.skills/random-pos-for-human))))
-      (st/cancel-target-pos))
-    250)
-  (when (not (utils/tutorial-finished? :how-to-use-portal?))
-    (utils/finish-tutorial-step :how-to-use-portal?)))
+  (if (< (st/get-level) 7)
+    (fire :ui-show-global-message "You need to be level 7 to use this portal" 2500)
+    (do
+      (dlog "trigger-start")
+      (st/play-sound "portal_pass")
+      (js/setTimeout
+        (fn []
+          (case portal
+            "orc_portal_model" (st/move-player (first (shuffle random-orc-forest-portal-spawn-points)))
+            "human_portal_model" (st/move-player (first (shuffle random-human-forest-portal-spawn-points)))
+            "forest_portal_model" (if (= "orc" (st/get-race))
+                                    (st/move-player (common.skills/random-pos-for-orc))
+                                    (st/move-player (common.skills/random-pos-for-human))))
+          (st/cancel-target-pos))
+        250)
+      #_(when (not (utils/tutorial-finished? :how-to-use-portal?))
+         (utils/finish-tutorial-step :how-to-use-portal?)))))
 
 (defn- register-portals-trigger-events []
   (let [portals (pc/find-by-name "portals")]

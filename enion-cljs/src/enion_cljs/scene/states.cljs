@@ -421,6 +421,9 @@
   (j/assoc! player :exp exp
             :level level))
 
+(defn get-level []
+  (j/get player :level))
+
 (comment
   camera-entity
   (js/console.log (get-player-entity))

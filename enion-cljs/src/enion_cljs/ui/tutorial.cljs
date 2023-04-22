@@ -109,7 +109,7 @@
    [:rotate-camera-to-the-right "Rotate camera to the right with Key E" how-to-rotate-camera-to-the-right]
    ;; [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster true]
    [:how-to-open-char-panel? "Press Key C to see character info" how-to-open-char-panel?]
-   [:how-to-use-portal? "Use portal to teleport to the forest" how-to-use-portal]
+   ;; [:how-to-use-portal? "Use portal to teleport to the forest" how-to-use-portal]
    [:how-to-cast-skills? "Use your skills to defeat enemies" how-to-cast-skills true]
    [:what-is-the-first-quest? "Get your first quest" what-is-the-first-quest]
    [:how-to-change-skill-order? "Change your skill order" how-to-change-skill-order true]])

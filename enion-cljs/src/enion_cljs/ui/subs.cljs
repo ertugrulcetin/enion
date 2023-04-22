@@ -322,9 +322,8 @@
 (reg-sub
   ::show-hp-mp-potions-ads-button?
   (fn [db]
-    (and (-> db :tutorials :what-is-the-first-quest?)
-         (or (= 0 (-> db :player :hp-potions (or 0)))
-             (= 0 (-> db :player :mp-potions (or 0)))))))
+    (or (= 0 (-> db :player :hp-potions (or 0)))
+        (= 0 (-> db :player :mp-potions (or 0))))))
 
 (reg-sub
   ::show-ui-panel?

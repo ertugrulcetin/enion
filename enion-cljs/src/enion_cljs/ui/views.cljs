@@ -1419,7 +1419,8 @@
        (on :ui-level-up #(dispatch [::events/level-up %]))
        (on :ui-set-exp #(dispatch [::events/set-exp %]))
        (on :ui-set-bp #(dispatch [::events/set-bp %]))
-       (on :ui-toggle-char-panel #(dispatch [::events/toggle-char-panel])))
+       (on :ui-toggle-char-panel #(dispatch [::events/toggle-char-panel]))
+       (on :ui-show-global-message #(dispatch [::events/show-global-message %1 %2])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

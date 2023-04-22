@@ -454,8 +454,9 @@
                     token (get-in current-players [id :token])
                     new-player? (str/blank? token)
                     token (if new-player? (nano-id) token)
-                    _ (redis/update-last-played-class token class)
-                    _ (redis/update-last-played-race token race)
+                    _ (when data
+                        (redis/update-last-played-class token class)
+                        (redis/update-last-played-race token race))
                     _ (when (and username? data)
                         (redis/update-username token class username))
                     attrs {:id id
