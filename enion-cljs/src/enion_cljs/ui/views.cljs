@@ -545,13 +545,15 @@
         [:div {:class (styles/section-overlay)} "Inventory System Coming Soon..."]]]]]))
 
 (defn- selected-player []
-  (when-let [{:keys [username health enemy?]} @(subscribe [::subs/selected-player])]
+  (when-let [{:keys [username health enemy? npc? level]} @(subscribe [::subs/selected-player])]
     [:div (styles/selected-player)
      [:span (styles/selected-player-text enemy?)
       username]
      [:div (styles/hp-bar-selected-player)
       [:div (styles/hp-hit health)]
-      [:div (styles/hp health nil)]]]))
+      [:div (styles/hp health nil)]]
+     (when npc?
+       [:span (styles/selected-player-lvl-text) (str "Level " level)])]))
 
 (defonce x (r/atom 0))
 (defonce z (r/atom 0))

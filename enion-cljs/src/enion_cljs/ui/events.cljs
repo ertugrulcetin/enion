@@ -288,11 +288,15 @@
             total-health (j/get player :total-health)
             health (/ (* health 100) total-health)
             player-id (some-> player (j/get :id) js/parseInt)
-            party-member-id (and (get-in db [:party :members player-id]) player-id)]
+            party-member-id (and (get-in db [:party :members player-id]) player-id)
+            npc? (j/get player :npc?)
+            level (j/get player :level)]
         (-> db
             (assoc-in [:selected-player :username] (j/get player :username))
             (assoc-in [:selected-player :health] health)
             (assoc-in [:selected-player :enemy?] (j/get player :enemy?))
+            (assoc-in [:selected-player :npc?] npc?)
+            (assoc-in [:selected-player :level] level)
             (assoc-in [:party :selected-member] party-member-id)))
       (-> db
           (assoc :selected-player nil)

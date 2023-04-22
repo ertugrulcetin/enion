@@ -435,6 +435,11 @@
    :border "2px solid #10131dcc"
    :border-radius "3px"})
 
+(defattrs selected-player-lvl-text []
+  {:composes [(selected-player-text true)]
+   :font-size "24px"
+   :top "40px"})
+
 (defclass info-close-button []
   {:composes [(button)]
    :margin-left "10px"

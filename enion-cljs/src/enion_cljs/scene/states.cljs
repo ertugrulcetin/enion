@@ -114,13 +114,16 @@
        (let [username (j/get selected-player :username)
              health (j/get selected-player :health)
              total-health (j/get selected-player :total-health)
-             enemy? (or npc? (j/get selected-player :enemy?))]
+             enemy? (or npc? (j/get selected-player :enemy?))
+             level (j/get selected-player :level)]
          (j/assoc! temp-selected-player
                    :id id
                    :username username
                    :health health
                    :total-health total-health
-                   :enemy? enemy?)
+                   :enemy? enemy?
+                   :level  level
+                   :npc? npc?)
          (when (or (not= (j/get prev-selected-player :id) id)
                    (not= (j/get prev-selected-player :health) health))
            (fire :ui-selected-player temp-selected-player))

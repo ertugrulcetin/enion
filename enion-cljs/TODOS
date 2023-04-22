@@ -1,3 +1,4 @@
+When npc is selected, too many ui-set-selected-player triggered
 Sometimes the camera not attached to the character, also character falls into the terrain
 Check what message shows up when redis conn fails
 Notify player died via message, do not check health in the client.(process-world-snapshot-for-player)
