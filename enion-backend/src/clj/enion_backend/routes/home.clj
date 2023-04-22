@@ -1013,15 +1013,15 @@
                        (-> world
                            (assoc-in [player-id :health] health)
                            (assoc-in [player-id :mana] mana))))
-
-        (redis/set token (merge (redis/get token)
-                                {class {:level new-level
-                                        :attack-power attack-power
-                                        :exp new-exp
-                                        :health health
-                                        :mana mana
-                                        :required-exp new-required-exp}})))
-      (swap! players assoc-in [player-id :exp] new-exp))))
+        (redis/level-up token class {:level new-level
+                                     :attack-power attack-power
+                                     :exp new-exp
+                                     :health health
+                                     :mana mana
+                                     :required-exp new-required-exp}))
+      (do
+        (swap! players assoc-in [player-id :exp] new-exp)
+        (redis/update-exp token class new-exp)))))
 
 (reg-pro
   :drop

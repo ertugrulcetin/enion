@@ -42,6 +42,12 @@
           class (:class player)]
       (set token (update-in (get token) [class :bp] (fnil + 0) bp)))))
 
+(defn update-exp [token class exp]
+  (set token (assoc-in (get token) [class :exp] exp)))
+
+(defn level-up [token class attr]
+  (set token (merge (get token) {class attr})))
+
 (comment
   (set "abc" {:username {:name "abc" :password "123"}})
   (get "abc")
