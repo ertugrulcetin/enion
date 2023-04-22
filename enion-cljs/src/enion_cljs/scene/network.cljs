@@ -95,7 +95,8 @@
               :invalid-class "Class is not selected."
               :server-full "Server is full."
               :orc-race-full "Orc race is full."
-              :human-race-full "Human race is full.")))
+              :human-race-full "Human race is full."
+              :something-went-wrong "Something went wrong.")))
     (let [potions (get-potions)
           tutorials (get-tutorials)
           data (merge (:init params) potions {:tutorials tutorials})]
@@ -453,6 +454,13 @@
     (fire :ui-update-ping ping)
     (dispatch-pro :set-ping {:ping rtt})))
 
+(defn- check-if-player-not-initialized-correctly []
+  (js/setTimeout
+    (fn []
+      (when (< (j/get (st/get-pos) :y) 0)
+        (fire :ui-show-something-went-wrong?)))
+    3000))
+
 (defmethod dispatch-pro-response :connect-to-world-state [params]
   (when (:connect-to-world-state params)
     (let [tutorials (get-tutorials)
@@ -478,7 +486,8 @@
       (when-not how-to-navigate?
         (pc/on-keyboard :EVENT_KEYDOWN wasd-key-down-fn))
       (when-not how-to-open-char-panel?
-        (pc/on-keyboard :EVENT_KEYDOWN key-c-down-fn)))))
+        (pc/on-keyboard :EVENT_KEYDOWN key-c-down-fn))
+      (check-if-player-not-initialized-correctly))))
 
 (defmethod dispatch-pro-response :request-all-players [params]
   (let [params (:request-all-players params)

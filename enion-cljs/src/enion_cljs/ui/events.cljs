@@ -465,6 +465,11 @@
   (fn [db]
     (assoc db :connection-lost? true)))
 
+(reg-event-db
+  ::show-something-went-wrong?
+  (fn [db]
+    (assoc db :something-went-wrong? true)))
+
 (reg-event-fx
   ::notify-ui-is-ready
   (fn []

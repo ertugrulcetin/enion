@@ -289,6 +289,11 @@
     (:connection-lost? db)))
 
 (reg-sub
+  ::something-went-wrong?
+  (fn [db]
+    (:something-went-wrong? db)))
+
+(reg-sub
   ::ping
   (fn [db]
     (:ping db)))

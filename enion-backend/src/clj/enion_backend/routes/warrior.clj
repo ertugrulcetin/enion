@@ -2,7 +2,8 @@
   (:require
     [common.enion.skills :as common.skills]
     [enion-backend.routes.home :refer :all]
-    [enion-backend.teatime :as tea]))
+    [enion-backend.teatime :as tea]
+    [enion-backend.utils :as utils]))
 
 (defn- validate-warrior-attack-skill [{:keys [id
                                               ping
@@ -103,7 +104,7 @@
                       :player player
                       :attack-power (get-attack-power player)
                       :ping ping
-                      :slow-down? (prob? 0.5)
+                      :slow-down? (utils/prob? 0.5)
                       :validate-attack-skill-fn validate-warrior-attack-skill})
       (when (get current-players selected-player-id)
         (let [player-world-state (get current-world id)
@@ -126,7 +127,7 @@
                   damage (increase-damage-if-has-battle-fury damage current-players id)
                   health-after-damage (- (:health other-player-world-state) damage)
                   health-after-damage (Math/max ^long health-after-damage 0)
-                  slow-down? (prob? 0.5)]
+                  slow-down? (utils/prob? 0.5)]
               (swap! world (fn [world]
                              (-> world
                                  (update-in [id :mana] - required-mana)

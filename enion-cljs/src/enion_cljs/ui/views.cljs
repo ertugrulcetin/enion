@@ -1300,6 +1300,14 @@
      :on-click #(js/window.location.reload)}
     "Refresh"]])
 
+(defn- something-went-wrong-modal []
+  [:div (styles/connection-lost-modal)
+   [:p "Something went wrong. Please refresh the page."]
+   [:button
+    {:class (styles/connection-lost-button)
+     :on-click #(js/window.location.reload)}
+    "Refresh"]])
+
 (defn- congrats-text []
   (when @(subscribe [::subs/congrats-text?])
     [:div
@@ -1400,7 +1408,6 @@
        (on :close-party-request-modal #(dispatch [::events/close-party-request-modal]))
        (on :close-init-modal #(dispatch [::events/close-init-modal]))
        (on :ui-init-modal-error #(dispatch [::events/set-init-modal-error %]))
-       (on :ui-set-server-stats #(dispatch [::events/set-server-stats %]))
        (on :ui-set-score-board #(dispatch [::events/set-score-board %]))
        (on :ui-set-connection-lost #(dispatch [::events/set-connection-lost]))
        (on :ui-player-ready #(do
@@ -1420,7 +1427,8 @@
        (on :ui-set-exp #(dispatch [::events/set-exp %]))
        (on :ui-set-bp #(dispatch [::events/set-bp %]))
        (on :ui-toggle-char-panel #(dispatch [::events/toggle-char-panel]))
-       (on :ui-show-global-message #(dispatch [::events/show-global-message %1 %2])))
+       (on :ui-show-global-message #(dispatch [::events/show-global-message %1 %2]))
+       (on :ui-show-something-went-wrong? #(dispatch [::events/show-something-went-wrong? %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -1442,6 +1450,8 @@
              [global-message]
              (when @(subscribe [::subs/connection-lost?])
                [connection-lost-modal])
+             (when @(subscribe [::subs/something-went-wrong?])
+               [something-went-wrong-modal])
              [change-server-button]
              (when-not @(subscribe [::subs/in-iframe?])
                [fullscreen-button])

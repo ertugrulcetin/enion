@@ -30,3 +30,6 @@
      (if (next kvs)
        (recur (assoc-some-transient! m (first kvs) (second kvs)) (nnext kvs))
        (persistent! m)))))
+
+(defn prob? [prob]
+  (< (rand) prob))

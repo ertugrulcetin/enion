@@ -3,7 +3,8 @@
     [common.enion.skills :as common.skills]
     [enion-backend.npc.core :as npc]
     [enion-backend.routes.home :refer :all]
-    [enion-backend.teatime :as tea]))
+    [enion-backend.teatime :as tea]
+    [enion-backend.utils :as utils]))
 
 (def nova-radius 2.25)
 
@@ -162,7 +163,7 @@
                         :ping ping
                         :attack-power (get-attack-power player)
                         :validate-attack-skill-fn validate-single-attack
-                        :slow-down? (prob? 0.2)})
+                        :slow-down? (utils/prob? 0.2)})
         (when-let [other-player-world-state (get current-world selected-player-id)]
           (if-let [err (validate-single-attack {:id id
                                                 :ping ping
@@ -183,7 +184,7 @@
                           attack-power)
                   health-after-damage (- (:health other-player-world-state) damage)
                   health-after-damage (Math/max ^long health-after-damage 0)
-                  ice-slow-down? (prob? 0.2)]
+                  ice-slow-down? (utils/prob? 0.2)]
               (make-asas-appear-if-hidden selected-player-id)
               (process-if-enemy-died id selected-player-id health-after-damage current-players)
               (swap! world assoc-in [selected-player-id :health] health-after-damage)

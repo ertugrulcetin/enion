@@ -113,6 +113,11 @@
          (fn [acc k v]
            (assoc acc k (vec (map :id v)))) {})))
 
+(defn notify-players-for-exit [id]
+  (doseq [other-player-id (filter #(not= id %) (keys @world))]
+    (println "Sending exit notification...")
+    (send! other-player-id :player-exit id)))
+
 (comment
   (mount/stop)
   (mount/start)
@@ -357,14 +362,6 @@
     (println "Sending new join...")
     (send! other-player-id :player-join attrs)))
 
-(defn notify-players-for-exit [id]
-  (doseq [other-player-id (filter #(not= id %) (keys @world))]
-    (println "Sending exit notification...")
-    (send! other-player-id :player-exit id)))
-
-(defn prob? [prob]
-  (< (rand) prob))
-
 (def race-set #{"orc" "human"})
 (def class-set #{"warrior" "mage" "asas" "priest"})
 
@@ -411,6 +408,7 @@
   :init
   (fn [{:keys [id current-players] {:keys [username race class]} :data}]
     (cond
+      (nil? (get current-players id)) {:error :something-went-wrong}
       (full?) {:error :server-full}
       (and (= race "human") (human-race-full?)) {:error :human-race-full}
       (and (= race "orc") (orc-race-full?)) {:error :orc-race-full}
@@ -1046,6 +1044,7 @@
       nil)))
 
 (comment
+  (clojure.pprint/pprint @players)
   (clojure.pprint/pprint @world)
   ;;close all connections, fetch :socket attribute and call s/close!
   (doseq [id (keys @players)]

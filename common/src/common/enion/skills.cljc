@@ -50,7 +50,7 @@
 
 
 (def level->attack-power-table
-  {1 100
+  {1 90
    2 109
    3 118
    4 128
@@ -83,66 +83,21 @@
 
 
 (def level->health-mana-table
-  {1 {"warrior" {:health 550 :mana 333}
-      "asas" {:health 467 :mana 400}
-      "priest" {:health 450 :mana 433}
-      "mage" {:health 400 :mana 500}}
-   2 {"warrior" {:health 825 :mana 500}
-      "asas" {:health 700 :mana 600}
-      "priest" {:health 675 :mana 650}
-      "mage" {:health 600 :mana 750}}
-   3 {"warrior" {:health 990 :mana 611}
-      "asas" {:health 833 :mana 733}
-      "priest" {:health 810 :mana 783}
-      "mage" {:health 720 :mana 917}}
-   4 {"warrior" {:health 1073 :mana 667}
-      "asas" {:health 900 :mana 800}
-      "priest" {:health 878 :mana 850}
-      "mage" {:health 780 :mana 1000}}
-   5 {"warrior" {:health 1155 :mana 722}
-      "asas" {:health 967 :mana 867}
-      "priest" {:health 945 :mana 917}
-      "mage" {:health 840 :mana 1083}}
-   6 {"warrior" {:health 1238 :mana 778}
-      "asas" {:health 1033 :mana 933}
-      "priest" {:health 1013 :mana 983}
-      "mage" {:health 900 :mana 1167}}
-   7 {"warrior" {:health 1320 :mana 833}
-      "asas" {:health 1100 :mana 1000}
-      "priest" {:health 1080 :mana 1050}
-      "mage" {:health 960 :mana 1250}}
-   8 {"warrior" {:health 1403 :mana 889}
-      "asas" {:health 1167 :mana 1067}
-      "priest" {:health 1148 :mana 1117}
-      "mage" {:health 1020 :mana 1333}}
-   9 {"warrior" {:health 1485 :mana 944}
-      "asas" {:health 1233 :mana 1133}
-      "priest" {:health 1215 :mana 1183}
-      "mage" {:health 1080 :mana 1417}}
-   10 {"warrior" {:health 1650 :mana 1000}
-       "asas" {:health 1400 :mana 1200}
-       "priest" {:health 1350 :mana 1300}
-       "mage" {:health 1200 :mana 1500}}
-   11 {"warrior" {:health 1732 :mana 1050}
-       "asas" {:health 1470 :mana 1260}
-       "priest" {:health 1417 :mana 1365}
-       "mage" {:health 1260 :mana 1575}}
-   12 {"warrior" {:health 1815 :mana 1100}
-       "asas" {:health 1540 :mana 1320}
-       "priest" {:health 1485 :mana 1430}
-       "mage" {:health 1320 :mana 1650}}
-   13 {"warrior" {:health 1897 :mana 1150}
-       "asas" {:health 1610 :mana 1380}
-       "priest" {:health 1553 :mana 1495}
-       "mage" {:health 1380 :mana 1725}}
-   14 {"warrior" {:health 1980 :mana 1200}
-       "asas" {:health 1680 :mana 1440}
-       "priest" {:health 1619 :mana 1560}
-       "mage" {:health 1440 :mana 1800}}
-   15 {"warrior" {:health 2475 :mana 1500}
-       "asas" {:health 2100 :mana 1800}
-       "priest" {:health 2025 :mana 1950}
-       "mage" {:health 1800 :mana 2250}}})
+  {1 {"warrior" {:health 550 :mana 333} "asas" {:health 467 :mana 400} "priest" {:health 450 :mana 433} "mage" {:health 400 :mana 500}}
+   2 {"warrior" {:health 725 :mana 500} "asas" {:health 600 :mana 600} "priest" {:health 575 :mana 650} "mage" {:health 500 :mana 750}}
+   3 {"warrior" {:health 900 :mana 611} "asas" {:health 750 :mana 733} "priest" {:health 730 :mana 783} "mage" {:health 690 :mana 917}}
+   4 {"warrior" {:health 1073 :mana 667} "asas" {:health 900 :mana 800} "priest" {:health 878 :mana 850} "mage" {:health 780 :mana 1000}}
+   5 {"warrior" {:health 1155 :mana 722} "asas" {:health 967 :mana 867} "priest" {:health 945 :mana 917} "mage" {:health 840 :mana 1083}}
+   6 {"warrior" {:health 1238 :mana 778} "asas" {:health 1033 :mana 933} "priest" {:health 1013 :mana 983} "mage" {:health 900 :mana 1167}}
+   7 {"warrior" {:health 1320 :mana 833} "asas" {:health 1100 :mana 1000} "priest" {:health 1080 :mana 1050} "mage" {:health 960 :mana 1250}}
+   8 {"warrior" {:health 1403 :mana 889} "asas" {:health 1167 :mana 1067} "priest" {:health 1148 :mana 1117} "mage" {:health 1020 :mana 1333}}
+   9 {"warrior" {:health 1485 :mana 944} "asas" {:health 1233 :mana 1133} "priest" {:health 1215 :mana 1183} "mage" {:health 1080 :mana 1417}}
+   10 {"warrior" {:health 1650 :mana 1000} "asas" {:health 1400 :mana 1200} "priest" {:health 1350 :mana 1300} "mage" {:health 1200 :mana 1500}}
+   11 {"warrior" {:health 1732 :mana 1050} "asas" {:health 1470 :mana 1260} "priest" {:health 1417 :mana 1365} "mage" {:health 1260 :mana 1575}}
+   12 {"warrior" {:health 1815 :mana 1100} "asas" {:health 1540 :mana 1320} "priest" {:health 1485 :mana 1430} "mage" {:health 1320 :mana 1650}}
+   13 {"warrior" {:health 1897 :mana 1150} "asas" {:health 1610 :mana 1380} "priest" {:health 1553 :mana 1495} "mage" {:health 1380 :mana 1725}}
+   14 {"warrior" {:health 1980 :mana 1200} "asas" {:health 1680 :mana 1440} "priest" {:health 1619 :mana 1560} "mage" {:health 1440 :mana 1800}}
+   15 {"warrior" {:health 2475 :mana 1500} "asas" {:health 2100 :mana 1800} "priest" {:health 2025 :mana 1950} "mage" {:health 1800 :mana 2250}}})
 
 
 (comment

@@ -749,7 +749,7 @@
 
 (defclass fullscreen-button [minimap?]
   {:composes [(settings-button minimap?)]
-   :right (if minimap? "400px" "242px")})
+   :right (if minimap? "383px" "225px")})
 
 (defclass ping-counter [fps? ping]
   {:composes [(settings-button false)]
