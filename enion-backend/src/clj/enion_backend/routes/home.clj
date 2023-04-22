@@ -425,9 +425,11 @@
                     humans-count (count (get-humans current-players))
                     data (get-in current-players [id :data])
                     last-played-race (when-let [race (:last-played-race data)]
-                                       (if (and (= race "human") (human-race-full?))
-                                         "orc"
-                                         "human"))
+                                       (cond
+                                         (and (= race "orc") (orc-race-full?)) "human"
+                                         (and (= race "human") (human-race-full?)) "orc"
+                                         (= race "orc") "orc"
+                                         :else "human"))
                     race (or race
                              last-played-race
                              (cond
