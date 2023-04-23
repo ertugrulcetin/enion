@@ -83,7 +83,7 @@
 
 
 (def level->health-mana-table
-  {1 {"warrior" {:health 550 :mana 333} "asas" {:health 467 :mana 400} "priest" {:health 450 :mana 433} "mage" {:health 400 :mana 500}}
+  {1 {"warrior" {:health 500 :mana 333} "asas" {:health 420 :mana 400} "priest" {:health 400 :mana 433} "mage" {:health 375 :mana 500}}
    2 {"warrior" {:health 725 :mana 500} "asas" {:health 600 :mana 600} "priest" {:health 575 :mana 650} "mage" {:health 500 :mana 750}}
    3 {"warrior" {:health 900 :mana 611} "asas" {:health 750 :mana 733} "priest" {:health 730 :mana 783} "mage" {:health 690 :mana 917}}
    4 {"warrior" {:health 1073 :mana 667} "asas" {:health 900 :mana 800} "priest" {:health 878 :mana 850} "mage" {:health 780 :mana 1000}}

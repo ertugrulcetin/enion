@@ -106,7 +106,7 @@
                         (:skeleton-champion common.npc/npcs)
                         {:attack-range-threshold 0.6
                          :attack-when-close-chase-range-threshold 5
-                         :attack-when-close-range-threshold 0.5
+                         :attack-when-close-range-threshold 0.3
                          :change-pos-interval 15000
                          :change-pos-speed 0.02
                          :chase-range-threshold 20
@@ -127,7 +127,7 @@
                 :change-pos-speed 0.02
                 :chase-range-threshold 25
                 :chase-speed 0.08
-                :attack-when-close-range-threshold 2
+                ;; :attack-when-close-range-threshold 2
                 :cooldown 1200
                 :damage-buffer-size 150
                 :damage-fn #(utils/rand-between 300 400)

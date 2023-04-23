@@ -21,7 +21,7 @@
     :background-color :white
     :letter-spacing "1px"}])
 
-(def char-panel-width "30%")
+(def char-panel-width "33%")
 (def char-panel-height "95%")
 (def grid-gap "10px")
 (def disabled-overlay-color "rgba(128, 128, 128, 0.7)")

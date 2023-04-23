@@ -1,6 +1,7 @@
 (ns enion-backend.redis
   (:refer-clojure :exclude [set get])
   (:require
+    [clojure.string :as str]
     [clojure.tools.logging :as log]
     [taoensso.carmine :as car]))
 

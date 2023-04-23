@@ -32,7 +32,7 @@
    [31.163869857788086 1.6 35.61369323730469]])
 
 (defn- trigger-start [portal]
-  (if (< (st/get-level) 7)
+  (if (and (not dev?) (< (st/get-level) 7))
     (fire :ui-show-global-message "You need to be level 7 to use the portal" 2500)
     (do
       (dlog "trigger-start")

@@ -417,11 +417,12 @@
       (and (not (str/blank? username))
            (or ((get-usernames) (str/lower-case username))
                (= "system" (str/lower-case username)))) {:error :username-taken}
-      :else (do
+      :else (try
               (println "Player joining...")
               (let [orcs-count (count (get-orcs current-players))
                     humans-count (count (get-humans current-players))
-                    data (get-in current-players [id :data])
+                    token (get-in current-players [id :token])
+                    data (some-> token redis/get)
                     last-played-race (when-let [race (:last-played-race data)]
                                        (cond
                                          (and (= race "orc") (orc-race-full?)) "human"
@@ -449,7 +450,6 @@
                     exp 0
                     bp 0
                     {:keys [health mana]} (get-in common.skills/level->health-mana-table [level class])
-                    token (get-in current-players [id :token])
                     new-player? (str/blank? token)
                     token (if new-player? (nano-id) token)
                     _ (when data
@@ -458,6 +458,7 @@
                     _ (when (and username? data)
                         (redis/update-username token class username))
                     attrs {:id id
+                           :data data
                            :username (or (and username? username)
                                          (some-> data (get class) :username)
                                          username)
@@ -475,7 +476,11 @@
                            :new-player? new-player?}]
                 (swap! players update id merge attrs)
                 (notify-players-for-new-join id attrs)
-                attrs)))))
+                attrs)
+              (catch Exception e
+                (println e)
+                (log/error e)
+                {:error :something-went-wrong})))))
 
 (reg-pro
   :connect-to-world-state
@@ -1214,19 +1219,14 @@
         (fn [socket]
           (let [now* (now)
                 player-id (swap! utils/id-generator inc)
-                token (-> req :params :token)
-                player-data (some-> token redis/get)]
+                token (-> req :params :token)]
             (alter-meta! socket assoc :id player-id)
             (swap! players (fn [players]
                              (-> players
                                  (assoc-in [player-id :id] player-id)
                                  (assoc-in [player-id :socket] socket)
                                  (assoc-in [player-id :time] now*)
-                                 (assoc-in [player-id :token] token)
-                                 (update player-id (fn [player]
-                                                     (if player-data
-                                                       (assoc player :data player-data)
-                                                       player))))))
+                                 (assoc-in [player-id :token] token))))
             (s/on-closed socket
                          (fn []
                            (cancel-all-tasks-of-player player-id)
