@@ -148,14 +148,16 @@
           (j/assoc-in! player [:skill->selected-player-id "heal"] selected-player-id)
           (pc/set-anim-boolean model-entity "heal" true)
           (skills.effects/apply-effect-heal-particles player)
-          (st/look-at-selected-player))
+          (st/look-at-selected-player)
+          (st/cancel-target-pos))
 
         (cure? e selected-player-id npc?)
         (let [selected-player-id (get-selected-player-id-for-priest-skill selected-player-id npc?)]
           (j/assoc-in! player [:skill->selected-player-id "cure"] selected-player-id)
           (pc/set-anim-boolean model-entity "cure" true)
           (skills.effects/apply-effect-cure-particles player)
-          (st/look-at-selected-player))
+          (st/look-at-selected-player)
+          (st/cancel-target-pos))
 
         (break-defense? e selected-player-id)
         (do
@@ -163,7 +165,8 @@
           (j/assoc-in! player [:skill->selected-enemy-npc? "breakDefense"] npc?)
           (pc/set-anim-boolean model-entity "breakDefense" true)
           (skills.effects/apply-effect-defense-break-particles player)
-          (st/look-at-selected-player))
+          (st/look-at-selected-player)
+          (st/cancel-target-pos))
 
         (attack-priest? e active-state selected-player-id)
         (do

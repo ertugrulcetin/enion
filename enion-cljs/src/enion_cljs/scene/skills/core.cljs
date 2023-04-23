@@ -13,6 +13,7 @@
     [enion-cljs.scene.utils :as utils]))
 
 (def key->skill)
+(def hp-potion-key-code)
 
 (def idle-run-states #{"idle" "run"})
 
@@ -267,12 +268,20 @@
                       r-release? (j/assoc! player :can-r-attack-interrupt? true)
                       r-lock? (j/assoc! player :can-r-attack-interrupt? false)))))))
 
+(defn- find-hp-potion-key-code [key->skill]
+  (some
+    (fn [[k v]]
+      (when (= v "hpPotion")
+        k))
+    key->skill))
+
 (defn register-key->skills [skill-mapping]
   (let [m (reduce-kv (fn [acc k v]
                        (assoc acc (pc/get-code (keyword (str "KEY_" k))) v))
                      {(pc/get-code :KEY_R) "attackR"}
                      skill-mapping)]
-    (set! key->skill m)))
+    (set! key->skill m)
+    (set! hp-potion-key-code (find-hp-potion-key-code m))))
 
 (defn char-cant-run? []
   (skills-char-cant-run (pc/get-anim-state (get-model-entity))))

@@ -85,11 +85,11 @@
     [{:intro (if (= "orc" race)
                (str "Find a <b>Human</b> and <b>select it by clicking on it with your mouse</b>, "
                     "or you can <b>press the Z key</b> to select the closest enemy.<br/><br/> "
-                    "Apply <b>" skill-name "</b> by pressing a key on your keyboard or clicking with your mouse.<br/>"
+                    "Apply <b>" skill-name "</b> by pressing a key on your keyboard or double click with your mouse.<br/>"
                     "<img src=\"img/enemy_human.jpeg\" style=\"position: relative;left: calc(50% - 70px);top: 20px;\">")
                (str "Find an <b>Orc</b> and <b>select it by clicking on it with your mouse</b>, "
                     "or you can <b>press the Z key</b> to select the closest enemy.<br/><br/> "
-                    "Apply <b>" skill-name "</b> by pressing a key on your keyboard or clicking with your mouse.<br/>"
+                    "Apply <b>" skill-name "</b> by pressing a key on your keyboard or double click with your mouse.<br/>"
                     "<img src=\"img/enemy_orc.jpeg\" style=\"position: relative;left: calc(50% - 90px);top: 20px;\">"))
       :element (j/call js/document :getElementById (str "skill-" skill))}]))
 

@@ -45,8 +45,8 @@
    25 120988
    26 139139
    27 160006
-   28 184006
-   29 268012})
+   28 194006
+   29 288012})
 
 
 (def level->attack-power-table
@@ -59,27 +59,27 @@
    7 158
    8 168
    9 178
-   10 188
-   11 198
-   12 209
-   13 220
-   14 231
-   15 242
-   16 253
-   17 264
-   18 275
-   19 286
-   20 297
-   21 308
-   22 319
-   23 331
-   24 343
-   25 355
-   26 367
-   27 379
-   28 391
-   29 403
-   30 415})
+   10 201
+   11 212
+   12 221
+   13 230
+   14 336
+   15 342
+   16 353
+   17 364
+   18 375
+   19 386
+   20 457
+   21 508
+   22 519
+   23 531
+   24 543
+   25 555
+   26 567
+   27 579
+   28 591
+   29 603
+   30 615})
 
 
 (def level->health-mana-table
@@ -97,7 +97,22 @@
    12 {"warrior" {:health 1815 :mana 1100} "asas" {:health 1540 :mana 1320} "priest" {:health 1485 :mana 1430} "mage" {:health 1320 :mana 1650}}
    13 {"warrior" {:health 1897 :mana 1150} "asas" {:health 1610 :mana 1380} "priest" {:health 1553 :mana 1495} "mage" {:health 1380 :mana 1725}}
    14 {"warrior" {:health 1980 :mana 1200} "asas" {:health 1680 :mana 1440} "priest" {:health 1619 :mana 1560} "mage" {:health 1440 :mana 1800}}
-   15 {"warrior" {:health 2475 :mana 1500} "asas" {:health 2100 :mana 1800} "priest" {:health 2025 :mana 1950} "mage" {:health 1800 :mana 2250}}})
+   15 {"warrior" {:health 2475 :mana 1500} "asas" {:health 2100 :mana 1800} "priest" {:health 2025 :mana 1950} "mage" {:health 1800 :mana 2250}}
+   16 {"warrior" {:health 2559 :mana 1538} "asas" {:health 2145 :mana 1830} "priest" {:health 2059 :mana 1975} "mage" {:health 1830 :mana 2288}}
+   17 {"warrior" {:health 2643 :mana 1575} "asas" {:health 2190 :mana 1860} "priest" {:health 2093 :mana 2000} "mage" {:health 1860 :mana 2325}}
+   18 {"warrior" {:health 2727 :mana 1613} "asas" {:health 2235 :mana 1890} "priest" {:health 2127 :mana 2025} "mage" {:health 1890 :mana 2363}}
+   19 {"warrior" {:health 2811 :mana 1650} "asas" {:health 2280 :mana 1920} "priest" {:health 2161 :mana 2050} "mage" {:health 1920 :mana 2400}}
+   20 {"warrior" {:health 2895 :mana 1688} "asas" {:health 2325 :mana 1950} "priest" {:health 2195 :mana 2075} "mage" {:health 1950 :mana 2438}}
+   21 {"warrior" {:health 2979 :mana 1725} "asas" {:health 2370 :mana 1980} "priest" {:health 2229 :mana 2100} "mage" {:health 1980 :mana 2475}}
+   22 {"warrior" {:health 3063 :mana 1763} "asas" {:health 2415 :mana 2010} "priest" {:health 2263 :mana 2125} "mage" {:health 2010 :mana 2513}}
+   23 {"warrior" {:health 3147 :mana 1800} "asas" {:health 2460 :mana 2040} "priest" {:health 2297 :mana 2150} "mage" {:health 2040 :mana 2550}}
+   24 {"warrior" {:health 3231 :mana 1838} "asas" {:health 2505 :mana 2070} "priest" {:health 2331 :mana 2175} "mage" {:health 2070 :mana 2588}}
+   25 {"warrior" {:health 3315 :mana 1875} "asas" {:health 2550 :mana 2100} "priest" {:health 2365 :mana 2200} "mage" {:health 2100 :mana 2625}}
+   26 {"warrior" {:health 3399 :mana 1913} "asas" {:health 2595 :mana 2130} "priest" {:health 2399 :mana 2225} "mage" {:health 2130 :mana 2663}}
+   27 {"warrior" {:health 3483 :mana 1950} "asas" {:health 2640 :mana 2160} "priest" {:health 2433 :mana 2250} "mage" {:health 2160 :mana 2700}}
+   28 {"warrior" {:health 3567 :mana 1988} "asas" {:health 2685 :mana 2190} "priest" {:health 2467 :mana 2275} "mage" {:health 2190 :mana 2738}}
+   29 {"warrior" {:health 3651 :mana 2025} "asas" {:health 2730 :mana 2220} "priest" {:health 2501 :mana 2300} "mage" {:health 2220 :mana 2775}}
+   30 {"warrior" {:health 3713 :mana 2250} "asas" {:health 3150 :mana 2700} "priest" {:health 3038 :mana 2925} "mage" {:health 2700 :mana 3375}}})
 
 
 (comment
@@ -232,7 +247,7 @@
                   :required-mana 300
                   :damage-fn (create-damage-fn 2.15)
                   :required-level 10}
-   "attackSingle" {:cooldown 2000
+   "attackSingle" {:cooldown 1500
                    :name "Flame Strike"
                    :description (str "Long range fire-based attack that unleashes a "
                                      "devastating blast of flame on a single enemy")
@@ -253,7 +268,7 @@
                :required-mana 100
                :required-level 7}
    ;; Common
-   "attackR" {:required-mana 25
+   "attackR" {:required-mana 0
               :cooldown 200
               :damage-fn (create-damage-fn 0.25)
               :required-level 1}

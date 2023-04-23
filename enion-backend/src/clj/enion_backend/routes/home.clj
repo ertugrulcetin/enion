@@ -404,6 +404,26 @@
       (-> (set/difference (usernames-map class) taken-usernames) shuffle first))
     username))
 
+(comment
+  #_(let [level 30
+          class "warrior"]
+      {:id id
+       :data data
+       :username (or (and username? username)
+                   (some-> data (get class) :username)
+                   username)
+       :health (get-in common.skills/level->health-mana-table [level class :health])
+       :mana (get-in common.skills/level->health-mana-table [level class :mana])
+       :pos pos
+       :attack-power (get common.skills/level->attack-power-table level)
+       :race race
+       :class class
+       :level level
+       :exp 0
+       :required-exp 100000
+       :token token})
+  )
+
 (reg-pro
   :init
   (fn [{:keys [id current-players] {:keys [username race class]} :data}]

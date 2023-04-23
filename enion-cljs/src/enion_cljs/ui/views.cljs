@@ -147,7 +147,7 @@
                                                                            :cancelable true})
                                    event #js {:event event
                                               :key (+ 49 index)}]
-                               (fire :process-skills-from-skill-bar-clicks event))))
+                               (fire :process-skills-from-an-event event))))
                :on-mouse-enter #(dispatch [::events/show-skill-description skill])
                :on-mouse-leave #(dispatch [::events/show-skill-description nil])}
          [:span (styles/skill-number) (inc index)]

@@ -46,7 +46,7 @@
                       :attack-power attack-power
                       :exp exp}))
                  npc.type/npc-params)])
-      (range 1 15))))
+      (range 1 30))))
 
 (defn create-npc [{:keys [init-pos slot-id type taken-slot-pos-id]}]
   (let [attrs (npc.type/npc-params type)
@@ -339,7 +339,7 @@
                       (let [last-time-attacked (:last-time-attacked npc)
                             now (System/currentTimeMillis)]
                         (if (alive? npc)
-                          (if (and last-time-attacked (<= (- now last-time-attacked) 1000))
+                          (if (and last-time-attacked (<= (- now last-time-attacked) (:delay-after-last-time-attacked npc)))
                             npc
                             (if-let [player-id (get-player-id-to-attack npc world players)]
                               (if (player-close-for-attack? npc player-id world)

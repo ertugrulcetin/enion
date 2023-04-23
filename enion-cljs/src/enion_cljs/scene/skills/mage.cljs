@@ -204,7 +204,8 @@
           (pc/set-anim-boolean model-entity "attackSingle" true)
           (skills.effects/apply-effect-fire-hands player)
           (st/look-at-selected-player)
-          (st/play-sound "attackSingle"))
+          (st/play-sound "attackSingle")
+          (st/cancel-target-pos))
 
         (attack-ice? e active-state selected-player-id)
         (do
@@ -215,7 +216,8 @@
           (pc/set-anim-boolean model-entity "attackIce" true)
           (skills.effects/apply-effect-ice-hands player)
           (st/look-at-selected-player)
-          (st/play-sound "attackIce"))
+          (st/play-sound "attackIce")
+          (st/cancel-target-pos))
 
         (teleport? e active-state selected-player-id)
         (do

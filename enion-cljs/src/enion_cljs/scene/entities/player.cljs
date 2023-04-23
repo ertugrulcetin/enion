@@ -37,6 +37,23 @@
   [x z center-x center-z radius]
   (< (+ (square (- x center-x)) (square (- z center-z))) (square radius)))
 
+(defn- look-at-&-run-towards-selected-player [e]
+  (when (and (st/alive?) (= "KeyR" (j/get-in e [:event :code])))
+    (when-let [selected-player (if (j/get player :selected-enemy-npc?)
+                                 (some-> (st/get-selected-player-id) (st/get-npc-entity))
+                                 (some-> (st/get-selected-player-id) (st/get-other-player-entity)))]
+      (st/process-running)
+      (let [selected-player-pos (pc/get-pos selected-player)
+            x (j/get selected-player-pos :x)
+            y (j/get selected-player-pos :y)
+            z (j/get selected-player-pos :z)
+            model-entity (st/get-model-entity)
+            char-pos (pc/get-pos model-entity)]
+        (pc/look-at model-entity x (j/get char-pos :y) z true)
+        (j/assoc! player
+                  :target-pos (pc/setv (j/get player :target-pos) x y z)
+                  :target-pos-available? true)))))
+
 (defn- get-selected-ally-id [e]
   (let [x (j/get e :x)
         y (j/get e :y)
@@ -65,31 +82,48 @@
               id))))
       (js/Object.keys other-players))))
 
-(defn- get-selected-enemy-npc-id [e]
-  (let [x (j/get e :x)
-        y (j/get e :y)
-        camera (j/get entity.camera/entity :camera)
-        _ (pc/screen-to-world camera x y (j/get-in player [:ray :direction]))
-        _ (j/call-in player [:ray :origin :copy] (pc/get-pos entity.camera/entity))
-        rr-dir (j/call-in player [:ray :direction :sub] (j/get-in player [:ray :origin]))
-        _ (j/call rr-dir :normalize)]
-    (some
-      (fn [id]
-        (let [npc (st/get-npc id)
-              model-entity (j/get npc :model-entity)
-              prefix (j/get npc :npc-type-name)
-              mesh-names [(str prefix "_mesh_lod_0")
-                          (str prefix "_mesh_lod_1")
-                          (str prefix "_mesh_lod_2")]
-              mesh (some (fn [m]
-                           (let [e (pc/find-by-name model-entity m)]
-                             (j/get e :enabled)
-                             e)) mesh-names)
-              aabb (j/get-in mesh [:render :meshInstances 0 :aabb])
-              hit? (j/call aabb :intersectsRay (j/get player :ray) (j/get player :hit-position))]
-          (when (and hit? (> (j/get npc :health) 0))
-            id)))
-      (js/Object.keys npcs))))
+(let [last-selected #js {:time (js/Date.now)}
+      key-r-e (clj->js {:event {:code "KeyR"}})
+      index 0
+      event (js/KeyboardEvent. "keydown" #js {:code (str "Digit" (inc index))
+                                              :key (inc index)
+                                              :keyCode (+ 49 index)
+                                              :bubbles true
+                                              :cancelable true})
+      event #js {:event event
+                 :key (+ 49 index)}]
+  (defn- get-selected-enemy-npc-id [e]
+    (let [x (j/get e :x)
+          y (j/get e :y)
+          camera (j/get entity.camera/entity :camera)
+          _ (pc/screen-to-world camera x y (j/get-in player [:ray :direction]))
+          _ (j/call-in player [:ray :origin :copy] (pc/get-pos entity.camera/entity))
+          rr-dir (j/call-in player [:ray :direction :sub] (j/get-in player [:ray :origin]))
+          _ (j/call rr-dir :normalize)
+          id (some
+               (fn [id]
+                 (let [npc (st/get-npc id)
+                       model-entity (j/get npc :model-entity)
+                       prefix (j/get npc :npc-type-name)
+                       mesh-names [(str prefix "_mesh_lod_0")
+                                   (str prefix "_mesh_lod_1")
+                                   (str prefix "_mesh_lod_2")]
+                       mesh (some (fn [m]
+                                    (let [e (pc/find-by-name model-entity m)]
+                                      (j/get e :enabled)
+                                      e)) mesh-names)
+                       aabb (j/get-in mesh [:render :meshInstances 0 :aabb])
+                       hit? (j/call aabb :intersectsRay (j/get player :ray) (j/get player :hit-position))]
+                   (when (and hit? (> (j/get npc :health) 0))
+                     id)))
+               (js/Object.keys npcs))]
+      (when id
+        (when (< (- (js/Date.now) (j/get last-selected :time)) 250)
+          (look-at-&-run-towards-selected-player key-r-e)
+          (fire :process-skills-from-an-event event)
+          (st/process-running))
+        (j/assoc! last-selected :time (js/Date.now)))
+      id)))
 
 (defn- get-position []
   (pc/get-pos (st/get-player-entity)))
@@ -165,23 +199,6 @@
   (when (and (st/alive?) (= "KeyX" (j/get-in e [:event :code])))
     (select-closest-enemy* true)))
 
-(defn- look-at-&-run-towards-selected-player [e]
-  (when (and (st/alive?) (= "KeyR" (j/get-in e [:event :code])))
-    (when-let [selected-player (if (j/get player :selected-enemy-npc?)
-                                 (some-> (st/get-selected-player-id) (st/get-npc-entity))
-                                 (some-> (st/get-selected-player-id) (st/get-other-player-entity)))]
-      (st/process-running)
-      (let [selected-player-pos (pc/get-pos selected-player)
-            x (j/get selected-player-pos :x)
-            y (j/get selected-player-pos :y)
-            z (j/get selected-player-pos :z)
-            model-entity (st/get-model-entity)
-            char-pos (pc/get-pos model-entity)]
-        (pc/look-at model-entity x (j/get char-pos :y) z true)
-        (j/assoc! player
-                  :target-pos (pc/setv (j/get player :target-pos) x y z)
-                  :target-pos-available? true)))))
-
 (defn- process-char-panel [e]
   (when (= "KeyC" (j/get-in e [:event :code]))
     (fire :ui-toggle-char-panel)))
@@ -211,10 +228,18 @@
                       (st/process-running)))
     (skills/register-skill-events events)
     (on :update-skills-order skills/register-key->skills)
-    (on :process-skills-from-skill-bar-clicks process-skills)))
+    (on :process-skills-from-an-event process-skills)))
 
 (let [last-selected #js {:time (js/Date.now)}
-      key-r-e (clj->js {:event {:code "KeyR"}})]
+      key-r-e (clj->js {:event {:code "KeyR"}})
+      index 0
+      event (js/KeyboardEvent. "keydown" #js {:code (str "Digit" (inc index))
+                                              :key (inc index)
+                                              :keyCode (+ 49 index)
+                                              :bubbles true
+                                              :cancelable true})
+      event #js {:event event
+                 :key (+ 49 index)}]
   (defn- get-selected-enemy-id [e]
     (let [result (pc/raycast-rigid-body e entity.camera/entity)
           hit-entity-name (j/get-in result [:entity :name])]
@@ -226,6 +251,7 @@
                     (and enemy-hidden? (has-phantom-vision?)))
             (when (< (- (js/Date.now) (j/get last-selected :time)) 250)
               (look-at-&-run-towards-selected-player key-r-e)
+              (fire :process-skills-from-an-event event)
               (st/process-running))
             (j/assoc! last-selected :time (js/Date.now))
             (str enemy-id)))))))
@@ -266,6 +292,8 @@
           (st/set-selected-player enemy-npc-id true))
         (set-target-position e)))))
 
+(def last-right-clicked #js {:time (js/Date.now)})
+
 (defn- register-mouse-events []
   (pc/on-mouse :EVENT_MOUSEDOWN
                (fn [e]
@@ -275,7 +303,21 @@
                                                 (j/get :pointerEvents))))
                             (not (j/get player :positioning-nova?)))
                    (j/assoc! player :mouse-left-locked? true)
-                   (select-player-or-set-target e))))
+                   (select-player-or-set-target e))
+
+                 (when (pc/button? e :MOUSEBUTTON_RIGHT)
+                   (println "right click gap: " (- (js/Date.now) (j/get last-right-clicked :time)))
+                   (when (< (- (js/Date.now) (j/get last-right-clicked :time)) 250)
+                     (let [key-code skills/hp-potion-key-code
+                           event (js/KeyboardEvent. "keydown" #js {;; :code (str "Digit" (inc index))
+                                                                   ;; :key (inc index)
+                                                                   :keyCode key-code
+                                                                   :bubbles true
+                                                                   :cancelable true})
+                           event #js {:event event
+                                      :key key-code}]
+                       (fire :process-skills-from-an-event event)))
+                   (j/assoc! last-right-clicked :time (js/Date.now)))))
 
   (when (st/mage?)
     (pc/on-mouse :EVENT_MOUSEDOWN

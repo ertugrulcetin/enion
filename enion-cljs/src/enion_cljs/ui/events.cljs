@@ -654,7 +654,10 @@
              (assoc-in [:player :required-exp] required-exp)
              (assoc-in [:player :level] level)
              (assoc-in [:player :attack-power] attack-power))
-     :dispatch [::show-global-message (str "Level up! You are now level " level) 5000]}))
+     :dispatch [::show-global-message (str "Level up! You are now level " level
+                                           ;; TODO remove this when we have a better way to show level up
+                                           (when (#{3 5 7 10} level)
+                                             (str ". New skill unlocked! ✨"))) 5000]}))
 
 (reg-event-db
   ::set-exp
