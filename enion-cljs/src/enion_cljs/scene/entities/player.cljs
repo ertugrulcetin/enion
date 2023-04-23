@@ -316,7 +316,9 @@
                                                                    :cancelable true})
                            event #js {:event event
                                       :key key-code}]
-                       (fire :process-skills-from-an-event event)))
+                       (fire :process-skills-from-an-event event)
+                       (when (not (utils/tutorial-finished? :how-to-use-hp-potion-with-right-click?))
+                         (utils/finish-tutorial-step :how-to-use-hp-potion-with-right-click?))))
                    (j/assoc! last-right-clicked :time (js/Date.now)))))
 
   (when (st/mage?)

@@ -71,6 +71,10 @@
     :intro (str "Find the chest in the forest to get <b>25 health and mana</b> potions.<br/><br/>"
                 "<img src=\"img/chest.png\" style=\"position: relative;left: calc(50% - 90px);top: 20px;\">")}])
 
+(defn how-to-use-hp-potion-with-right-click []
+  [{:title "Double right click to use HP potion"
+    :intro (str "<b>Double right-click</b> the mouse to use a Health Potion")}])
+
 (defn how-to-change-skill-order []
   [{:title "How to change skill order?"
     :intro (str "<b>Right-click on any of the skill</b> you'd like to change the order of, "
@@ -106,10 +110,9 @@
    [:how-to-rotate-camera? "Adjust your camera rotation" how-to-rotate-camera]
    [:rotate-camera-to-the-left "Rotate camera to the left with Key Q" how-to-rotate-camera-to-the-left]
    [:rotate-camera-to-the-right "Rotate camera to the right with Key E" how-to-rotate-camera-to-the-right]
-   ;; [:how-to-run-faster? "Run faster with Fleet Foot" how-to-run-faster true]
    [:how-to-open-char-panel? "Press Key C to see character info" how-to-open-char-panel?]
-   ;; [:how-to-use-portal? "Use portal to teleport to the forest" how-to-use-portal]
    [:how-to-cast-skills? "Use your skills to defeat enemies" how-to-cast-skills true]
+   [:how-to-use-hp-potion-with-right-click? "Double right click to use HP potion" how-to-use-hp-potion-with-right-click]
    [:what-is-the-first-quest? "Get your first quest" what-is-the-first-quest]
    [:how-to-change-skill-order? "Change your skill order" how-to-change-skill-order true]])
 

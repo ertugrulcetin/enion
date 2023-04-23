@@ -456,7 +456,6 @@
                                (orc-race-full?) "human"
                                (< humans-count orcs-count) "human"
                                :else "orc"))
-                    data (get-in current-players [id :data])
                     class (or class
                               (some-> data :last-played-class)
                               (find-least-repetitive-class race current-players))
@@ -1042,7 +1041,11 @@
                                      :exp new-exp
                                      :health health
                                      :mana mana
-                                     :required-exp new-required-exp}))
+                                     :required-exp new-required-exp})
+        (when (= 2 new-level)
+          (redis/update-last-played-race token (:race player))
+          (redis/update-last-played-class token class)
+          (redis/update-username token class (:username player))))
       (do
         (swap! players assoc-in [player-id :exp] new-exp)
         (redis/update-exp token class new-exp)))))
