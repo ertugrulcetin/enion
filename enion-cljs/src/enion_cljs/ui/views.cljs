@@ -1207,23 +1207,27 @@
     "OK"]])
 
 (defn- click-to-join-indicator-text []
-  [:span (styles/click-to-join-indicator-text)
-   (let [err @(subscribe [::subs/init-modal-error])]
-     (cond
-       err
-       (str err " Please click to try again.")
+  (let [err @(subscribe [::subs/init-modal-error])]
+    (cond
+      err
+      [:span {:class (styles/click-to-join-indicator-text)}
+       (str err " Please click to try again.")]
 
-       @(subscribe [::subs/connecting-to-server])
-       "Connecting..."
+      @(subscribe [::subs/connecting-to-server])
+      [:span {:class (styles/click-to-join-indicator-text)}
+       "Connecting..."]
 
-       (and (not dev?) (nil? @(subscribe [::subs/servers])))
-       "Fetching servers list..."
+      (and (not dev?) (nil? @(subscribe [::subs/servers])))
+      [:span {:class (styles/click-to-join-indicator-text)}
+       "Fetching servers list..."]
 
-       (and (not dev?) (not @(subscribe [::subs/available-servers])))
-       "Finding available servers..."
+      (and (not dev?) (not @(subscribe [::subs/available-servers])))
+      [:span {:class (styles/click-to-join-indicator-text)}
+       "Finding available servers..."]
 
-       :else
-       "Click to Join"))])
+      :else
+      [:span {:class [(styles/click-to-join-indicator-text) "bounce"]}
+       "Click to Join"])))
 
 (defn- click-to-join-modal []
   (r/create-class

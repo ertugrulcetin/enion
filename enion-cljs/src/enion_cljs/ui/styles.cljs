@@ -999,10 +999,16 @@
    :justify-content "center"
    :align-items "center"})
 
-(defattrs click-to-join-indicator-text []
+(defkeyframes scale-bounce []
+  ["0%" {:transform "scale(1)"}]
+  ["100%" {:transform "scale(1.1)"}])
+
+(defclass click-to-join-indicator-text []
   {:font-size "48px"
    :padding "48px"
-   :color "white"})
+   :color "white"}
+  [:&.bounce
+   {:animation (str "0.7s ease-in-out infinite alternate " (scale-bounce))}])
 
 (defattrs global-message []
   {:position :absolute
