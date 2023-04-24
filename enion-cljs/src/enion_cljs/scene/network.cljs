@@ -82,6 +82,9 @@
   (when (:new-player? data)
     (utils/set-item "token" (:token data))))
 
+(defn- stop-intro-music []
+  (some-> (js/document.getElementById "intro-music") (j/call :pause)))
+
 (defmethod dispatch-pro-response :init [params]
   (if-let [error (-> params :init :error)]
     (do
@@ -107,6 +110,7 @@
       (fire :ui-init-tutorial-data data)
       (save-token-if-new-player data)
       (chest/register-chest-trigger-events (not (:what-is-the-first-quest? tutorials)))
+      (stop-intro-music)
       (poki/gameplay-start))))
 
 (defmethod dispatch-pro-response :player-join [params]
