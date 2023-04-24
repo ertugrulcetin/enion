@@ -16,15 +16,15 @@
            :name "Demon"
            :char-name-y-offset 0.1
            :level 6}
-   :skeleton-warrior {:health 2750
+   :skeleton-warrior {:health 3750
                       :name "Skeleton Warrior"
                       :char-name-y-offset 0.3
                       :level 10}
-   :burning-skeleton {:health 3750
+   :burning-skeleton {:health 4250
                       :name "Burning Skeleton"
                       :char-name-y-offset 0.5
                       :level 15}
-   :gravestalker {:health 4250
+   :gravestalker {:health 4500
                   :name "Grave Stalker"
                   :char-name-y-offset 0.3
                   :level 17}

@@ -66,7 +66,7 @@
                         :cooldown 1250
                         :damage-buffer-size 100
                         :damage-fn #(utils/rand-between 160 220)
-                        :delay-after-last-time-attacked 2000
+                        :delay-after-last-time-attacked 1000
                         :drop {:items [:hp-potion :mp-potion]
                                :count-fn #(utils/rand-between 2 5)}
                         :exp 550
