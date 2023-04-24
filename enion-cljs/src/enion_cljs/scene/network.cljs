@@ -83,7 +83,7 @@
     (utils/set-item "token" (:token data))))
 
 (defn- stop-intro-music []
-  (some-> (js/document.getElementById "intro-music") (j/call :pause)))
+  (some-> (js/document.getElementById "enion-intro") (j/call :pause)))
 
 (defmethod dispatch-pro-response :init [params]
   (if-let [error (-> params :init :error)]
