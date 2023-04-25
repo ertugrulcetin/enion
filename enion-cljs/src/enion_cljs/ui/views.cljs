@@ -718,12 +718,14 @@
 (defn- orc-row [orc]
   [:<>
    [:td (styles/score-modal-orc-color) (:username orc)]
+   [:td (styles/score-modal-orc-color) (:level orc)]
    [:td (styles/score-modal-orc-color) (display-class (:class orc))]
    [:td (styles/score-modal-orc-color) (:bp orc)]])
 
 (defn- human-row [human]
   [:<>
    [:td (styles/score-modal-human-color) (:username human)]
+   [:td (styles/score-modal-human-color) (:level human)]
    [:td (styles/score-modal-human-color) (display-class (:class human))]
    [:td (styles/score-modal-human-color) (:bp human)]])
 
@@ -749,16 +751,18 @@
           [:thead
            [:tr
             [:th
-             {:colSpan "3"
+             {:colSpan "4"
               :style {:color styles/orc-color}}
              "Orcs"]
-            [:th {:colSpan "3"
+            [:th {:colSpan "4"
                   :style {:color styles/human-color}} "Humans"]]
            [:tr
             [:th (styles/score-modal-orc-color) "Player"]
+            [:th (styles/score-modal-orc-color) "Level"]
             [:th (styles/score-modal-orc-color) "Class"]
             [:th (styles/score-modal-orc-color) "Battle Points"]
             [:th (styles/score-modal-human-color) "Player"]
+            [:th (styles/score-modal-human-color) "Level"]
             [:th (styles/score-modal-human-color) "Class"]
             [:th (styles/score-modal-human-color) "Battle Points"]]]
           [:tbody

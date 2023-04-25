@@ -280,10 +280,9 @@
 
 (reg-pro
   :get-server-stats
-  (fn [_]
-    (let [players @players
-          orcs (count (get-orcs players))
-          humans (count (get-humans players))]
+  (fn [{:keys [current-players]}]
+    (let [orcs (count (get-orcs current-players))
+          humans (count (get-humans current-players))]
       {:number-of-players (+ orcs humans)
        :orcs orcs
        :humans humans
@@ -292,13 +291,12 @@
 
 (reg-pro
   :get-score-board
-  (fn [{:keys [id]}]
+  (fn [{:keys [id current-players]}]
     (update-last-activity-time id)
-    (let [players @players
-          orcs (map (fn [[_ p]] (assoc p :bp (or (:bp p) 0))) (get-orcs players))
-          humans (map (fn [[_ p]] (assoc p :bp (or (:bp p) 0))) (get-humans players))]
+    (let [orcs (map (fn [[_ p]] (assoc p :bp (or (:bp p) 0))) (get-orcs current-players))
+          humans (map (fn [[_ p]] (assoc p :bp (or (:bp p) 0))) (get-humans current-players))]
       (when-let [players* (seq (concat orcs humans))]
-        (map #(select-keys % [:id :race :class :bp]) players*)))))
+        (map #(select-keys % [:id :race :class :bp :level]) players*)))))
 
 (defn find-player-ids-by-race [players race]
   (->> players
