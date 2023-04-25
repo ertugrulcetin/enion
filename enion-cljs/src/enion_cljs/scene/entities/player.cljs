@@ -306,7 +306,6 @@
                    (select-player-or-set-target e))
 
                  (when (pc/button? e :MOUSEBUTTON_RIGHT)
-                   (println "right click gap: " (- (js/Date.now) (j/get last-right-clicked :time)))
                    (when (< (- (js/Date.now) (j/get last-right-clicked :time)) 250)
                      (let [key-code skills/hp-potion-key-code
                            event (js/KeyboardEvent. "keydown" #js {;; :code (str "Digit" (inc index))

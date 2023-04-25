@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.drop
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [fire]]
+    [enion-cljs.common :refer [on fire]]
     [enion-cljs.scene.states :as st]
     [enion-cljs.scene.utils :as utils]))
 
@@ -15,3 +15,8 @@
       (fire :ui-update-mp-potions mp-potions)
       (utils/set-item "potions" (pr-str {:hp-potions (j/get st/player :hp-potions)
                                          :mp-potions mp-potions})))))
+
+(on :rewarded-break-potions
+    (fn []
+      (inc-potion :hp 25)
+      (inc-potion :mp 25)))
