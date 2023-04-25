@@ -1,7 +1,4 @@
-Mage attack flame not shown
-Check what message shows up when redis conn fails
-Ads does not work, can't get free potions!!!
-Sometimes the camera not attached to the character, also character falls into the terrain
+MP potions particles do not show up
 Sometimes players global state have players without socket, so handle this case. Remove them from the global state. Also notify the other players that the player is disconnected.
 When npc is selected, too many ui-set-selected-player triggered
 Show orcs defeat in green color.
@@ -12,6 +9,10 @@ Show why player is kicked. (Ping, AFK, etc.)
 Player runs fast/slow based on the camera angle.
 Show countdown timer when a player is about to disconnect.
 
+Sometimes the camera not attached to the character, also character falls into the terrain
+Ads does not work, can't get free potions!!!
+Mage attack flame not shown
+Check what message shows up when redis conn fails
 Notify player died via message, do not check health in the client.(process-world-snapshot-for-player)
 Always open the latest played class
 Show party members username in 20 meters range.
