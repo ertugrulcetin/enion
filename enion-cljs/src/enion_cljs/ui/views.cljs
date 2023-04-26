@@ -731,8 +731,8 @@
 
 (defn- orc-human-row [orc human]
   [:tr
-   (if orc [orc-row orc] [:<> [:td] [:td] [:td]])
-   (if human [human-row human] [:<> [:td] [:td] [:td]])])
+   (if orc [orc-row orc] [:<> [:td] [:td] [:td] [:td]])
+   (if human [human-row human] [:<> [:td] [:td] [:td] [:td]])])
 
 (defn- score-modal []
   (r/create-class
