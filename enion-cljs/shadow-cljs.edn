@@ -26,7 +26,9 @@
            :asset-path "/js/compiled"
            :modules {:app {:init-fn enion-cljs.core/init
                            :prepend-js "if (window.location.hostname.endsWith(\".fly.dev\"))
-                                        {window.location.href = \"https://enion.io\";}"}}
+                                        {window.location.href = \"https://enion.io\";}
+
+                                        if (window.location.hostname === 'enion.io') {\n  var headScript = document.createElement('script');\n  headScript.innerHTML = \"(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-W48H6JF');\";\n  document.getElementsByTagName('head')[0].appendChild(headScript);\n\n  var bodyScript = document.createElement('noscript');\n  bodyScript.innerHTML = \"<iframe src='https://www.googletagmanager.com/ns.html?id=GTM-W48H6JF'height='0' width='0' style='display:none;visibility:hidden'></iframe>\";\n  document.getElementsByTagName('body')[0].appendChild(bodyScript);\n}"}}
            :devtools {:preloads [day8.re-frame-10x.preload]
                       ;:autoload false
                       }

@@ -1,4 +1,6 @@
+Scoreboard layout has bug
 MP potions particles do not show up
+BP not persisting it seems
 Sometimes players global state have players without socket, so handle this case. Remove them from the global state. Also notify the other players that the player is disconnected.
 When npc is selected, too many ui-set-selected-player triggered
 Show orcs defeat in green color.
