@@ -12,6 +12,24 @@
       <style></style>
       <title>Enion Online - The Epic PvP Battle between Orcs and Humans</title>
       <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+	<script>
+		if (window.location.hostname === 'enion.io') {
+			// Google Tag Manager code for head tag
+			(function(w,d,s,l,i){
+				w[l]=w[l]||[];
+				w[l].push({
+					'gtm.start': new Date().getTime(),
+					event: 'gtm.js'
+				});
+				var f=d.getElementsByTagName(s)[0],
+					j=d.createElement(s),
+					dl=l!='dataLayer'?'&l='+l:'';
+				j.async=true;
+				j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+				f.parentNode.insertBefore(j,f);
+			})(window,document,'script','dataLayer','GTM-W48H6JF');
+		}
+	</script>
    </head>
    <body>
       <script src="js/compiled/app.js"></script>
@@ -20,5 +38,19 @@
         <source src="enion-intro.mp3" type="audio/mp3">
         Your browser does not support the audio element.
       </audio>
+	<script>
+		if (window.location.hostname === 'enion.io') {
+			(function(w,d,s,l,i){
+				var noscript = d.createElement('noscript');
+				var iframe = d.createElement('iframe');
+				iframe.src = "https://www.googletagmanager.com/ns.html?id=" + i;
+				iframe.height = "0";
+				iframe.width = "0";
+				iframe.style = "display:none;visibility:hidden";
+				noscript.appendChild(iframe);
+				d.getElementsByTagName('body')[0].appendChild(noscript);
+			})(window,document,'script','dataLayer','GTM-W48H6JF');
+		}
+	</script>
    </body>
 </html>
