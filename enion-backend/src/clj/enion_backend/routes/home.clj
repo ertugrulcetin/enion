@@ -677,16 +677,18 @@
             bp (battle-points-by-party-size party-size)]
         (doseq [id member-ids
                 :when (not-same-player? id enemy-id)]
-          (swap! players update-in [id :bp] (fnil + 0) bp)
-          (send! id :earned-bp {:bp bp
-                                :total (get-in @players [id :bp])})
-          (redis/update-bp players id bp)))
+          (let [_ (swap! players update-in [id :bp] (fnil + 0) bp)
+                total-bp (get-in @players [player-id :bp])]
+            (send! id :earned-bp {:bp bp
+                                  :total total-bp})
+            (redis/update-bp players id total-bp))))
       (when (not-same-player? player-id enemy-id)
-        (let [bp (battle-points-by-party-size 1)]
-          (swap! players update-in [player-id :bp] (fnil + 0) bp)
+        (let [bp (battle-points-by-party-size 1)
+              _ (swap! players update-in [player-id :bp] (fnil + 0) bp)
+              total-bp (get-in @players [player-id :bp])]
           (send! player-id :earned-bp {:bp bp
-                                       :total (get-in @players [player-id :bp])})
-          (redis/update-bp players player-id bp))))))
+                                       :total total-bp})
+          (redis/update-bp players player-id total-bp))))))
 
 (defn ping-too-high? [ping]
   (> ping 5000))

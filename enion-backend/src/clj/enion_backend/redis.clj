@@ -37,11 +37,10 @@
 (defn update-last-played-race [token race]
   (set token (assoc (get token) :last-played-race race)))
 
-(defn update-bp [players id bp]
+(defn update-bp [players id total-bp]
   (when-let [player (clojure.core/get @players id)]
-    (let [{:keys [token]} player
-          class (:class player)]
-      (set token (update-in (get token) [class :bp] (fnil + 0) bp)))))
+    (let [{:keys [token class]} player]
+      (set token (assoc-in (get token) [class :bp] total-bp)))))
 
 (defn update-exp [token class exp]
   (set token (assoc-in (get token) [class :exp] exp)))
