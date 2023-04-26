@@ -184,7 +184,7 @@
                           attack-power)
                   health-after-damage (- (:health other-player-world-state) damage)
                   health-after-damage (Math/max ^long health-after-damage 0)
-                  ice-slow-down? (utils/prob? 0.2)]
+                  ice-slow-down? (utils/prob? 0.25)]
               (make-asas-appear-if-hidden selected-player-id)
               (process-if-enemy-died id selected-player-id health-after-damage current-players)
               (swap! world assoc-in [selected-player-id :health] health-after-damage)

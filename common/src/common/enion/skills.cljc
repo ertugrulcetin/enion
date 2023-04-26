@@ -256,7 +256,7 @@
                    :required-level 1}
    "attackIce" {:cooldown 5000
                 :name "Frostfall"
-                :description (str "Ice skill has a 20% chance of freezing enemies. "
+                :description (str "Ice skill has a 25% chance of freezing enemies. "
                                   "Slows the target's movement speed for 2.5 seconds")
                 :required-mana 200
                 :damage-fn (create-damage-fn 1.75)

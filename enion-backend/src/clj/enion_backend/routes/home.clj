@@ -905,7 +905,9 @@
         (swap! players (fn [players]
                          (-> players
                              (assoc-in [id :last-time :died] (now))
-                             (assoc-in [id :exp] exp)))))
+                             (assoc-in [id :exp] exp))))
+
+        (redis/update-exp (:token player) (:class player) exp))
       (cond-> {:skill (:skill data)
                :npc-id (:npc-id data)
                :damage damage}
