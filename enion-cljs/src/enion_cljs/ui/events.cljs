@@ -448,7 +448,8 @@
 (reg-event-db
   ::open-score-board
   (fn [db]
-    (assoc-in db [:score-board :open?] true)))
+    (when-not (-> db :chat-box :active-input?)
+      (assoc-in db [:score-board :open?] true))))
 
 (reg-event-db
   ::close-score-board

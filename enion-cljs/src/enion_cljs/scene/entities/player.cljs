@@ -19,6 +19,8 @@
 
 (defonce player-script nil)
 
+(def enemy-selection-distance-threshold 8)
+(def enemy-npc-selection-distance-threshold 15)
 (def char-selection-distance-threshold 35)
 
 (defn- process-esc [e]
@@ -183,21 +185,27 @@
                          [id distance ally? hide? health])))
                    (remove
                      (fn [[_ distance ally? hide? health]]
-                       (or ally? hide? (> distance char-selection-distance-threshold) (zero? health))))
+                       (or ally?
+                           hide?
+                           (> distance (if npc?
+                                         enemy-npc-selection-distance-threshold
+                                         enemy-selection-distance-threshold))
+                           (zero? health))))
                    (sort-by second)
                    ffirst)]
     (do
       (pc/set-selected-char-color :enemy)
-      (st/set-selected-player id npc?))
-    (st/cancel-selected-player)))
+      (st/set-selected-player id npc?)
+      id)
+    (do
+      (st/cancel-selected-player)
+      nil)))
 
 (defn- select-closest-enemy [e]
-  (when (and (st/alive?) (= "KeyZ" (j/get-in e [:event :code])))
-    (select-closest-enemy* false)))
-
-(defn- select-closest-enemy-npc [e]
-  (when (and (st/alive?) (= "KeyX" (j/get-in e [:event :code])))
-    (select-closest-enemy* true)))
+  (when (and (st/alive?) (= "Tab" (j/get-in e [:event :code])))
+    (.preventDefault (j/get-in e [:event]))
+    (or (select-closest-enemy* false)
+        (select-closest-enemy* true))))
 
 (defn- process-char-panel [e]
   (when (= "KeyC" (j/get-in e [:event :code]))
@@ -221,7 +229,6 @@
                                    (not (j/get-in e [:event :altKey])))
                           (process-skills e))
                         (select-closest-enemy e)
-                        (select-closest-enemy-npc e)
                         (look-at-&-run-towards-selected-player e))))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
@@ -550,11 +557,11 @@
   (let [state entity.camera/state]
     (if (= "orc" (st/get-race))
       (do
-        (pc/setv (j/get state :eulers) -10122.552 18017.66 0)
-        (pc/setv (j/get state :target-angle) -19.82 138.27 0))
+        (pc/setv (j/get state :eulers) -10486.12 13.32 0)
+        (pc/setv (j/get state :target-angle) -13.32 133.88 0))
       (do
-        (pc/setv (j/get state :eulers) -10285.025 16218.33 0)
-        (pc/setv (j/get state :target-angle) -18.33 334.974 0)))))
+        (pc/setv (j/get state :eulers) -10291.55 13.32 0)
+        (pc/setv (j/get state :target-angle) -13.32 330.38 0)))))
 
 (defn- init-fn [this player-data]
   (let [player-entity (j/get this :entity)
@@ -565,7 +572,7 @@
               :race (j/get player :race)
               :class (j/get player :class)}
         [template-entity model-entity] (create-model-and-template-entity opts)]
-    (utils/create-char-name-text (assoc opts :template-entity template-entity))
+    ;; (utils/create-char-name-text (assoc opts :template-entity template-entity))
     (j/assoc! player :camera (pc/find-by-name "camera"))
     (j/assoc! player
               :this this

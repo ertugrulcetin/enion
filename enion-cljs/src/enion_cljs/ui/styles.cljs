@@ -174,6 +174,16 @@
    {:border "2px solid grey"
     :border-radius "5px"}])
 
+(defattrs player-name-container []
+  {:text-align :center
+   :margin-bottom "5px"}
+  [:span
+   {:font-size "18px"
+    :color "white"
+    :padding "2px 5px"
+    :border-radius "5px"
+    :background "#10131d80"}])
+
 (defattrs hp-mp-container []
   {:position :relative
    :margin "0 auto 4px auto"
@@ -839,7 +849,8 @@
    :outline :none
    :padding "5px"
    :font-size "16px"
-   :text-align :center})
+   :text-align :center
+   :animation (str (blink-frames "white") " 3s infinite")})
 
 (defattrs init-modal-race-container []
   {:display :flex

@@ -192,6 +192,10 @@
      [:div (styles/exp exp-perc)]
      [:span (styles/hp-mp-text) (str (common.utils/parse-float exp-perc 2) "%")]]))
 
+(defn- player-name []
+  [:div (styles/player-name-container)
+   [:span @(subscribe [::subs/username])]])
+
 (defn- hp-mp-bars []
   [:div (styles/hp-mp-container)
    [hp-bar]
@@ -247,6 +251,7 @@
   [:div (styles/actions-container)
    (when @(subscribe [::subs/show-hp-mp-potions-ads-button?])
      [get-hp-&-mp-potions-ad])
+   [player-name]
    [hp-mp-bars]
    [skill-bar]])
 
@@ -1147,7 +1152,7 @@
     :value @username
     :on-change #(reset! username (-> % .-target .-value))
     :on-blur #(swap! username ui.utils/clean)
-    :placeholder "Enter username, leave empty for random one"
+    :placeholder "ENTER USERNAME"
     :class (styles/init-modal-username-input)}])
 
 (defn- select-race [race]
@@ -1355,10 +1360,8 @@
                                         (.preventDefault e)
                                         (dispatch [::events/send-message]))
 
-                                      (= code "Tab")
-                                      (do
-                                        (.preventDefault e)
-                                        (dispatch [::events/open-score-board]))
+                                      (= code "KeyL")
+                                      (dispatch [::events/open-score-board])
 
                                       (= code "Space")
                                       (tutorial/next-intro)
@@ -1373,10 +1376,8 @@
                                 (fn [e]
                                   (let [code (j/get e :code)]
                                     (cond
-                                      (= code "Tab")
-                                      (do
-                                        (.preventDefault e)
-                                        (dispatch [::events/close-score-board])))))))
+                                      (= code "KeyL")
+                                      (dispatch [::events/close-score-board]))))))
 
 (defn- left-panel []
   [:div (styles/left-panel @(subscribe [::subs/char-panel-open?]))

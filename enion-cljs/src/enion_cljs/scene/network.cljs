@@ -641,7 +641,10 @@
   (pc/set-anim-int (st/get-model-entity) "health" 0)
   (effects/apply-effect-die st/player)
   (st/play-sound "die")
-  (fire :show-re-spawn-modal #(dispatch-pro :re-spawn))
+  (js/setTimeout
+    (fn []
+      (fire :show-re-spawn-modal #(dispatch-pro :re-spawn)))
+    2000)
   (poki/gameplay-stop))
 
 (on :close-socket-for-re-init

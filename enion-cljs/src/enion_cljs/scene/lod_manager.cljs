@@ -202,7 +202,7 @@
             :let [distance (st/distance-to-player id true)]]
       (when-not (= (j/get npc-distances id) distance)
         (j/assoc! npc-distances id distance)
-        (let [username-distance 5]
+        (let [username-distance 2]
           (cond
             (< distance lod-0-threshold) (set-npc-lod :lod-0 id)
             (< distance lod-1-threshold) (set-npc-lod :lod-1 id)
