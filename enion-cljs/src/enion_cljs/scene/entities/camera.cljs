@@ -142,7 +142,7 @@
               :shaking? true
               :last-shake-time (js/Date.now))))
 
-(def camera-y-up-limit 2)
+(def camera-y-up-limit 3)
 
 (defn- post-update-fn [dt _]
   (let [origin-entity (j/get entity :parent)

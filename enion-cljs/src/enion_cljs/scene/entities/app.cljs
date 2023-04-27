@@ -37,6 +37,15 @@
   (fn []
     (poki/game-loading-finished)))
 
+(on :init-not-preloaded-entities
+  (fn []
+    (pc/enable (pc/find-by-name "towns"))
+    (js/setTimeout #(pc/enable (pc/find-by-name "portals")) 2000)))
+
+(on :init-forest-entities
+  (fn []
+    (js/setTimeout #(pc/enable (pc/find-by-name "forest")) 1000)))
+
 (defn visibility-props []
   (cond
     (some? js/document.hidden) {:hidden "hidden"
@@ -79,10 +88,6 @@
                       (j/assoc! component :fixedTimer 0.0)))
                   (j/call component :update dt))))))))))
 
-(defn- enable-entities []
-  (doseq [name ["forest" "towns" "portals"]]
-    (pc/enable (pc/find-by-name name))))
-
 ;;TODO when unfocus - another tab etc, then show count down from 5 seconds and block everything...
 (defn init [init-ui]
   (pc/create-script :app
@@ -92,7 +97,6 @@
              (init-ui)
              (portal/register-portals-trigger-events))
      :post-init (fn []
-                  (enable-entities)
                   ;;TODO window.Terrain/Water/Wave acik onlari da null'a setle
                   (when dev?
                     (simulation/init))

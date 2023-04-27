@@ -113,7 +113,7 @@
                                       (j/get e :enabled)
                                       e)) mesh-names)
                        aabb (j/get-in mesh [:render :meshInstances 0 :aabb])
-                       hit? (j/call aabb :intersectsRay (j/get player :ray) (j/get player :hit-position))]
+                       hit? (some-> aabb (j/call :intersectsRay (j/get player :ray) (j/get player :hit-position)))]
                    (when (and hit? (> (j/get npc :health) 0))
                      id)))
                (js/Object.keys npcs))]

@@ -607,7 +607,7 @@
   ::re-init-game
   (fn []
     {:dispatch [::initialize-db true]
-     :dispatch-later [{:ms (if dev? 0 3000)
+     :dispatch-later [{:ms (if dev? 0 1000)
                        :dispatch [::finish-initializing]}]
      ::fire [:re-init]}))
 

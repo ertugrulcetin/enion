@@ -20,7 +20,6 @@
   (doseq [[npc-type ids] npcs
           id ids
           :let [entity (pc/clone (npc-type @npc-template-entities))
-                _ (pc/enable entity)
                 npc-type-name (csk/->snake_case_string npc-type)
                 model (pc/find-by-name entity (str npc-type-name "_model"))
                 effects (utils/add-skill-effects model)
@@ -66,7 +65,8 @@
                                    :lod-2 lod-2
                                    :level level
                                    :anim-component (j/get model :anim)
-                                   :npc-type-name npc-type-name}))))
+                                   :npc-type-name npc-type-name}))
+    (pc/enable entity)))
 
 (comment
   st/npcs

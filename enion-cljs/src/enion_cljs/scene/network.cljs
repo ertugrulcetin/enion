@@ -111,7 +111,8 @@
       (save-token-if-new-player data)
       (chest/register-chest-trigger-events (not (:what-is-the-first-quest? tutorials)))
       (stop-intro-music)
-      (poki/gameplay-start))))
+      (poki/gameplay-start)
+      (fire :init-not-preloaded-entities))))
 
 (defmethod dispatch-pro-response :player-join [params]
   (dlog "new join" (:player-join params))
