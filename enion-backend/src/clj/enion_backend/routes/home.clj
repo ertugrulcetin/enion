@@ -462,10 +462,10 @@
                           (common.skills/random-pos-for-human))
                     username? (not (str/blank? username))
                     username (generate-username username race class current-players)
-                    attack-power (get common.skills/level->attack-power-table 1)
                     level 1
                     exp 0
                     bp 0
+                    level (or (some-> data (get class) :level) level)
                     {:keys [health mana]} (get-in common.skills/level->health-mana-table [level class])
                     new-player? (str/blank? token)
                     token (if new-player? (nano-id) token)
@@ -481,12 +481,12 @@
                                          username)
                            :race race
                            :class class
-                           :health (or (some-> data (get class) :health) health)
-                           :mana (or (some-> data (get class) :mana) mana)
+                           :health health
+                           :mana mana
                            :pos pos
-                           :level (or (some-> data (get class) :level) level)
-                           :attack-power (or (some-> data (get class) :attack-power) attack-power)
-                           :required-exp (or (some-> data (get class) :required-exp) (get common.skills/level->exp-table level))
+                           :level level
+                           :attack-power (get common.skills/level->attack-power-table level)
+                           :required-exp (get common.skills/level->exp-table level)
                            :exp (or (some-> data (get class) :exp) exp)
                            :bp (or (some-> data (get class) :bp) bp)
                            :token token
@@ -1039,11 +1039,7 @@
                            (assoc-in [player-id :health] health)
                            (assoc-in [player-id :mana] mana))))
         (redis/level-up token class {:level new-level
-                                     :attack-power attack-power
-                                     :exp new-exp
-                                     :health health
-                                     :mana mana
-                                     :required-exp new-required-exp})
+                                     :exp new-exp})
         (when (= 2 new-level)
           (redis/update-last-played-race token (:race player))
           (redis/update-last-played-class token class)
