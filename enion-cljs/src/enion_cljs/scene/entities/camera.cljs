@@ -7,7 +7,7 @@
   (:require-macros
     [enion-cljs.scene.macros :refer [fnt]]))
 
-(defonce state (clj->js {:eulers (pc/vec3 -10659.52 13.32  0)
+(defonce state (clj->js {:eulers (pc/vec3 -10285.025 16218.33 0)
                          :mouse-edge-range 15
                          :mouse-over? false
                          :camera-rotation-speed 10
@@ -48,13 +48,13 @@
       (utils/finish-tutorial-step :how-to-rotate-camera?))))
 
 (defn- mouse-wheel [e]
-  #_(when-not (j/get st/settings :on-ui-element?)
+  (when-not (j/get st/settings :on-ui-element?)
     (let [ray-end (j/get state :ray-end)
           ray-pos (pc/get-loc-pos ray-end)
           z (+ (j/get ray-pos :z) (* 0.1 (j/get e :wheelDelta)))
           z (cond
               (< z 0.5) 0.5
-              (> z 4) 2.5
+              (> z 3.5) 3.5
               :else z)]
       (pc/set-loc-pos ray-end (j/get ray-pos :x) (j/get ray-pos :y) z))))
 
@@ -77,7 +77,7 @@
 (defn- set-default-ray-end-z []
   (let [ray-end (j/get state :ray-end)
         ray-pos (pc/get-loc-pos ray-end)
-        z 1.5]
+        z 3]
     (pc/set-loc-pos ray-end (j/get ray-pos :x) (j/get ray-pos :y) z)))
 
 (defn register-camera-mouse-events []
@@ -164,7 +164,8 @@
     (when-not (j/get state :shaking?)
       (pc/set-euler origin-entity target-angle)
       (pc/look-at entity (pc/get-pos origin-entity))
-      (let [p (pc/get-loc-pos entity)]
+      ;; Over-shoulder
+      #_(let [p (pc/get-loc-pos entity)]
         (pc/set-loc-pos entity (+ (j/get p :x) 0.3) (j/get p :y) (j/get p :z))))
     (when (and (j/get state :mouse-over?)
                (not (j/get state :right-click?))

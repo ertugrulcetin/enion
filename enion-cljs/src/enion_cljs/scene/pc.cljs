@@ -293,12 +293,6 @@
   (defn ray []
     (r.)))
 
-(defn set-mesh-opacity [entity opacity]
-  (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" opacity))
-
-(defn get-mesh-opacity [entity]
-  (j/get-in entity [:render :meshInstances 0 :parameters :material_opacity :data]))
-
 (defn enable [entity]
   (j/assoc! entity :enabled true))
 
@@ -310,6 +304,13 @@
 
 (defn disabled? [entity]
   (false? (j/get entity :enabled)))
+
+(defn set-mesh-opacity [entity opacity]
+  (when (enabled? entity)
+    (j/call-in entity [:render :meshInstances 0 :setParameter] "material_opacity" opacity)))
+
+(defn get-mesh-opacity [entity]
+  (j/get-in entity [:render :meshInstances 0 :parameters :material_opacity :data]))
 
 (defn raycast-rigid-body [e camera-entity]
   (let [x (j/get e :x)

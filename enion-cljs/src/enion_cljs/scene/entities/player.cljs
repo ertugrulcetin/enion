@@ -557,11 +557,11 @@
   (let [state entity.camera/state]
     (if (= "orc" (st/get-race))
       (do
-        (pc/setv (j/get state :eulers) -10486.12 13.32 0)
-        (pc/setv (j/get state :target-angle) -13.32 133.88 0))
+        (pc/setv (j/get state :eulers) -10122.552 18017.66 0)
+        (pc/setv (j/get state :target-angle) -19.82 138.27 0))
       (do
-        (pc/setv (j/get state :eulers) -10291.55 13.32 0)
-        (pc/setv (j/get state :target-angle) -13.32 330.38 0)))))
+        (pc/setv (j/get state :eulers) -10285.025 16218.33 0)
+        (pc/setv (j/get state :target-angle) -18.33 334.974 0)))))
 
 (defn- init-fn [this player-data]
   (let [player-entity (j/get this :entity)
@@ -572,7 +572,7 @@
               :race (j/get player :race)
               :class (j/get player :class)}
         [template-entity model-entity] (create-model-and-template-entity opts)]
-    ;; (utils/create-char-name-text (assoc opts :template-entity template-entity))
+    (utils/create-char-name-text (assoc opts :template-entity template-entity))
     (j/assoc! player :camera (pc/find-by-name "camera"))
     (j/assoc! player
               :this this

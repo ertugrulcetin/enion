@@ -251,7 +251,7 @@
   [:div (styles/actions-container)
    (when @(subscribe [::subs/show-hp-mp-potions-ads-button?])
      [get-hp-&-mp-potions-ad])
-   [player-name]
+   ;; [player-name]
    [hp-mp-bars]
    [skill-bar]])
 
