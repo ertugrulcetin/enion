@@ -1225,13 +1225,13 @@
       [:span {:class (styles/click-to-join-indicator-text)}
        "Fetching servers list..."]
 
-      (and (not dev?) (not @(subscribe [::subs/available-servers])))
+      (not @(subscribe [::subs/available-servers]))
       [:span {:class (styles/click-to-join-indicator-text)}
        "Finding available servers..."]
 
       :else
       [:span {:class [(styles/click-to-join-indicator-text) "bounce"]}
-       "Click to Join"])))
+       "Click to Play"])))
 
 (defn- click-to-join-modal []
   (r/create-class

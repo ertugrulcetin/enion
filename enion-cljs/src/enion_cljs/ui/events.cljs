@@ -584,11 +584,8 @@
   ::fetch-server-list-success
   (fn [{:keys [db]} [_ click-to-join? response]]
     (let [servers (reduce-kv (fn [acc k v]
-                               (assoc acc k (assoc v :name k))) {} (update-keys name response))
-          db (-> db
-                 (assoc-in [:servers :list] servers)
-                 (assoc-in [:servers :last-list-fetched-time] (js/Date.now)))]
-      (cond-> {:db db}
+                               (assoc acc k (assoc v :name k))) {} (update-keys name response))]
+      (cond-> {:db (assoc-in db [:servers :list] servers)}
         click-to-join? (assoc :dispatch-n (reduce-kv
                                             (fn [acc k v]
                                               (conj acc [::fetch-server-stats k (:stats-url v)]))

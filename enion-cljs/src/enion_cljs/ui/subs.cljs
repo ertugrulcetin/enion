@@ -341,28 +341,20 @@
     (-> db :servers :list)))
 
 (reg-sub
-  ::servers-list-fetched-time
-  (fn [db]
-    (-> db :servers :last-list-fetched-time)))
-
-(reg-sub
   ::available-servers
   :<- [::servers]
-  :<- [::servers-list-fetched-time]
-  (fn [[servers servers-list-fetched-time]]
-    (and servers-list-fetched-time
-         (> (- (js/Date.now) servers-list-fetched-time) 2000)
-         (->> servers
-              vals
-              (filter (fn [{:keys [number-of-players max-number-of-players]}]
-                        (and number-of-players
-                             max-number-of-players
-                             (< number-of-players max-number-of-players))))
-              (sort-by (juxt :number-of-players :ping) (fn [[np1 p1] [np2 p2]]
-                                                         (if (= np1 np2)
-                                                           (compare p1 p2)
-                                                           (compare np2 np1))))
-              seq))))
+  (fn [servers]
+    (->> servers
+         vals
+         (filter (fn [{:keys [number-of-players max-number-of-players]}]
+                   (and number-of-players
+                        max-number-of-players
+                        (< number-of-players max-number-of-players))))
+         (sort-by (juxt :number-of-players :ping) (fn [[np1 p1] [np2 p2]]
+                                                    (if (= np1 np2)
+                                                      (compare p1 p2)
+                                                      (compare np2 np1))))
+         seq)))
 
 (reg-sub
   ::current-server

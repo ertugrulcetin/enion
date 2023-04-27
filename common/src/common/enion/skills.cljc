@@ -1,6 +1,4 @@
-(ns common.enion.skills
-  (:require
-    [clojure.string :as str]))
+(ns common.enion.skills)
 
 
 (def close-attack-distance-threshold 0.75)
@@ -18,15 +16,15 @@
 
 
 (def level->exp-table
-  {1 100
-   2 190
-   3 342
-   4 581
-   5 929
-   6 1393
-   7 1950
-   8 2535
-   9 5070
+  {1 50
+   2 120
+   3 242
+   4 381
+   5 429
+   6 793
+   7 850
+   8 1235
+   9 1570
    10 6084
    11 7300
    12 8760
