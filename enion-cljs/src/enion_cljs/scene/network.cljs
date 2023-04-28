@@ -3,6 +3,7 @@
     [applied-science.js-interop :as j]
     [cljs.reader :as reader]
     [clojure.string :as str]
+    [common.enion.npc :as common.npc]
     [enion-cljs.common :refer [dev? fire on dlog ws-url]]
     [enion-cljs.scene.drop :as drop]
     [enion-cljs.scene.entities.chest :as chest]
@@ -590,17 +591,22 @@
     (fire :ui-set-bp total-bp)))
 
 (defn- process-drop [params]
-  (let [{:keys [hp-potion mp-potion]} (-> params :drop :drop)
-        count (or hp-potion mp-potion)
-        type (if hp-potion :hp :mp)
-        particle-entity (j/get-in st/player [:drop type])
-        _ (j/assoc! particle-entity :enabled true)
-        par (j/get-in particle-entity [:c :particlesystem])
-        _ (j/call par :reset)
-        _ (j/call par :play)]
-    (drop/inc-potion type count)
-    (fire :ui-send-msg {:drop {:potion (str/upper-case (name type))
-                               :count count}})))
+  (let [drops (-> params :drop :drop)]
+    (doseq [[type amount] drops]
+      (let [particle-entity (j/get-in st/player [:drop type])
+            _ (j/assoc! particle-entity :enabled true)
+            par (j/get-in particle-entity [:c :particlesystem])
+            _ (j/call par :reset)
+            _ (j/call par :play)]
+        (case type
+          :hp-potion (drop/inc-potion :hp amount)
+          :mp-potion (drop/inc-potion :mp amount)
+          nil)
+        (when (= type :coin)
+          (fire :ui-set-total-coin (-> params :drop :total-coin)))
+        (fire :ui-send-msg {:drop {:name (get-in common.npc/drops [type :name])
+                                   :amount amount
+                                   :earned? (= type :coin)}})))))
 
 (defn- process-exp [params]
   (let [{:keys [exp npc-exp level-up?] :as opts} (:drop params)]

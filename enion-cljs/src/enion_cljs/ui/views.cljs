@@ -423,10 +423,11 @@
       (:re-spawn-error message) (:re-spawn-error message)
       (:cauldron message) (str "Restricted area: You took " (:cauldron message) " damage!")
       (:npc message) (str "Took " (-> message :npc :damage) " damage from " (-> message :npc :name))
-      (:drop message) (str "Got " (-> message :drop :count) " " (-> message :drop :potion)
-                           (if (= 1 (-> message :drop :count))
-                             " potion"
-                             " potions"))
+      (:drop message) (str
+                        (if (-> message :drop :earned?)
+                          "Earned "
+                          "Got ")
+                        (-> message :drop :amount) " " (-> message :drop :name))
       (:break-defense message) (str (:break-defense message) " infected with Toxic Spores")
       (:npc-exp message) (str "Earned " (:npc-exp message) " Experience Points")
       (:lost-exp message) (str "You lost " (:lost-exp message) " Experience Points!"))))
@@ -514,7 +515,7 @@
 (defn- char-coins []
   [:tr
    [:td {:class (styles/char-info-cell :left)} "Coins"]
-   [:td {:class (styles/char-info-cell :right)} "-"]])
+   [:td {:class (styles/char-info-cell :right)} @(subscribe [::subs/coin])]])
 
 (defn character-panel []
   (when @(subscribe [::subs/char-panel-open?])
@@ -1437,7 +1438,8 @@
        (on :ui-set-bp #(dispatch [::events/set-bp %]))
        (on :ui-toggle-char-panel #(dispatch [::events/toggle-char-panel]))
        (on :ui-show-global-message #(dispatch [::events/show-global-message %1 %2]))
-       (on :ui-show-something-went-wrong? #(dispatch [::events/show-something-went-wrong? %])))
+       (on :ui-show-something-went-wrong? #(dispatch [::events/show-something-went-wrong? %]))
+       (on :ui-set-total-coin #(dispatch [::events/set-total-coin %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

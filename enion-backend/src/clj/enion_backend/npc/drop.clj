@@ -2,7 +2,13 @@
   (:require
     [enion-backend.utils :as utils]))
 
-(def drops
-  {:coin (fn [{:keys [prob amount-range]}]
-           (when (utils/prob? prob)
-             (utils/rand-between (first amount-range) (second amount-range))))})
+(defn get-drops [drops]
+  (reduce-kv
+    (fn [acc k {:keys [prob amount]}]
+      (if (utils/prob? prob)
+        (assoc acc k (if (vector? amount)
+                       (utils/rand-between (first amount) (second amount))
+                       (utils/rand-between 1 amount)))
+        acc))
+    {}
+    drops))

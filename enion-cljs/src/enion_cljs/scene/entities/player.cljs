@@ -578,8 +578,9 @@
               :this this
               :effects (utils/add-skill-effects template-entity)
               :template-entity template-entity
-              :drop #js{:hp (pc/find-by-name "particle_potion_hp")
-                        :mp (pc/find-by-name "particle_potion_mp")}
+              :drop #js{:hp-potion (pc/find-by-name "particle_potion_hp")
+                        :mp-potion (pc/find-by-name "particle_potion_mp")
+                        :coin (pc/find-by-name "particle_coin")}
               :model-entity model-entity
               :entity player-entity)
     (create-skill-fns player)

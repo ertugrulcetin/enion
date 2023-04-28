@@ -45,11 +45,15 @@
 (defn update-exp [token class exp]
   (set token (assoc-in (get token) [class :exp] exp)))
 
+(defn update-exp-&-coin [token class exp coin]
+  (set token (-> (get token)
+                 (assoc-in [class :exp] exp)
+                 (assoc-in [class :coin] coin))))
+
 (defn level-up [token class attr]
   (set token (merge (get token) {class attr})))
 
 (comment
   (set "abc" {:username {:name "abc" :password "123"}})
-  (get "abc")
   (get "mZJidk9bgI7Mw0VVLHoLv")
   )

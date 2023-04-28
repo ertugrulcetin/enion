@@ -475,7 +475,7 @@ pc.script.createLoadingScreen(function(app) {
             '    height: 100%;',
             '    width: 100%;',
             '    background-color: #283538;',
-            '    background-image: url(bg.jpeg), url(bg1.jpeg)',
+            '    background-image: url(bg.jpeg), url(bg1.jpeg);',
             '    background-size: cover, cover;',
             '    background-repeat: no-repeat, no-repeat;',
             '    background-position: center center, center center;',

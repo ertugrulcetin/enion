@@ -385,6 +385,7 @@
                      tutorials
                      server-name
                      level
+                     coin
                      exp
                      required-exp]}]]
     (-> db
@@ -396,6 +397,7 @@
         (assoc-in [:player :mp-potions] mp-potions)
         (assoc-in [:player :level] level)
         (assoc-in [:player :exp] exp)
+        (assoc-in [:player :coin] coin)
         (assoc-in [:player :required-exp] required-exp)
         (assoc-in [:player :attack-power] attack-power)
         (assoc-in [:player :bp] bp)
@@ -675,3 +677,8 @@
       {:db (assoc db :char-panel-open? open?)
        :fx [(when fps?
               [::fire [:toggle-fps (not open?)]])]})))
+
+(reg-event-db
+  ::set-total-coin
+  (fn [db [_ coin]]
+    (assoc-in db [:player :coin] coin)))

@@ -115,6 +115,11 @@
     (-> db :player :exp)))
 
 (reg-sub
+  ::coin
+  (fn [db]
+    (-> db :player :coin)))
+
+(reg-sub
   ::bp
   (fn [db]
     (or (-> db :player :bp) 0)))

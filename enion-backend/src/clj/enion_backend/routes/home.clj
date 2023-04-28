@@ -11,6 +11,7 @@
     [enion-backend.layout :as layout]
     [enion-backend.middleware :as middleware]
     [enion-backend.npc.core :as npc]
+    [enion-backend.npc.drop :as npc.drop]
     [enion-backend.redis :as redis]
     [enion-backend.teatime :as tea]
     [enion-backend.utils :as utils :refer [dev?]]
@@ -465,6 +466,7 @@
                     level 1
                     exp 0
                     bp 0
+                    coin 0
                     level (or (some-> data (get class) :level) level)
                     {:keys [health mana]} (get-in common.skills/level->health-mana-table [level class])
                     new-player? (str/blank? token)
@@ -484,6 +486,7 @@
                            :health health
                            :mana mana
                            :pos pos
+                           :coin (or (some-> data (get class) :coin) coin)
                            :level level
                            :attack-power (get common.skills/level->attack-power-table level)
                            :required-exp (get common.skills/level->exp-table level)
@@ -1003,6 +1006,8 @@
         level (player :level)
         current-exp (player :exp)
         required-exp (player :required-exp)
+        coin-drop (:coin drop 0)
+        coin (+ (:coin player 0) coin-drop)
         exp (npc/calculate-exp level exp)
         exp (if party-size
               (Math/round (/ exp (+ (double (/ party-size 10)) 1.2)))
@@ -1022,7 +1027,9 @@
                                               :attack-power attack-power
                                               :required-exp new-required-exp
                                               :health health
-                                              :mana mana)))
+                                              :mana mana)
+                             (> coin-drop 0) (assoc :coin coin-drop
+                                                    :total-coin coin)))
     (when level-up?
       (add-effect :level-up player-id))
     (if level-up?
@@ -1033,27 +1040,31 @@
                              (assoc-in [player-id :level] new-level)
                              (assoc-in [player-id :health] health)
                              (assoc-in [player-id :mana] mana)
-                             (assoc-in [player-id :required-exp] new-required-exp))))
+                             (assoc-in [player-id :required-exp] new-required-exp)
+                             (assoc-in [player-id :coin] coin))))
         (swap! world (fn [world]
                        (-> world
                            (assoc-in [player-id :health] health)
                            (assoc-in [player-id :mana] mana))))
         (redis/level-up token class {:level new-level
-                                     :exp new-exp})
+                                     :exp new-exp
+                                     :coin coin})
         (when (= 2 new-level)
           (redis/update-last-played-race token (:race player))
           (redis/update-last-played-class token class)
           (redis/update-username token class (:username player))))
       (do
-        (swap! players assoc-in [player-id :exp] new-exp)
-        (redis/update-exp token class new-exp)))))
+        (swap! players (fn [players]
+                         (-> players
+                             (assoc-in [player-id :exp] new-exp)
+                             (assoc-in [player-id :coin] coin))))
+        (redis/update-exp-&-coin token class new-exp coin)))))
 
 (reg-pro
   :drop
   (fn [{:keys [data]}]
     (let [npc (:npc data)
-          {:keys [items count-fn]} (:drop npc)
-          drop (hash-map (rand-nth items) (count-fn))
+          drop (npc.drop/get-drops (:drop npc))
           {:keys [party-id player-id]} (:top-damager data)
           current-players @players
           current-world @world]
@@ -1062,7 +1073,6 @@
               party-size (count player-ids)]
           (doseq [player-id player-ids]
             (when (can-player-get-the-drop? player-id current-players current-world npc)
-              (send! player-id :drop drop)
               (process-drop drop (:exp npc) current-players player-id party-size)))))
       (when player-id
         (when (can-player-get-the-drop? player-id current-players current-world npc)
