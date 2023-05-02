@@ -46,9 +46,7 @@
                                     (st/move-player (common.skills/random-pos-for-orc))
                                     (st/move-player (common.skills/random-pos-for-human))))
           (st/cancel-target-pos))
-        250)
-      #_(when (not (utils/tutorial-finished? :how-to-use-portal?))
-         (utils/finish-tutorial-step :how-to-use-portal?)))))
+        250))))
 
 (defn- register-portals-trigger-events []
   (let [portals (pc/find-by-name "portals")]

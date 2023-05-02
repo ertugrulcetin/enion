@@ -113,9 +113,7 @@
                 (st/get-other-player selected-player-id))]
     (skills.effects/apply-effect-attack-priest enemy)
     (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})
-    (when (not (utils/tutorial-finished? :how-to-cast-skills?))
-      (utils/finish-tutorial-step :how-to-cast-skills?))))
+                        :hit damage})))
 
 (defn- get-selected-player-id-for-priest-skill [selected-player-id npc?]
   (if (st/enemy-selected? selected-player-id npc?)

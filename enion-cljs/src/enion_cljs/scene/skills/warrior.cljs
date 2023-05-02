@@ -43,9 +43,7 @@
                 (st/get-npc selected-player-id)
                 (st/get-other-player selected-player-id))]
     (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})
-    (when (not (utils/tutorial-finished? :how-to-cast-skills?))
-      (utils/finish-tutorial-step :how-to-cast-skills?))))
+                        :hit damage})))
 
 (defmethod skills/skill-response "attackSlowDown" [params]
   (fire :ui-cooldown "attackSlowDown")

@@ -1,8 +1,8 @@
 (ns enion-backend.redis
   (:refer-clojure :exclude [set get])
   (:require
-    [clojure.string :as str]
     [clojure.tools.logging :as log]
+    [enion-backend.utils :refer [dev?]]
     [taoensso.carmine :as car]))
 
 (defonce my-conn-pool (car/connection-pool {}))
@@ -13,20 +13,24 @@
    :spec my-conn-spec-1})
 
 (defn set [k v]
-  (try
-    (car/wcar my-wcar-opts (car/set k v))
-    (catch Exception e
-      (println e)
-      (log/error e)
-      (throw e))))
+  (do
+    ;; when-not (dev?)
+    (try
+      (car/wcar my-wcar-opts (car/set k v))
+      (catch Exception e
+        (println e)
+        (log/error e)
+        (throw e)))))
 
 (defn get [k]
-  (try
-    (car/wcar my-wcar-opts (car/get k))
-    (catch Exception e
-      (println e)
-      (log/error e)
-      (throw e))))
+  (do
+    ;; when-not (dev?)
+    (try
+      (car/wcar my-wcar-opts (car/get k))
+      (catch Exception e
+        (println e)
+        (log/error e)
+        (throw e)))))
 
 (defn update-username [token class username]
   (set token (assoc-in (get token) [class :username] username)))
@@ -53,7 +57,17 @@
 (defn level-up [token class attr]
   (set token (merge (get token) {class attr})))
 
+(defn complete-tutorial [token tutorial]
+  (set token (update (get token) :tutorials (fnil conj #{}) tutorial)))
+
+(defn reset-tutorial [token]
+  (set token (update (get token) :tutorials #{})))
+
 (comment
   (set "abc" {:username {:name "abc" :password "123"}})
+
   (get "mZJidk9bgI7Mw0VVLHoLv")
+
+  (let [token "mZJidk9bgI7Mw0VVLHoLv"]
+    (set token (assoc (get token) :tutorials #{})))
   )

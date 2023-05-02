@@ -140,9 +140,7 @@
                 (st/get-other-player selected-player-id))]
     (skills.effects/apply-effect-attack-dagger enemy)
     (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})
-    (when (not (utils/tutorial-finished? :how-to-cast-skills?))
-      (utils/finish-tutorial-step :how-to-cast-skills?))))
+                        :hit damage})))
 
 (defmethod skills/skill-response "attackStab" [params]
   (fire :ui-cooldown "attackStab")

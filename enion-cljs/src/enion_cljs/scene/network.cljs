@@ -6,7 +6,6 @@
     [common.enion.npc :as common.npc]
     [enion-cljs.common :refer [dev? fire on dlog ws-url]]
     [enion-cljs.scene.drop :as drop]
-    [enion-cljs.scene.entities.chest :as chest]
     [enion-cljs.scene.entities.npc :as npc]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.poki :as poki]
@@ -64,18 +63,6 @@
           default))
       default)))
 
-(defn- get-tutorials []
-  (let [default {}]
-    (if-let [ls (common.utils/get-local-storage)]
-      (try
-        (let [potions (j/call ls :getItem "tutorials")]
-          (if (str/blank? potions)
-            default
-            (reader/read-string potions)))
-        (catch js/Error _
-          default))
-      default)))
-
 (defn- get-player-token []
   (utils/get-item "token"))
 
@@ -102,15 +89,13 @@
               :human-race-full "Human race is full."
               :something-went-wrong "Something went wrong.")))
     (let [potions (get-potions)
-          tutorials (get-tutorials)
-          data (merge (:init params) potions {:tutorials tutorials})]
+          data (merge (:init params) potions)]
       (fire :close-init-modal)
       (fire :init data)
       (set! current-player-id (-> params :init :id))
       (fire :ui-init-game (assoc data :server-name @server-name))
       (fire :ui-init-tutorial-data data)
       (save-token-if-new-player data)
-      (chest/register-chest-trigger-events (not (:what-is-the-first-quest? tutorials)))
       (stop-intro-music)
       (poki/gameplay-start)
       (fire :init-not-preloaded-entities))))
@@ -233,6 +218,17 @@
     (fn [selected-player-id]
       (dispatch-pro :party {:type :remove-from-party
                             :selected-player-id (js/parseInt selected-player-id)})))
+
+(on :finish-tutorial
+    (fn [tutorial-step]
+      (dispatch-pro :finish-tutorial {:tutorial tutorial-step})))
+
+(on :reset-tutorials
+    (fn []
+      (dispatch-pro :finish-tutorial {:tutorial :reset})
+      (j/assoc! st/player :tutorials #{})
+      (j/assoc! st/camera-state :right-mouse-dragged? false)
+      (fire :ui-show-tutorial-message)))
 
 (defmethod party-response :add-to-party [params]
   (let [username (-> params :party :selected-player-id st/get-username)]
@@ -467,33 +463,30 @@
         (fire :ui-show-something-went-wrong?)))
     3000))
 
+(defn- create-tutorial-key-press-listener [key codes]
+  (let [tutorial (key (j/get st/player :tutorials))
+        key-down-fn (when-not tutorial
+                      (fn [e]
+                        (when (and (not (key (j/get st/player :tutorials)))
+                                   (codes (j/get-in e [:event :code])))
+                          (utils/finish-tutorial-step key))))]
+    (when-not tutorial
+      (pc/on-keyboard :EVENT_KEYDOWN key-down-fn))))
+
+(defn- register-tutorial-key-events []
+  (create-tutorial-key-press-listener :navigate-wasd #{"KeyW" "KeyA" "KeyS" "KeyD"})
+  (create-tutorial-key-press-listener :select-enemy #{"Tab"})
+  (create-tutorial-key-press-listener :open-character-panel #{"KeyC"})
+  (create-tutorial-key-press-listener :open-leader-board #{"KeyL"}))
+
 (defmethod dispatch-pro-response :connect-to-world-state [params]
   (when (:connect-to-world-state params)
-    (let [tutorials (get-tutorials)
-          how-to-navigate? (:how-to-navigate? tutorials)
-          how-to-navigate-done? (atom how-to-navigate?)
-          wasd-codes #{"KeyW" "KeyA" "KeyS" "KeyD"}
-          wasd-key-down-fn (when-not how-to-navigate?
-                             (fn [e]
-                               (when (and (not @how-to-navigate-done?) (wasd-codes (j/get-in e [:event :code])))
-                                 (reset! how-to-navigate-done? true)
-                                 (utils/finish-tutorial-step :how-to-navigate?))))
-          how-to-open-char-panel? (:how-to-open-char-panel? tutorials)
-          how-to-open-char-panel-done? (atom how-to-open-char-panel?)
-          key-c-down-fn (when-not how-to-open-char-panel?
-                          (fn [e]
-                            (when (and (not @how-to-open-char-panel-done?) (= "KeyC" (j/get-in e [:event :code])))
-                              (reset! how-to-open-char-panel-done? true)
-                              (utils/finish-tutorial-step :how-to-open-char-panel?))))]
-      (send-states-to-server)
-      (dispatch-pro :request-all-players)
-      (fire :ui-player-ready)
-      (create-ping-interval)
-      (when-not how-to-navigate?
-        (pc/on-keyboard :EVENT_KEYDOWN wasd-key-down-fn))
-      (when-not how-to-open-char-panel?
-        (pc/on-keyboard :EVENT_KEYDOWN key-c-down-fn))
-      (check-if-player-not-initialized-correctly))))
+    (send-states-to-server)
+    (dispatch-pro :request-all-players)
+    (fire :ui-player-ready)
+    (create-ping-interval)
+    (check-if-player-not-initialized-correctly)
+    (register-tutorial-key-events)))
 
 (defmethod dispatch-pro-response :request-all-players [params]
   (let [params (:request-all-players params)

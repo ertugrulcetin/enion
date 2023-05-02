@@ -20,15 +20,13 @@
   (some-> (common.utils/get-local-storage) (j/call :getItem k)))
 
 (defn finish-tutorial-step [tutorial-step]
-  (j/update! st/player :tutorials assoc tutorial-step true)
   (st/play-sound "progress")
+  (j/update! st/player :tutorials conj tutorial-step)
   (fire :ui-finish-tutorial-progress tutorial-step)
-  (set-item "tutorials" (pr-str (j/get st/player :tutorials))))
+  (fire :finish-tutorial tutorial-step))
 
 (defn tutorial-finished? [tutorial-step]
   (tutorial-step (j/get st/player :tutorials)))
-
-(on :finish-tutorial-step finish-tutorial-step)
 
 (defn create-char-name-text [{:keys [template-entity username race class other-player? enemy? y-offset]}]
   (let [username-text-entity (pc/clone (pc/find-by-name "char_name"))]

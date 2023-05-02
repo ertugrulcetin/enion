@@ -424,6 +424,14 @@
   )
 
 (reg-pro
+  :finish-tutorial
+  (fn [{:keys [id current-players] {:keys [tutorial]} :data}]
+    (if (= tutorial :reset)
+      (redis/reset-tutorial (get-in current-players [id :token]))
+      (redis/complete-tutorial (get-in current-players [id :token]) tutorial))
+    nil))
+
+(reg-pro
   :init
   (fn [{:keys [id current-players] {:keys [username race class]} :data}]
     (cond
@@ -464,6 +472,7 @@
                     username? (not (str/blank? username))
                     username (generate-username username race class current-players)
                     level 1
+                    ;; exp (or (some-> data (get class) :exp) 0)
                     exp 0
                     bp 0
                     coin 0
@@ -492,6 +501,9 @@
                            :required-exp (get common.skills/level->exp-table level)
                            :exp (or (some-> data (get class) :exp) exp)
                            :bp (or (some-> data (get class) :bp) bp)
+                           :tutorials (or (some-> data :tutorials) #{})
+                           :quests (or (some-> data :quests) #{})
+                           :current-quest (some-> data :current-quest)
                            :token token
                            :new-player? new-player?}]
                 (swap! players update id merge attrs)
@@ -1308,9 +1320,9 @@
 (defn- get-servers-list [_]
   {:status 200
    :body {"EU-1" {:ws-url "wss://enion-eu-1.fly.dev:443/ws"
-                   :stats-url "https://enion-eu-1.fly.dev/stats"}
-          ;"EU-2" {:ws-url "wss://enion-eu-2.fly.dev:443/ws"
-          ;        :stats-url "https://enion-eu-2.fly.dev/stats"}
+                  :stats-url "https://enion-eu-1.fly.dev/stats"}
+          ;; "EU-2" {:ws-url "wss://enion-eu-2.fly.dev:443/ws"
+          ;;        :stats-url "https://enion-eu-2.fly.dev/stats"}
           ;; "EU-3" {:ws-url "wss://enion-eu-3.fly.dev:443/ws"
           ;;        :stats-url "https://enion-eu-3.fly.dev/stats"}
           ;; "BR-1" {:ws-url "wss://enion-br-1.fly.dev:443/ws"

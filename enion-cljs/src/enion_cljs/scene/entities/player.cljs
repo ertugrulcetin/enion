@@ -322,9 +322,7 @@
                                                                    :cancelable true})
                            event #js {:event event
                                       :key key-code}]
-                       (fire :process-skills-from-an-event event)
-                       (when (not (utils/tutorial-finished? :how-to-use-hp-potion-with-right-click?))
-                         (utils/finish-tutorial-step :how-to-use-hp-potion-with-right-click?))))
+                       (fire :process-skills-from-an-event event)))
                    (j/assoc! last-right-clicked :time (js/Date.now)))))
 
   (when (st/mage?)
@@ -460,6 +458,7 @@
   (skills.effects/apply-effect-teleport player)
   (skills.effects/apply-effect-got-defense-break player)
   (skills.effects/apply-effect-fire-hands player)
+  (skills.effects/apply-effect-mp-potion player)
   (j/call-in player-entity [:rigidbody :teleport] (+ 38 (rand 1)) 0.55 (- (+ 39 (rand 4))))
 
   (j/assoc! player :fleet-foot? true)
@@ -711,12 +710,6 @@
                   (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :hide]))
           :ping? (j/assoc! st/settings :ping? v)
           nil))))
-
-(on :reset-tutorials
-    (fn [tutorials]
-      (j/assoc! st/player :tutorials tutorials)
-      (utils/set-item "tutorials" (pr-str tutorials))
-      (j/assoc! entity.camera/state :right-mouse-dragged? false)))
 
 (on :toggle-fps
     (fn [open?]

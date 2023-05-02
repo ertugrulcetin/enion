@@ -31,7 +31,7 @@
 (defonce player (clj->js default-player-state))
 
 (comment
-  (j/assoc! player :speed 550))
+  (j/assoc! player :speed 1550))
 
 (defonce other-players #js {})
 
@@ -39,6 +39,7 @@
 
 (defonce settings #js {})
 (defonce camera-entity nil)
+(defonce camera-state nil)
 
 (defonce party-member-ids (volatile! []))
 
@@ -437,5 +438,28 @@
   (do
     (pc/set-pos (get-player-entity) 0 0 0)
     (js/console.log (pc/get-pos (get-player-entity))))
+
+  ; var pos = child.getPosition();
+  ;    var rot = child.getRotation();
+  ;
+  ;    var scale = child.getLocalScale();
+  ;
+  ;    child.reparent(parent);
+  ;
+  ;    child.setPosition(pos);
+  ;    child.setRotation(rot);
+  ;    child.setLocalScale( new pc.Vec3(scale.x*scaleOffset, scale.y*scaleOffset, scale.z*scaleOffset) );
+
+  (let [hand (pc/find-by-name (pc/find-by-name "player") "hand_r")
+        weapon (pc/find-by-name "priest_mace")
+        _ (pc/enable weapon)
+        pos (j/call weapon :getPosition)
+        rot (j/call weapon :getRotation)
+        scale (j/call weapon :getLocalScale)
+        _ (j/call weapon :reparent hand)]
+    (j/call weapon :setPosition pos)
+    (j/call weapon :setRotation rot)
+    rot
+    )
 
   )

@@ -13,7 +13,7 @@
              :chase-speed 0.1
              :cooldown 2000
              :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 30 60)
+             :damage-fn #(utils/rand-between 10 30)
              :delay-after-last-time-attacked 1000
              :drop {:coin {:prob 0.9 :amount [10 20]}
                     :hp-potion {:prob 0.5 :amount 1}}
@@ -28,14 +28,14 @@
              :change-pos-speed 0.02
              :chase-range-threshold 20
              :chase-speed 0.05
-             :cooldown 1250
+             :cooldown 2000
              :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 90 120)
+             :damage-fn #(utils/rand-between 25 55)
              :delay-after-last-time-attacked 2000
              :drop {:coin {:prob 0.9 :amount [20 45]}
                     :hp-potion {:prob 0.25 :amount 1}
                     :mp-potion {:prob 0.6 :amount 1}}
-             :exp 120
+             :exp 150
              :target-locked-threshold 10000
              :target-pos-gap-threshold 0.2
              :re-spawn-interval 10000})
@@ -46,9 +46,9 @@
              :change-pos-speed 0.02
              :chase-range-threshold 15
              :chase-speed 0.06
-             :cooldown 1500
+             :cooldown 2500
              :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 120 150)
+             :damage-fn #(utils/rand-between 55 75)
              :delay-after-last-time-attacked 2000
              :drop {:coin {:prob 0.9 :amount [50 100]}
                     :hp-potion {:prob 0.4 :amount [2 4]}
@@ -65,9 +65,9 @@
                         :change-pos-speed 0.02
                         :chase-range-threshold 15
                         :chase-speed 0.1
-                        :cooldown 1250
+                        :cooldown 2000
                         :damage-buffer-size 100
-                        :damage-fn #(utils/rand-between 160 220)
+                        :damage-fn #(utils/rand-between 80 120)
                         :delay-after-last-time-attacked 1000
                         :drop {:coin {:prob 0.9 :amount [150 300]}
                                :hp-potion {:prob 0.5 :amount [2 5]}

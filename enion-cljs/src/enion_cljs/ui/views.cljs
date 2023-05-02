@@ -7,9 +7,9 @@
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on dev? dlog]]
     [enion-cljs.ui.events :as events]
+    [enion-cljs.ui.intro :as intro]
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
-    [enion-cljs.ui.tutorial :as tutorial]
     [enion-cljs.ui.utils :as ui.utils]
     [enion-cljs.utils :as common.utils]
     [re-frame.core :refer [subscribe dispatch dispatch-sync]]
@@ -120,8 +120,7 @@
       (let [skill-move @(subscribe [::subs/skill-move])
             hp-potions @(subscribe [::subs/hp-potions])
             mp-potions @(subscribe [::subs/mp-potions])
-            level @(subscribe [::subs/level])
-            change-skill-order-completed? @(subscribe [::subs/tutorials :how-to-change-skill-order?])]
+            level @(subscribe [::subs/level])]
         [:div {:id (str "skill-" skill)
                :ref (fn [ref]
                       (when ref
@@ -130,8 +129,6 @@
                         (let [f (fn [ev]
                                   (.preventDefault ev)
                                   (dispatch [::events/update-skills-order index skill])
-                                  (when-not change-skill-order-completed?
-                                    (fire :finish-tutorial-step :how-to-change-skill-order?))
                                   false)]
                           (.addEventListener ref "contextmenu" f false)
                           (swap! event-listeners assoc skill [ref f]))))
@@ -255,24 +252,29 @@
    [hp-mp-bars]
    [skill-bar]])
 
-(defn- chat-message [msg]
-  (let [party? (= :party @(subscribe [::subs/chat-type]))
-        killer (:killer msg)
+(defn- chat-message [msg input-active?]
+  (let [killer (:killer msg)
         killer-race (:killer-race msg)
         killed (:killed msg)]
-    (if killer
-      [:div
-       [:strong
-        {:class (if (= "orc" killer-race) "orc-defeats" "human-defeats")}
-        (str killer " defeated " killed "")]
-       [:br]]
-      [:div (when party? (styles/chat-part-message-box))
-       (if (= "System" (:from msg))
-         [:strong (:text msg)]
-         [:<>
-          [:strong (str (:from msg) ":")]
-          [:span (:text msg)]])
-       [:br]])))
+    @(subscribe [::subs/current-time])
+    [:div
+     {:style {:visibility (cond
+                            input-active? "visible"
+                            (<= (- (js/Date.now) (:created-at msg)) 10000) "visible"
+                            :else "hidden")}}
+     (if killer
+       [:div
+        [:strong
+         {:class (if (= "orc" killer-race) "orc-defeats" "human-defeats")}
+         (str killer " defeated " killed "")]
+        [:br]]
+       [:div (styles/chat-message input-active?)
+        (if (= "System" (:from msg))
+          [:strong (:text msg)]
+          [:<>
+           [:strong (str (:from msg) ":")]
+           [:span (:text msg)]])
+        [:br]])]))
 
 (defn scroll-to-bottom [e]
   (j/assoc! e :scrollTop (j/get e :scrollHeight)))
@@ -290,32 +292,18 @@
              (scroll-to-bottom elem)))
          (scroll-to-bottom elem)))))
 
-(defn- chat-message-box []
+(defn- chat-message-box [_]
   (let [ref (atom nil)]
     (r/create-class
       {:component-did-mount (fn [] (some-> @ref scroll-to-bottom))
        :component-did-update #(on-message-box-update ref)
-       :reagent-render (fn []
+       :reagent-render (fn [input-active?]
                          [:div
                           {:ref #(some->> % (reset! ref))
                            :class (styles/message-box)}
                           (for [[idx msg] (map-indexed vector @(subscribe [::subs/chat-messages]))]
                             ^{:key idx}
-                            [chat-message msg])])})))
-
-;; had to duplicate (chat-message-box) this because of the scroll to bottom - refactor at some point
-(defn- party-chat-message-box []
-  (let [ref (atom nil)]
-    (r/create-class
-      {:component-did-mount (fn [] (some-> @ref scroll-to-bottom))
-       :component-did-update #(on-message-box-update ref)
-       :reagent-render (fn []
-                         [:div
-                          {:ref #(some->> % (reset! ref))
-                           :class (styles/message-box)}
-                          (for [[idx msg] (map-indexed vector @(subscribe [::subs/chat-messages]))]
-                            ^{:key idx}
-                            [chat-message msg])])})))
+                            [chat-message msg input-active?])])})))
 
 (defn- chat-input [_]
   (let [ref (atom nil)]
@@ -333,40 +321,29 @@
           {:ref #(some->> % (reset! ref))
            :value @(subscribe [::subs/chat-message])
            :disabled (not input-active?)
-           :placeholder "Press ENTER to enable chat..."
-           :class (styles/chat-input)
+           :placeholder "Press ENTER to chat!"
+           :class (styles/chat-input input-active?)
            :on-change #(dispatch-sync [::events/set-chat-message (-> % .-target .-value)])
            :max-length 60}])})))
 
+(defonce message-expiration-started? (atom false))
+
 (defn- chat []
-  (let [open? @(subscribe [::subs/box-open? :chat-box])
-        input-active? @(subscribe [::subs/chat-input-active?])
-        chat-type @(subscribe [::subs/chat-type])]
-    [:div#chat-wrapper
-     {:class (styles/chat-wrapper)
-      :on-mouse-over #(fire :on-ui-element? true)
-      :on-mouse-out #(fire :on-ui-element? false)}
-     [:button
-      {:class (if open? (styles/chat-close-button) (styles/chat-open-button))
-       :on-click #(dispatch [::events/toggle-box :chat-box])}
-      (if open? "Close" "Open")]
-     (when open?
-       [:div (styles/chat)
-        (if (= chat-type :all)
-          [chat-message-box]
-          [party-chat-message-box])
-        [chat-input input-active?]
-        [:div
-         [:button
-          {:class [(styles/chat-all-button) (when (= chat-type :all)
-                                              (styles/chat-all-button-selected))]
-           :on-click #(dispatch [::events/set-chat-type :all])}
-          "All"]
-         [:button
-          {:class [(styles/chat-party-button) (when (= chat-type :party)
-                                                (styles/chat-party-button-selected))]
-           :on-click #(dispatch [::events/set-chat-type :party])}
-          "Party"]]])]))
+  (r/create-class
+    {:component-did-mount (fn []
+                            (when-not @message-expiration-started?
+                              (js/setInterval #(dispatch [::events/update-current-time]) 1000)
+                              (reset! message-expiration-started? true)))
+     :reagent-render
+     (fn []
+       (let [input-active? @(subscribe [::subs/chat-input-active?])]
+         [:div
+          {:class (styles/chat-wrapper)
+           :on-mouse-over #(fire :on-ui-element? true)
+           :on-mouse-out #(fire :on-ui-element? false)}
+          [:div (styles/chat)
+           [chat-message-box input-active?]
+           [chat-input input-active?]]]))}))
 
 (defn- info-message->class [message]
   (cond
@@ -431,42 +408,6 @@
       (:break-defense message) (str (:break-defense message) " infected with Toxic Spores")
       (:npc-exp message) (str "Earned " (:npc-exp message) " Experience Points")
       (:lost-exp message) (str "You lost " (:lost-exp message) " Experience Points!"))))
-
-(defn- info-message [message]
-  [:<>
-   [:span {:class (info-message->class message)} (info-message->text message)]
-   [:br]])
-
-(defn- info-message-box []
-  (let [ref (atom nil)]
-    (r/create-class
-      {:component-did-update #(on-message-box-update ref true)
-       :reagent-render (fn []
-                         [:div
-                          {:ref #(reset! ref %)
-                           :class (styles/info-message-box)}
-                          (for [[idx message] (map-indexed vector @(subscribe [::subs/info-box-messages]))]
-                            ^{:key idx}
-                            [info-message message])])})))
-
-(defn- info-box []
-  (when @(subscribe [::subs/any-info-box-messages?])
-    (let [open? @(subscribe [::subs/box-open? :info-box])
-          ref (atom nil)]
-      [:div
-       {:class (styles/info-box-wrapper)
-        :on-mouse-over #(fire :on-ui-element? true)
-        :on-mouse-out #(fire :on-ui-element? false)}
-       [:button
-        {:ref #(reset! ref %)
-         :class (if open? (styles/info-close-button) (styles/info-open-button))
-         :on-click (fn []
-                     (dispatch [::events/toggle-box :info-box])
-                     (some-> @ref .blur))}
-        (if open? "Close" "Open")]
-       (when open?
-         [:div (styles/info-box)
-          [info-message-box]])])))
 
 (defn inventory-squares []
   (for [i (range 24)]
@@ -842,61 +783,6 @@
                   #(dispatch [::events/open-change-server-modal]))}
      "Main Menu"]))
 
-(defn enter-fullscreen []
-  (let [el (j/get js/document :documentElement)]
-    (cond
-      (j/get el :requestFullscreen) (j/call el :requestFullscreen)
-      (j/get el :webkitRequestFullscreen) (j/call el :webkitRequestFullscreen)
-      (j/get el :mozRequestFullScreen) (j/call el :mozRequestFullScreen)
-      (j/get el :msRequestFullscreen) (j/call el :msRequestFullscreen))))
-
-(defn exit-fullscreen []
-  (let [doc js/document]
-    (cond
-      (j/get doc :exitFullscreen) (j/call doc :exitFullscreen)
-      (j/get doc :webkitExitFullscreen) (j/call doc :webkitExitFullscreen)
-      (j/get doc :mozCancelFullScreen) (j/call doc :mozCancelFullScreen)
-      (j/get doc :msExitFullscreen) (j/call doc :msExitFullscreen))))
-
-(defn fullscreen? []
-  (boolean (or (j/get js/document :fullscreenElement)
-               (j/get js/document :webkitFullscreenElement)
-               (j/get js/document :mozFullScreenElement)
-               (j/get js/document :msFullscreenElement))))
-
-(defn- fullscreen-change-callback []
-  (if (fullscreen?)
-    (do
-      (dlog "Entered fullscreen mode")
-      (dispatch [::events/set-fullscreen-mode true]))
-    (do
-      (dlog "Exited fullscreen mode")
-      (dispatch [::events/set-fullscreen-mode false]))))
-
-(defn- add-fullscreen-listeners []
-  (let [fullscreen-events ["fullscreenchange"
-                           "webkitfullscreenchange"
-                           "mozfullscreenchange"
-                           "MSFullscreenChange"]]
-    (doseq [event fullscreen-events]
-      (j/call js/document :addEventListener event fullscreen-change-callback))))
-
-(defn- fullscreen-button []
-  (r/create-class
-    {:component-did-mount #(add-fullscreen-listeners)
-     :reagent-render
-     (fn []
-       (let [minimap-open? @(subscribe [::subs/minimap?])
-             fullscreen? @(subscribe [::subs/fullscreen?])]
-         [:button
-          {:class (styles/fullscreen-button minimap-open?)
-           :on-mouse-over #(fire :on-ui-element? true)
-           :on-mouse-out #(fire :on-ui-element? false)
-           :on-click (if fullscreen? exit-fullscreen enter-fullscreen)}
-          (if fullscreen?
-            "Exit Full-screen"
-            "Full-screen Mode")]))}))
-
 (defn- ping-counter []
   (let [fps? (:fps? @(subscribe [::subs/settings]))
         ping @(subscribe [::subs/ping])]
@@ -913,27 +799,6 @@
     [:button
      {:class (styles/online-counter ping? fps?)}
      (str "Online: " (or online "-") " (" server ")")]))
-
-(defn- join-discord []
-  [:button
-   {:class (styles/join-discord)
-    :on-click #(js/window.open "https://discord.gg/rmaTrYdV5V" "_blank")}
-   "Join Discord"])
-
-(defn- tutorials []
-  (let [settings @(subscribe [::subs/settings])
-        ping? (:ping? settings)
-        fps? (:fps? settings)]
-    [:div (styles/tutorial-container (and ping? fps?))
-     [:div {:style {:display :flex
-                    :flex-direction :column
-                    :gap "5px"}}
-      (for [[t title f show-ui-panel?] @(subscribe [::subs/tutorials])]
-        ^{:key t}
-        [:button
-         {:class (styles/tutorials)
-          :on-click #(tutorial/start-intro (f) nil show-ui-panel?)}
-         title])]]))
 
 (defn- change-server-modal []
   (r/create-class
@@ -1341,7 +1206,19 @@
 (defn- global-message []
   (when-let [message @(subscribe [::subs/global-message])]
     [:div (styles/global-message)
-     [:span message]]))
+     (if (map? message)
+       [:div
+        [:span (:text message)]
+        (cond
+          (:action-keys message) (into [:div.action-keys-wrapper]
+                                       (map
+                                         (fn [k]
+                                           [:span.action-key.small k])
+                                         (:action-keys message)))
+          (:img message) [:div.image-container
+                          [:img {:src (str "img/" (:img message))}]]
+          :else [:span.action-key (:action-key message)])]
+       [:span message])]))
 
 (defn- add-mouse-listeners []
   (js/document.addEventListener "mousedown" on-mouse-down)
@@ -1365,7 +1242,7 @@
                                       (dispatch [::events/open-score-board])
 
                                       (= code "Space")
-                                      (tutorial/next-intro)
+                                      (intro/next-step)
 
                                       (= code "Escape")
                                       (do
@@ -1385,8 +1262,6 @@
    (when @(subscribe [::subs/ping?])
      [ping-counter])
    [online-counter]
-   [join-discord]
-   [tutorials]
    [chat]])
 
 (defn main-panel []
@@ -1422,7 +1297,9 @@
        (on :ui-set-connection-lost #(dispatch [::events/set-connection-lost]))
        (on :ui-player-ready #(do
                                (reset! game-init? true)
-                               (dispatch [::events/update-settings])))
+                               (dispatch [::events/update-settings])
+                               (dispatch [::events/show-tutorial-message])))
+       (on :ui-show-tutorial-message #(dispatch [::events/show-tutorial-message]))
        (on :ui-update-ping #(dispatch [::events/update-ping %]))
        (on :ui-update-hp-potions #(dispatch [::events/update-hp-potions %]))
        (on :ui-update-mp-potions #(dispatch [::events/update-mp-potions %]))
@@ -1464,8 +1341,6 @@
              (when @(subscribe [::subs/something-went-wrong?])
                [something-went-wrong-modal])
              [change-server-button]
-             (when-not @(subscribe [::subs/in-iframe?])
-               [fullscreen-button])
              [settings-button]
              (when @(subscribe [::subs/settings-modal-open?])
                [settings-modal])
@@ -1476,7 +1351,6 @@
                [minimap])
              [party-list]
              [party-request-modal]
-             [info-box]
              [character-panel]
              (when @(subscribe [::subs/score-board-open?])
                [score-modal])
@@ -1484,3 +1358,13 @@
              [actions-section]
              [temp-skill-img]
              [skill-description]]))])}))
+
+(comment
+  (dispatch [::events/show-global-message {:text "Adjust camera with Right Click"
+                                           :img "right-click.png"}])
+
+  (dispatch [::events/show-global-message {:text "Adjust camera with Right Click"
+                                           :action-keys ["S" "A" "D"]}])
+
+  (dispatch [::events/show-global-message "Congrats!"])
+  )

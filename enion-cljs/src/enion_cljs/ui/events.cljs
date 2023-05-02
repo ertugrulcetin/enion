@@ -7,6 +7,7 @@
     [day8.re-frame.http-fx :as http-fx]
     [enion-cljs.common :as common :refer [fire dev?]]
     [enion-cljs.ui.db :as db]
+    [enion-cljs.ui.tutorial :as tutorial]
     [enion-cljs.ui.utils :as ui.utils]
     [enion-cljs.utils :as common.utils]
     [re-frame.core :refer [reg-event-db reg-event-fx dispatch reg-fx reg-cofx inject-cofx]]
@@ -51,18 +52,12 @@
   ::settings
   (fn [cofx _]
     (try
-      (let [width js/window.innerWidth
-            default-settings (if (>= width 1250)
-                               (assoc default-settings :minimap? true
-                                      :fps? true
-                                      :ping? true)
-                               default-settings)]
-        (if-let [ls (common.utils/get-local-storage)]
-          (assoc cofx :settings (let [settings (j/call ls :getItem "settings")]
-                                  (if (str/blank? settings)
-                                    default-settings
-                                    (reader/read-string settings))))
-          (assoc cofx :settings default-settings)))
+      (if-let [ls (common.utils/get-local-storage)]
+        (assoc cofx :settings (let [settings (j/call ls :getItem "settings")]
+                                (if (str/blank? settings)
+                                  default-settings
+                                  (reader/read-string settings))))
+        (assoc cofx :settings default-settings))
       (catch js/Error _
         (assoc cofx :settings default-settings)))))
 
@@ -149,11 +144,20 @@
 (reg-event-db
   ::add-message-to-chat-all
   (fn [db [_ {:keys [username msg killer killer-race killed]}]]
-    (if killer
-      (update-in db [:chat-box :messages :all] conj {:killer killer
-                                                     :killer-race killer-race
-                                                     :killed killed})
-      (update-in db [:chat-box :messages :all] conj {:from username :text msg}))))
+    (let [now (js/Date.now)]
+      (if killer
+        (update-in db [:chat-box :messages :all] conj {:killer killer
+                                                       :killer-race killer-race
+                                                       :killed killed
+                                                       :created-at now})
+        (update-in db [:chat-box :messages :all] conj {:from username
+                                                       :text msg
+                                                       :created-at now})))))
+
+(reg-event-db
+  ::update-current-time
+  (fn [db]
+    (assoc db :current-time (js/Date.now))))
 
 (reg-event-db
   ::add-message-to-chat-party
@@ -164,16 +168,6 @@
   ::add-chat-error-msg
   (fn [db [_ {:keys [type msg]}]]
     (update-in db [:chat-box :messages type] conj {:from "System" :text msg})))
-
-(reg-event-db
-  ::toggle-box
-  (fn [db [_ type]]
-    (update-in db [type :open?] not)))
-
-(reg-event-db
-  ::toggle-chat-input
-  (fn [db [_ type]]
-    (update-in db [:chat-box :active-input?] not)))
 
 (reg-event-db
   ::set-chat-type
@@ -382,12 +376,14 @@
                      class
                      hp-potions
                      mp-potions
-                     tutorials
                      server-name
                      level
                      coin
                      exp
-                     required-exp]}]]
+                     required-exp
+                     tutorials
+                     quests
+                     current-quest]}]]
     (-> db
         (assoc-in [:player :id] id)
         (assoc-in [:player :username] username)
@@ -402,7 +398,9 @@
         (assoc-in [:player :attack-power] attack-power)
         (assoc-in [:player :bp] bp)
         (assoc-in [:servers :current-server] server-name)
-        (assoc :tutorials tutorials))))
+        (assoc :tutorials tutorials)
+        (assoc :quests quests)
+        (assoc :current-quest current-quest))))
 
 (reg-event-db
   ::set-as-party-leader
@@ -488,10 +486,12 @@
   (fn [db [_ mp-potions]]
     (assoc-in db [:player :mp-potions] mp-potions)))
 
-(reg-event-db
+(reg-event-fx
   ::finish-tutorial-progress
-  (fn [db [_ tutorial]]
-    (assoc-in db [:tutorials tutorial] true)))
+  (fn [{:keys [db]} [_ tutorial]]
+    {:db (update db :tutorials (fnil conj #{}) tutorial)
+     :dispatch [::show-tutorial-message]
+     ::fire [:finish-tutorial-progress tutorial]}))
 
 (reg-event-db
   ::hide-congrats-text
@@ -513,9 +513,9 @@
 (reg-event-fx
   ::reset-tutorials
   (fn [{:keys [db]}]
-    (let [db (update db :tutorials #(select-keys % [:what-is-the-first-quest?]))]
+    (let [db (assoc db :tutorials #{})]
       {:db db
-       ::fire [:reset-tutorials (:tutorials db)]})))
+       ::fire [:reset-tutorials]})))
 
 (reg-event-db
   ::set-ws-connected
@@ -640,9 +640,14 @@
   ::show-global-message
   (fn [{:keys [db]} [_ text duration]]
     {:db (assoc db :global-message text)
-     :dispatch-later [(when-not (str/blank? text)
-                        {:ms (or duration 1500)
-                         :dispatch [::show-global-message nil]})]}))
+     :dispatch-later [(when duration
+                        {:ms duration
+                         :dispatch [::remove-global-message]})]}))
+
+(reg-event-db
+  ::remove-global-message
+  (fn [db]
+    (assoc db :global-message nil)))
 
 (reg-event-fx
   ::level-up
@@ -654,10 +659,7 @@
              (assoc-in [:player :required-exp] required-exp)
              (assoc-in [:player :level] level)
              (assoc-in [:player :attack-power] attack-power))
-     :dispatch [::show-global-message (str "Level up! You are now level " level
-                                           ;; TODO remove this when we have a better way to show level up
-                                           (when (#{3 5 7 10} level)
-                                             (str ". New skill unlocked! ✨"))) 5000]}))
+     :dispatch [::show-global-message (str "You reached level " level "!") 5000]}))
 
 (reg-event-db
   ::set-exp
@@ -682,3 +684,19 @@
   ::set-total-coin
   (fn [db [_ coin]]
     (assoc-in db [:player :coin] coin)))
+
+(reg-event-fx
+  ::show-tutorial-message
+  (fn [{:keys [db]}]
+    (let [tutorials (:tutorials db)
+          in-quest? (boolean (:current-quest db))
+          next-tutorial (some
+                          (fn [tutorial]
+                            (let [tutorial-completed? ((:name tutorial) tutorials)]
+                              (when (or (and (not in-quest?) (not (:in-quest? tutorial)) (not tutorial-completed?))
+                                        (and in-quest? (:in-quest? tutorial) (not tutorial-completed?)))
+                                tutorial)))
+                          tutorial/tutorials)]
+      (if next-tutorial
+        {:dispatch [::show-global-message next-tutorial]}
+        {:dispatch [::remove-global-message]}))))

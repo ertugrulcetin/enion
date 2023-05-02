@@ -43,9 +43,9 @@
   (when (j/get state :right-click?)
     (j/update-in! state [:eulers :x] - (mod (/ (* (j/get state :camera-rotation-speed) (j/get e :dx)) 60) 360))
     (j/update-in! state [:eulers :y] + (mod (/ (* (j/get state :camera-rotation-speed) (j/get e :dy)) 60) 360))
-    (when (and (not (utils/tutorial-finished? :how-to-rotate-camera?)) (not (j/get state :right-mouse-dragged?)))
+    (when (and (not (utils/tutorial-finished? :adjust-camera)) (not (j/get state :right-mouse-dragged?)))
       (j/assoc! state :right-mouse-dragged? true)
-      (utils/finish-tutorial-step :how-to-rotate-camera?))))
+      (utils/finish-tutorial-step :adjust-camera))))
 
 (defn- mouse-wheel [e]
   (when-not (j/get st/settings :on-ui-element?)
@@ -91,6 +91,7 @@
   (set-default-ray-end-z)
   (set! entity (j/get this :entity))
   (set! st/camera-entity entity)
+  (set! st/camera-state state)
   (register-camera-mouse-events)
   (j/call js/document :addEventListener "mouseout" mouse-out)
   (j/call js/document :addEventListener "mouseover" mouse-over)

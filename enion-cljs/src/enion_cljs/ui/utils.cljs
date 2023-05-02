@@ -5,6 +5,9 @@
 
 (def bad-words-filter (new bad-words))
 
-(defn- clean [text]
+(defn clean [text]
   (when-not (str/blank? text)
     (.clean bad-words-filter text)))
+
+(when bad-words-filter
+  (.removeWords bad-words-filter "cok" "çok"))

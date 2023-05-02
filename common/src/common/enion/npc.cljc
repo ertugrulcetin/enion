@@ -8,18 +8,18 @@
            :name "Squid"
            :char-name-y-offset 0.2
            :level 1}
-   :ghoul {:health 1500
+   :ghoul {:health 1000
            :name "Ghoul"
            :char-name-y-offset 0.1
            :level 3}
-   :demon {:health 2000
+   :demon {:health 1250
            :name "Demon"
            :char-name-y-offset 0.1
            :level 6}
-   :skeleton-warrior {:health 3750
+   :skeleton-warrior {:health 1750
                       :name "Skeleton Warrior"
                       :char-name-y-offset 0.3
-                      :level 10}
+                      :level 9}
    :burning-skeleton {:health 4250
                       :name "Burning Skeleton"
                       :char-name-y-offset 0.5

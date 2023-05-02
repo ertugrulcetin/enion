@@ -322,23 +322,23 @@
    :pointer-events :none
    :z-index 16})
 
+(defkeyframes popup []
+  ["0%" {:transform "scale(1)"}]
+  ["50%" {:transform "scale(1.2)"}]
+  ["100%" {:transform "scale(1)"}])
+
 (defclass chat-wrapper []
   (at-media {:max-width "1250px"}
-            {:width "27% !important"})
+            {:width "27% !important"
+             :bottom "25px"
+             :left "0px"})
   {:position :absolute
    :width "31%"
-   :left "-5px"
+   :left "10px"
    :margin-left :auto
    :height :auto
-   :bottom "45px"
-   :z-index 15
-   :opacity 0.8})
-
-(defclass info-box-wrapper []
-  {:composes [(chat-wrapper)]
-   :right "20px"
-   :left :unset
-   :bottom "10px"})
+   :bottom "10px"
+   :z-index 15})
 
 (defattrs chat []
   (at-media {:max-width "1250px"}
@@ -359,18 +359,11 @@
    ;; For Firefox
    :z-index 10})
 
-(defattrs info-box []
-  {:composes [(chat)]
-   :left :unset
-   :bottom "20px"
-   :height "150px"}
-  (at-media {:max-width "1250px"}
-            {:height "110px"}))
-
 (defclass message-box []
   {:width "100%"
    :height "140px"
    :line-height "1.65em"
+   :padding-left "5px"
    ;; For Firefox
    :overflow-y :auto
    :word-wrap :break-word
@@ -378,12 +371,13 @@
    :-ms-overflow-style :none}
   scroll-bar
   scroll-bar-thumb
+  ["&::-webkit-scrollbar" {:display :none}]
   [:strong {:padding "2px"
             :background-color "#10131dcc"
             :border-radius "3px"}
-   [:&.orc-defeats {:color "#ff0000ff"
+   [:&.orc-defeats {:color orc-color
                     :padding "0px 2px 0px 2px"}]
-   [:&.human-defeats {:color "#2691b2ff"
+   [:&.human-defeats {:color human-color
                       :padding "0px 2px 0px 2px"}]]
   [:span {:padding "2px"
           :margin-left "5px"
@@ -408,13 +402,14 @@
   (at-media {:max-width "1250px"}
             {:height "110px"}))
 
-(defattrs chat-part-message-box []
-  {:color "rgb(15 188 3)"})
+(defattrs chat-message [input-active?]
+  {:animation (str (popup) " 0.25s ease-in-out")
+   :opacity (if input-active? 1 0.9)})
 
-(defclass chat-input []
+(defclass chat-input [input-active?]
   (at-media {:max-width "1250px"}
             {:font-size "12px"})
-  {:width "calc(100% - 20px)"
+  {:width (if input-active? "90%" "60%")
    :height "28px"
    :background-color "#10131dcc"
    :outline :none
@@ -424,14 +419,18 @@
    :font-family "IMMORTAL"
    :border "2px solid #10131dcc"
    :border-radius "2px"
-   :padding "5px"})
+   :padding "5px"
+   :opacity (if input-active? 1 0.9)})
 
 (defattrs selected-player []
   {:composes [(actions-container)]
-   :top "20px"
+   :top "5px"
    :bottom :unset
    :text-align :center
-   :pointer-events :none})
+   :pointer-events :none}
+  (at-media {:max-width "1250px"}
+            {:transform "translateX(-50%) scale(0.7)"
+             :top "-10px"}))
 
 (defattrs selected-player-text [enemy?]
   {:font-size "30px"
@@ -757,10 +756,6 @@
   {:composes [(settings-button minimap?)]
    :right (if minimap? "255px" "97px")})
 
-(defclass fullscreen-button [minimap?]
-  {:composes [(settings-button minimap?)]
-   :right (if minimap? "383px" "225px")})
-
 (defclass ping-counter [fps? ping]
   {:composes [(settings-button false)]
    :left "5px"
@@ -797,12 +792,6 @@
    :font-size "18px"
    :opacity 1
    :cursor :pointer
-   :z-index 5})
-
-(defattrs tutorial-container [ping-and-fps?]
-  {:position :absolute
-   :left "5px"
-   :top (if ping-and-fps? "135px" "115px")
    :z-index 5})
 
 (defclass tutorials []
@@ -1023,18 +1012,50 @@
 
 (defattrs global-message []
   {:position :absolute
-   :top "20%"
-   :left "calc(50% + 25px)"
-   :transform "translate(-50%, -50%)"
-   :font-size "32px"
+   :top "13%"
+   :left "50%"
+   :transform "translate(-50%)"
+   :font-size "20px"
    :z-index 99
-   :color :white}
+   :color :white
+   :background "#10131dcc"
+   :border-radius "5px"}
+  [:div.image-container
+   {:display :flex
+    :justify-content :center}
+   [:img
+    {:animation (str "0.5s ease-in-out infinite alternate " (scale-bounce))}]]
+  [:div.action-keys-wrapper
+   {:display :flex
+    :justify-content :center
+    :animation (str "0.5s ease-in-out infinite alternate " (scale-bounce))}]
   [:span
-   {:background "#10131d5e"
-    :padding "5px"
-    :border-radius "5px"
+   {:padding "5px"
     :line-height "50px"
-    :text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}])
+    :text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}
+   [:&.action-key
+    {:position "absolute"
+     :background "#e2e2e2"
+     :margin-left "5px"
+     :margin-top "5px"
+     :padding "10px"
+     :color "#000"
+     :text-align :center
+     :height "15px"
+     :width "40px"
+     :border-radius "5px"
+     :border-bottom "solid 3px #b8b8b8"
+     :border-top "solid 1px #fff"
+     :text-shadow "0px 1px 0px #fff"
+     :font-size "18px"
+     :line-height "18px"
+     :font-family "Arial, Helvetica, sans-serif"
+     :animation (str "0.5s ease-in-out infinite alternate " (scale-bounce))}
+    [:&.small
+     {:position :initial
+      :width "15px"}]]]
+  (at-media {:max-width "1250px"}
+            {:font-size "16px"}))
 
 (defattrs left-panel [char-panel-open?]
   {:visibility (if char-panel-open? :hidden :visible)})

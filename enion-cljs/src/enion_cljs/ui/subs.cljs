@@ -4,7 +4,8 @@
     [clojure.string :as str]
     [common.enion.skills :as common.skills]
     [enion-cljs.ui.tutorial :as tutorials]
-    [re-frame.core :refer [reg-sub]]))
+    [re-frame.core :refer [reg-sub reg-sub-raw]]
+    [reagent.ratom :as ratom]))
 
 (reg-sub
   ::current-player-id
@@ -310,13 +311,7 @@
 
 (reg-sub
   ::tutorials
-  (fn [db [_ tutorial]]
-    (if tutorial
-      (-> db :tutorials (get tutorial))
-      (let [finished-tutorials (set (keys (:tutorials db)))
-            screen-height (-> db ::bp/breakpoints :screen-height)
-            num-of-tutorials-to-show (if (< screen-height 500) 2 3)]
-        (take num-of-tutorials-to-show (remove #(finished-tutorials (first %)) tutorials/tutorials-order))))))
+  (fn [db]))
 
 (reg-sub
   ::congrats-text?
@@ -395,3 +390,8 @@
   ::char-panel-open?
   (fn [db]
     (:char-panel-open? db)))
+
+(reg-sub
+  ::current-time
+  (fn [db]
+    (:current-time db)))
