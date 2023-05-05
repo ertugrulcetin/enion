@@ -26,6 +26,45 @@
 (def grid-gap "10px")
 (def disabled-overlay-color "rgba(128, 128, 128, 0.7)")
 
+(defkeyframes scale-bounce []
+  ["0%" {:transform "scale(1)"}]
+  ["100%" {:transform "scale(1.1)"}])
+
+(def action-key-span
+  [:span
+   {:padding "5px"
+    :line-height "50px"
+    :text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}
+   [:&.action-key
+    {:position "absolute"
+     :background "#e2e2e2"
+     :margin-left "5px"
+     :margin-top "5px"
+     :padding "10px"
+     :color "#000"
+     :text-align :center
+     :height "15px"
+     :width "40px"
+     :border-radius "5px"
+     :border-bottom "solid 3px #b8b8b8"
+     :border-top "solid 1px #fff"
+     :text-shadow "0px 1px 0px #fff"
+     :font-size "18px"
+     :font-weight :bold
+     :line-height "18px"
+     :font-family "Arial, Helvetica, sans-serif"
+     :animation (str "0.5s ease-in-out infinite alternate " (scale-bounce))}
+    [:&.small
+     {:position :initial
+      :width "15px"}]
+    [:&.settings
+     {:width "25px"
+      :margin-left :unset
+      :margin-top :unset
+      :animation :unset
+      :position :initial
+      :padding "5px"}]]])
+
 (defclass char-panel []
   {:position "fixed"
    :left "10px"
@@ -712,11 +751,12 @@
   {:composes [(party-request-modal)]
    :pointer-events :all
    :user-select :none
-   :width "45%"
-   :max-width "50%"
-   :max-height "80%"
+   :width "80%"
+   :height "90%"
    :z-index 30
-   :overflow-y :auto})
+   :overflow-y :auto}
+  (at-media {:max-width "1250px"}
+            {:width "90%"}))
 
 (defclass settings-exit-button []
   {:composes [(button)]
@@ -729,8 +769,36 @@
 (defclass settings-reset-tutorials-button []
   {:composes [(settings-exit-button)]
    :width "auto"
-   :margin-top :unset
+   :margin-top "10px"
    :font-size "25px"})
+
+(defattrs settings-table []
+  {:border-collapse "collapse"
+   :border "1px solid #888"
+   :width "50%"
+   :transform "translateX(50%)"}
+  [:td
+   {:border "1px solid #888"
+    :width "50%"
+    :text-align :left
+    :padding "5px"
+    :font-size "18px"}
+   [:&.center
+    {:text-align :center}]
+   [:&.no-padding
+    {:padding "0px"}]]
+  [:span
+   {:margin-left "10px"
+    :width "50%"}
+   [:&.small
+    {:font-size "15px"}]]
+  [:div {:width "100%"}]
+  [:input {:width "50%"
+           :outline :none}]
+  action-key-span
+  (at-media {:max-width "1250px"}
+            {:width "100%"
+             :transform :unset}))
 
 (defkeyframes blink-frames [color]
   ["0%" {:border-color color}]
@@ -999,16 +1067,30 @@
    :justify-content "center"
    :align-items "center"})
 
-(defkeyframes scale-bounce []
-  ["0%" {:transform "scale(1)"}]
-  ["100%" {:transform "scale(1.1)"}])
+(defattrs click-to-join-indicator-text-container []
+  {:display :flex
+   :flex-direction :column
+   :justify-content :center})
 
 (defclass click-to-join-indicator-text []
   {:font-size "48px"
-   :padding "48px"
-   :color "white"}
+   :padding "10px"
+   :color "white"
+   :text-align :center}
   [:&.bounce
-   {:animation (str "0.7s ease-in-out infinite alternate " (scale-bounce))}])
+   {:animation (str "0.7s ease-in-out infinite alternate " (scale-bounce))}]
+  [:&.or
+   {:padding "0px"}])
+
+(defclass select-your-character-button []
+  {:composes [(init-modal-connect-button)]
+   :height "60px"
+   :margin-top "10px"
+   :width :auto
+   :font-size "28px"
+   :padding-left "10px"
+   :padding-right "10px"
+   :margin-left :unset})
 
 (defattrs global-message []
   {:position :absolute
@@ -1029,32 +1111,7 @@
    {:display :flex
     :justify-content :center
     :animation (str "0.5s ease-in-out infinite alternate " (scale-bounce))}]
-  [:span
-   {:padding "5px"
-    :line-height "50px"
-    :text-shadow "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000"}
-   [:&.action-key
-    {:position "absolute"
-     :background "#e2e2e2"
-     :margin-left "5px"
-     :margin-top "5px"
-     :padding "10px"
-     :color "#000"
-     :text-align :center
-     :height "15px"
-     :width "40px"
-     :border-radius "5px"
-     :border-bottom "solid 3px #b8b8b8"
-     :border-top "solid 1px #fff"
-     :text-shadow "0px 1px 0px #fff"
-     :font-size "18px"
-     :font-weight :bold
-     :line-height "18px"
-     :font-family "Arial, Helvetica, sans-serif"
-     :animation (str "0.5s ease-in-out infinite alternate " (scale-bounce))}
-    [:&.small
-     {:position :initial
-      :width "15px"}]]]
+  action-key-span
   (at-media {:max-width "1250px"}
             {:font-size "16px"}))
 

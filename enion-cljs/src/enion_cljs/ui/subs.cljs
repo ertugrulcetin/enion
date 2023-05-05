@@ -1,11 +1,8 @@
 (ns enion-cljs.ui.subs
   (:require
-    [breaking-point.core :as bp]
     [clojure.string :as str]
     [common.enion.skills :as common.skills]
-    [enion-cljs.ui.tutorial :as tutorials]
-    [re-frame.core :refer [reg-sub reg-sub-raw]]
-    [reagent.ratom :as ratom]))
+    [re-frame.core :refer [reg-sub reg-sub-raw]]))
 
 (reg-sub
   ::current-player-id

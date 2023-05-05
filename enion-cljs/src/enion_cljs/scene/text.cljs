@@ -6,18 +6,21 @@
     [enion-cljs.scene.states :as st]))
 
 (defonce text-pool #js [])
-(defonce text-pool-size 1)
+(defonce text-pool-size 20)
 
 (defn- get-text-entity []
   (if-let [text (j/call text-pool :pop)]
     text
     (let [text (pc/clone (pc/find-by-name "text"))]
+      (pc/disable text)
       (pc/add-child (j/get st/player :template-entity) text)
       text)))
 
 (defn init-pool []
+  (j/assoc! text-pool :length 0)
   (dotimes [_ text-pool-size]
     (let [text (pc/clone (pc/find-by-name "text"))]
+      (pc/disable text)
       (pc/add-child (j/get st/player :template-entity) text)
       (j/call text-pool :push text))))
 
@@ -31,6 +34,9 @@
 (def purple (pc/color (/ 131 255) (/ 47 255) (/ 189 255)))
 
 (def temp (pc/vec3))
+
+(defn- random-value []
+  (* 2 (- 0.5 (rand))))
 
 (defn- show-text
   ([text]
@@ -47,7 +53,7 @@
          _ (pc/copyv temp initial-pos)
          last-pos (pc/addv temp (if info?
                                   (pc/vec3 0 0.5 0)
-                                  (pc/vec3 (- 0.5 (rand)) 0.5 (- 0.5 (rand)))))
+                                  (pc/vec3 (random-value) 0.5 0)))
          tween-interpolation (-> (j/call text-entity :tween initial-pos)
                                  (j/call :to last-pos secs pc/linear))]
      (j/call tween-interpolation :on "update"
@@ -60,10 +66,12 @@
                (if info?
                  (pc/set-loc-pos text-entity 0 (- 0.5 (rand)) 0)
                  (pc/set-loc-pos text-entity (- 0.5 (rand)) 0 (- 0.5 (rand))))
-               (j/call text-pool :push text-entity)))
+               (j/call text-pool :push text-entity)
+               (pc/disable text-entity)))
      (pc/enable text-entity)
      (j/call text-entity :setLocalScale 0.005 0.005 0.005)
      (j/assoc-in! text-entity [:element :opacity] 1)
+     (pc/enable text-entity)
      (j/call tween-interpolation :start)
      nil)))
 
@@ -72,7 +80,7 @@
       (cond
         (:damage msg) (show-text (str "-" (:damage msg)) damage)
         (:hit msg) (show-text (:hit msg) default)
-        (:lost-exp msg) (show-text (str "Lost XP: " (:lost-exp msg) "!") warning)
+        (:lost-exp msg) (show-text (str "Lost XP: " (:lost-exp msg) "!") warning 3)
         (:mp-used msg) (show-text (:mp-used msg) warning)
         (:too-far msg) (show-text "Too far!" warning true)
         (:joined-party msg) (show-text (str (:joined-party msg) " joined party") default true)
@@ -94,7 +102,9 @@
         (:npc-exp msg) (show-text (str "XP: " (:npc-exp msg)) exp false 2)
         (:ping-high msg) (show-text "Ping high!" warning true)
         (:skill-failed msg) (show-text "Skill failed" warning true)
-        (:drop msg) (show-text (str (-> msg :drop :amount) " " (-> msg :drop :name)) default true 3))))
+        (:drop msg) (show-text (str (-> msg :drop :amount) " " (-> msg :drop :name)) default true 2)
+        (:pvp-locked msg) (show-text "Reach level 10 for PvP!" warning true 2)
+        (:enemy-low-level msg) (show-text "Enemy below level 10, can't attack!" warning true 2))))
 
 (comment
   (count text-pool)

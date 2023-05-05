@@ -263,7 +263,7 @@
                    :name "Flame Strike"
                    :description (str "Long range fire-based attack that unleashes a "
                                      "devastating blast of flame on a single enemy")
-                   :required-mana 501
+                   :required-mana 50
                    :damage-fn (create-damage-fn 1.4)
                    :required-level 1
                    :class "mage"}

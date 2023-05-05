@@ -193,7 +193,8 @@
   (j/assoc! player
             :fleet-foot? true
             :speed (if (st/asas?) st/speed-fleet-foot-asas st/speed-fleet-foot))
-  (st/play-sound "fleetFoot"))
+  (st/play-sound "fleetFoot")
+  (fire :show-text {:mp-used fleet-food-required-mana}))
 
 (defmethod skill-response "attackR" [params]
   (fire :ui-cooldown "attackR")

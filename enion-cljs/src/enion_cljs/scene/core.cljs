@@ -4,8 +4,7 @@
     [enion-cljs.scene.entities.camera :as entity.camera]
     [enion-cljs.scene.entities.player]
     [enion-cljs.scene.quest]
-    [enion-cljs.scene.skills.effects :as entity.effects]
-    [enion-cljs.scene.text]))
+    [enion-cljs.scene.skills.effects :as entity.effects]))
 
 (defn init [init-ui]
   (entity.root/init init-ui)

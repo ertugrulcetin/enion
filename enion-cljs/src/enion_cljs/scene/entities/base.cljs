@@ -1,7 +1,7 @@
 (ns enion-cljs.scene.entities.base
   (:require
     [applied-science.js-interop :as j]
-    [enion-cljs.common :refer [fire]]
+    [enion-cljs.common :refer [fire on]]
     [enion-cljs.scene.network :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.states :as st]))
@@ -32,9 +32,20 @@
                                                          (fire :in-npc-zone true)))
     (j/call-in npc-box [:collision :on] "triggerleave" (fn []
                                                          (fire :ui-show-talk-to-npc false)
-                                                         (fire :in-npc-zone false)))))
+                                                         (fire :in-npc-zone false))))
+  (if-not (st/finished-quests?)
+    (let [walls (pc/find-by-name "walls")]
+      (pc/enable walls)
+      (doseq [e (j/get walls :children)]
+        (j/call-in e [:collision :on] "collisionstart"
+                   #(fire :ui-show-global-message "Finish all quests to explore map!" 2000))))
+    (pc/disable (pc/find-by-name "walls"))))
 
 (defn unregister-base-trigger-events []
   (doseq [base-box @entities]
     (j/call-in base-box [:collision :off]))
   (reset! entities []))
+
+(on :disable-walls
+    #(when (st/finished-quests?)
+       (pc/disable (pc/find-by-name "walls"))))

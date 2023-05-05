@@ -605,9 +605,9 @@
           :mp-potion (drop/inc-potion :mp amount)
           nil)
         (when (= type :coin)
-          (fire :ui-set-total-coin (-> params :drop :total-coin)))
-        (fire :show-text {:drop {:name (get-in common.npc/drops [type :name])
-                                 :amount amount}})))))
+          (fire :ui-set-total-coin (-> params :drop :total-coin))
+          (fire :show-text {:drop {:name (get-in common.npc/drops [type :name])
+                                   :amount amount}}))))))
 
 (defn- show-unlocked-skill [level]
   (let [class (st/get-class)
@@ -626,7 +626,13 @@
   (st/play-sound "levelUp")
   (if (= level 3)
     (fire :show-unlocked-skill-fleet-foot)
-    (show-unlocked-skill level)))
+    (show-unlocked-skill level))
+  (when (= level 10)
+    (js/setTimeout #(let [race (st/get-race)
+                          against (if (= "orc" race)
+                                    "Kill some Humans!"
+                                    "Kill some Orcs!")]
+                      (fire :ui-show-global-message (str "PvP Unlocked! ⚔️ " against) 15000)) 2000)))
 
 (defn- process-exp [params]
   (let [{:keys [exp npc-exp level-up?] :as opts} (:drop params)]
@@ -641,7 +647,7 @@
           required-kills (j/get st/player :required-kills)]
       (when (= npc quest-npc)
         (j/update! st/player :completed-kills (fnil + 0) 1)
-        (if (= (j/get st/player :completed-kills) required-kills)
+        (if (>= (j/get st/player :completed-kills) required-kills)
           (do
             (fire :ui-complete-quest [quest-npc
                                       (-> common.enion.npc/npcs npc :name)
@@ -673,7 +679,8 @@
         (fire :show-text {:drop {:name "Coin"
                                  :amount coin}})
         (fire :ui-set-total-coin total-coin)
-        (fire :check-available-quests (j/get st/player :quests))))))
+        (fire :check-available-quests (j/get st/player :quests))
+        (fire :disable-walls)))))
 
 (defmethod dispatch-pro-response :drop [params]
   (process-drop params)

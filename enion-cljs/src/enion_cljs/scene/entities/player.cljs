@@ -12,6 +12,7 @@
     [enion-cljs.scene.skills.priest :as skills.priest]
     [enion-cljs.scene.skills.warrior :as skills.warrior]
     [enion-cljs.scene.states :as st :refer [player other-players npcs]]
+    [enion-cljs.scene.text :as text]
     [enion-cljs.scene.utils :as utils]
     [enion-cljs.utils :as common.utils])
   (:require-macros
@@ -605,7 +606,8 @@
     (when-not dev?
       (j/assoc! (st/get-player-entity) :name (str (random-uuid))))
     (entity.base/unregister-base-trigger-events)
-    (entity.base/register-base-trigger-events)))
+    (entity.base/register-base-trigger-events)
+    (text/init-pool)))
 
 (defn- play-running-sound [dt model-entity]
   (when (and (= "run" (pc/get-anim-state model-entity))

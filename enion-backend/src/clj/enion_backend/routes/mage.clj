@@ -30,6 +30,10 @@
     (not (satisfies-level? skill player)) skill-failed
     (not (cooldown-finished? skill player)) skill-failed
     (and other-player-world-state
+         (below-level-10? player)) pvp-locked
+    (and other-player-world-state
+         (enemy-below-level-10? selected-player-id)) enemy-low-level
+    (and other-player-world-state
          (not (close-for-attack-single? player-world-state other-player-world-state))) too-far
     (and npc-world-state
          (not (close-for-npc-attack-single? player-world-state npc-world-state))) too-far))
@@ -62,6 +66,7 @@
                                       :when (and enemy-world-state
                                                  (enemy? id enemy-id)
                                                  (alive? enemy-world-state)
+                                                 (not (enemy-below-level-10? enemy-id))
                                                  (inside-circle? (:px enemy-world-state) (:pz enemy-world-state) x z nova-radius))]
                                   (let [_ (update-last-combat-time enemy-id)
                                         damage ((-> common.skills/skills (get skill) :damage-fn)

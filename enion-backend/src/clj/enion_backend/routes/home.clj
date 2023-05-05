@@ -299,13 +299,6 @@
       (when-let [players* (seq (concat orcs humans))]
         (map #(select-keys % [:id :race :class :bp :level]) players*)))))
 
-(defn find-player-ids-by-race [players race]
-  (->> players
-       (filter
-         (fn [[_ v]]
-           (= race (:race v))))
-       (map first)))
-
 (defn find-player-ids-by-party-id [players party-id]
   (->> players
        (filter
@@ -437,7 +430,7 @@
     (let [level (get-in current-players [id :level])
           token (get-in current-players [id :token])
           class (get-in current-players [id :class])
-          total-coin (+ (get-in current-players [id :coin]) coin)
+          total-coin (+ (get-in current-players [id :coin] 0) coin)
           new-level (inc level)
           attack-power (get common.skills/level->attack-power-table new-level)
           new-required-exp (get common.skills/level->exp-table new-level)
@@ -447,7 +440,6 @@
         {:error :quest-already-completed}
         (do
           (redis/complete-quest token class quest)
-          (redis/add-coin token class coin)
           (if (< level 10)
             (do
               (swap! players (fn [players]
@@ -458,6 +450,9 @@
                                    (assoc-in [id :mana] mana)
                                    (assoc-in [id :required-exp] new-required-exp)
                                    (assoc-in [id :coin] total-coin))))
+              (redis/level-up token class {:level new-level
+                                           :exp 0
+                                           :coin total-coin})
               {:quest quest
                :level new-level
                :exp 0
@@ -517,7 +512,7 @@
                     exp 0
                     bp 0
                     coin 0
-                    ;; level (or (some-> data (get class) :level) level)
+                    level (or (some-> data (get class) :level) level)
                     {:keys [health mana]} (get-in common.skills/level->health-mana-table [level class])
                     quests (or (some-> data (get class) :quests) #{})
                     new-player? (str/blank? token)
@@ -578,6 +573,8 @@
 
 (def ping-high {:error :ping-high})
 (def skill-failed {:error :skill-failed})
+(def pvp-locked {:error :pvp-locked})
+(def enemy-low-level {:error :enemy-low-level})
 (def too-far {:error :too-far})
 (def not-enough-mana {:error :not-enough-mana})
 (def party-request-failed {:error :party-request-failed})
@@ -802,6 +799,13 @@
            :npc? true
            :selected-player-id selected-player-id})))))
 
+(defn below-level-10? [player]
+  (< (:level player) 10))
+
+(defn enemy-below-level-10? [enemy-id]
+  (let [enemy (get @players enemy-id)]
+    (and enemy (below-level-10? enemy))))
+
 (defn- validate-attack-r [{:keys [id
                                   ping
                                   selected-player-id
@@ -820,6 +824,10 @@
     (and (nil? npc-world-state)
          (not (enemy? id selected-player-id))) skill-failed
     (not (enough-mana? skill player-world-state)) not-enough-mana
+    (and other-player-world-state
+         (below-level-10? player)) pvp-locked
+    (and other-player-world-state
+         (enemy-below-level-10? selected-player-id)) enemy-low-level
     (not (satisfies-level? skill player)) skill-failed
     (not (cooldown-finished? skill player)) skill-failed
     (and other-player-world-state

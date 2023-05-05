@@ -64,7 +64,7 @@
                         :change-pos-interval 15000
                         :change-pos-speed 0.02
                         :chase-range-threshold 15
-                        :chase-speed 0.1
+                        :chase-speed 0.12
                         :cooldown 2000
                         :damage-buffer-size 100
                         :damage-fn #(utils/rand-between 160 220)
@@ -83,7 +83,7 @@
                         :change-pos-interval 15000
                         :change-pos-speed 0.02
                         :chase-range-threshold 20
-                        :chase-speed 0.1
+                        :chase-speed 0.11
                         :cooldown 1500
                         :damage-buffer-size 150
                         :damage-fn #(utils/rand-between 240 350)
@@ -121,7 +121,7 @@
                          :change-pos-interval 15000
                          :change-pos-speed 0.02
                          :chase-range-threshold 20
-                         :chase-speed 0.08
+                         :chase-speed 0.09
                          :cooldown 2000
                          :damage-buffer-size 150
                          :damage-fn #(utils/rand-between 300 450)

@@ -26,6 +26,10 @@
     (not (satisfies-level? skill player)) skill-failed
     (not (cooldown-finished? skill player)) skill-failed
     (and other-player-world-state
+         (below-level-10? player)) pvp-locked
+    (and other-player-world-state
+         (enemy-below-level-10? selected-player-id)) enemy-low-level
+    (and other-player-world-state
          (not (close-for-attack? player-world-state other-player-world-state))) too-far
     (and npc-world-state
          (not (close-for-attack-to-npc? player-world-state npc-world-state))) too-far))

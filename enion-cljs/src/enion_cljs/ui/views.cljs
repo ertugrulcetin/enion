@@ -346,70 +346,6 @@
            [chat-message-box input-active?]
            [chat-input input-active?]]]))}))
 
-(defn- info-message->class [message]
-  (cond
-    (:damage message) "damage"
-    (:defense-break message) "damage"
-    (:cauldron message) "damage"
-    (:npc message) "damage"
-    (:hit message) "hit"
-    (:bp message) "bp"
-    (:drop message) "bp"
-    (:skill message) "skill"
-    (:heal message) "hp-recover"
-    (:hp message) "hp-recover"
-    (:cure message) "hp-recover"
-    (:mp message) "mp-recover"
-    (:skill-failed message) "skill-failed"
-    (:ping-high message) "skill-failed"
-    (:too-far message) "skill-failed"
-    (:not-enough-mana message) "skill-failed"
-    (:party-request-failed message) "skill-failed"
-    (:no-selected-player message) "skill-failed"
-    (:re-spawn-error message) "skill-failed"
-    (:npc-exp message) "npc-exp"
-    (:lost-exp message) "npc-exp"
-    :else "skill"))
-
-(let [hp-message (-> "hpPotion" common.skills/skills :hp (str " HP recovered"))
-      mp-message (-> "mpPotion" common.skills/skills :mp (str " MP recovered"))
-      heal-message (-> "heal" common.skills/skills :hp (str " HP recovered"))]
-  (defn- info-message->text [message]
-    (cond
-      (:ping-high message) "Ping too high! Can't process your request"
-      (:damage message) (str "Took " (:damage message) " damage from " (:from message))
-      (:hit message) (str (:to message) " received " (:hit message) " damage")
-      (:skill message) (str "Using " (:skill message))
-      (:skill-failed message) "Skill failed"
-      (:too-far message) "Too far"
-      (:heal message) heal-message
-      (:hp message) hp-message
-      (:mp message) mp-message
-      (:cure message) "Toxic effect removed"
-      (:defense-break message) "Infected with Toxic Spores"
-      (:not-enough-mana message) "Not enough mana!"
-      (:party-request-failed message) "Processing party request failed"
-      (:no-selected-player message) "No player selected"
-      (:party-requested-user message) (str "You invited " (:party-requested-user message) " to join your party")
-      (:party-request-rejected message) (str (:party-request-rejected message) " rejected your party request")
-      (:joined-party message) (str (:joined-party message) " joined the party")
-      (:removed-from-party message) "You've been removed from the party"
-      (:member-removed-from-party message) (str (:member-removed-from-party message) " has been removed from the party")
-      (:party-cancelled message) "The party has been cancelled"
-      (:member-exit-from-party message) (str (:member-exit-from-party message) " exit from the party")
-      (:bp message) (str "Earned " (:bp message) " Battle Points (BP)")
-      (:re-spawn-error message) (:re-spawn-error message)
-      (:cauldron message) (str "Restricted area: You took " (:cauldron message) " damage!")
-      (:npc message) (str "Took " (-> message :npc :damage) " damage from " (-> message :npc :name))
-      (:drop message) (str
-                        (if (-> message :drop :earned?)
-                          "Earned "
-                          "Got ")
-                        (-> message :drop :amount) " " (-> message :drop :name))
-      (:break-defense message) (str (:break-defense message) " infected with Toxic Spores")
-      (:npc-exp message) (str "Earned " (:npc-exp message) " Experience Points")
-      (:lost-exp message) (str "You lost " (:lost-exp message) " Experience Points!"))))
-
 (defn inventory-squares []
   (for [i (range 24)]
     ^{:key i}
@@ -804,9 +740,12 @@
 (defn- quest-progress []
   (let [{:keys [npc completed-kills required-kills] :as quest} @(subscribe [::subs/quest])]
     (when quest
-      [:div (styles/quest-progress)
-       [:span "Kill " [:b required-kills] " " npc]
-       [:span [:b (str completed-kills "/" required-kills)] " Killed"]])))
+      (let [completed-kills (if (> completed-kills required-kills)
+                              required-kills
+                              completed-kills)]
+        [:div (styles/quest-progress)
+         [:span "Kill " [:b required-kills] " " npc]
+         [:span [:b (str completed-kills "/" required-kills)] " Killed"]]))))
 
 (defn- change-server-modal []
   (r/create-class
@@ -814,8 +753,7 @@
      :reagent-render
      (fn []
        [:div (styles/change-server-modal)
-        [:p "Do you want to return to the main menu?"]
-        [:p "You can choose a " [:b "different class  or server"] " from the main menu"]
+        [:p "Do you want to change " [:b "Character"] " or " [:b "Server"] "?"]
         [:div (styles/party-request-buttons-container)
          [:button
           {:class (styles/party-request-accept-button)
@@ -825,6 +763,82 @@
           {:class (styles/party-request-reject-button)
            :on-click #(dispatch [::events/close-change-server-modal])}
           "No"]]])}))
+
+(defn- settings-table [camera-rotation-speed edge-scroll-speed graphics-quality]
+  [:table (styles/settings-table)
+   [:thead
+    [:tr
+     [:td.center "Camera Rotation Speed"]
+     [:td.no-padding
+      [:div
+       [:input
+        {:type "range"
+         :min "1"
+         :max "30"
+         :step "0.5"
+         :value camera-rotation-speed
+         :on-change #(dispatch-sync [::events/update-settings :camera-rotation-speed (-> % .-target .-value)])}]
+       [:span (str camera-rotation-speed "/30")]]]]
+    [:tr
+     [:td.center "Edge Scrolling Speed"]
+     [:td.no-padding
+      [:div
+       [:input {:type "range"
+                :min "1"
+                :max "200"
+                :value edge-scroll-speed
+                :on-change #(dispatch-sync [::events/update-settings :edge-scroll-speed (-> % .-target .-value)])}]
+       [:span (str edge-scroll-speed "/200")]]]]
+
+    [:tr
+     [:td.center "Graphics Quality"]
+     [:td.no-padding
+      [:<>
+       [:div
+        [:input {:type "range"
+                 :min "50"
+                 :max "100"
+                 :value graphics-quality
+                 :on-change #(dispatch-sync [::events/update-settings :graphics-quality (-> % .-target .-value (/ 100))])}]
+        [:span
+         (str graphics-quality "/100")]]
+       (when (> graphics-quality 75)
+         [:span.small
+          "(If you make it higher, you might encounter performance issues)"])]]]]])
+
+(defn- controls-table []
+  [:table (styles/settings-table)
+   [:thead
+    [:tr
+     [:td.center "Forward"]
+     [:td [:span.action-key.settings "W"]]]
+    [:tr
+     [:td.center "Backward"]
+     [:td [:span.action-key.settings "S"]]]
+    [:tr
+     [:td.center "Left"]
+     [:td [:span.action-key.settings "A"]]]
+    [:tr
+     [:td.center "Right"]
+     [:td [:span.action-key.settings "D"]]]
+    [:tr
+     [:td.center "Select enemy"]
+     [:td [:span.action-key.settings "Tab"]]]
+    [:tr
+     [:td.center "Run to selected enemy"]
+     [:td [:span.action-key.settings "R"]]]
+    [:tr
+     [:td.center "Talk to NPC"]
+     [:td [:span.action-key.settings "F"]]]
+    [:tr
+     [:td.center "Jump"]
+     [:td [:span.action-key.settings "Space"]]]
+    [:tr
+     [:td.center "Chat"]
+     [:td [:span.action-key.settings "Enter"]]]
+    [:tr
+     [:td.center "Double mouse right click"]
+     [:td.no-padding [:span "Uses HP Potion"]]]]])
 
 (defn- settings-modal []
   (r/create-class
@@ -846,7 +860,8 @@
            {:style {:display :flex
                     :flex-direction :row
                     :justify-content :center
-                    :gap "30px"}}
+                    :gap "30px"
+                    :margin-top "10px"}}
            [:div
             {:style {:display :flex
                      :flex-direction :column
@@ -893,63 +908,10 @@
                       :checked minimap?
                       :on-change #(dispatch-sync [::events/update-settings :minimap? (not minimap?)])}]
              [:span.slider.round]]]]
-
-          [:hr (styles/init-modal-hr)]
-
-          [:div
-           {:style {:display :flex
-                    :flex-direction :column
-                    :margin-top "25px"}}
-           [:strong "Camera Rotation Speed"]
-           [:span {:style {:font-size "15px"}}
-            "(Allows to rotate the camera by right-clicking and dragging the mouse)"]
-           [:input
-            {:style {:outline :none}
-             :type "range"
-             :min "1"
-             :max "30"
-             :step "0.5"
-             :value camera-rotation-speed
-             :on-change #(dispatch-sync [::events/update-settings :camera-rotation-speed (-> % .-target .-value)])}]
-           [:span {:style {:font-size "25px"}} (str camera-rotation-speed "/30")]]
-
-          [:hr (styles/init-modal-hr)]
-
-          [:div
-           {:style {:display :flex
-                    :flex-direction :column
-                    :margin-top "25px"}}
-           [:strong "Edge Scrolling Speed"]
-           [:span {:style {:font-size "15px"}}
-            "(Allows to move the camera by moving the mouse to the edges of the screen - You can press Key Q or E)"]
-           [:input {:style {:outline :none}
-                    :type "range"
-                    :min "1"
-                    :max "200"
-                    :value edge-scroll-speed
-                    :on-change #(dispatch-sync [::events/update-settings :edge-scroll-speed (-> % .-target .-value)])}]
-           [:span {:style {:font-size "25px"}} (str edge-scroll-speed "/200")]]
-
-          [:hr (styles/init-modal-hr)]
-
-          [:div
-           {:style {:display :flex
-                    :flex-direction :column
-                    :margin-top "25px"}}
-           [:strong "Graphics Quality"]
-           (when (> graphics-quality 75)
-             [:span {:style {:font-size "15px"}}
-              "(If you make it higher, you might encounter performance issues)"])
-           [:input {:style {:outline :none}
-                    :type "range"
-                    :min "50"
-                    :max "100"
-                    :value graphics-quality
-                    :on-change #(dispatch-sync [::events/update-settings :graphics-quality (-> % .-target .-value (/ 100))])}]
-           [:span {:style {:font-size "25px"}} (str graphics-quality "/100")]]
-
-          [:hr (styles/init-modal-hr)]
-
+          [:br]
+          [settings-table camera-rotation-speed edge-scroll-speed graphics-quality]
+          [:br]
+          [controls-table]
           [:button
            {:class (styles/settings-reset-tutorials-button)
             :on-click #(dispatch [::events/reset-tutorials])}
@@ -1109,8 +1071,18 @@
        "Finding available servers..."]
 
       :else
-      [:span {:class [(styles/click-to-join-indicator-text) "bounce"]}
-       "Click to Play"])))
+      [:div (styles/click-to-join-indicator-text-container)
+       [:span {:class [(styles/click-to-join-indicator-text) "bounce"]}
+        "Click to Play"]
+       [:span {:class [(styles/click-to-join-indicator-text) "or"]}
+        "or"]
+       [:button
+        {:class (styles/select-your-character-button)
+         :on-click (fn [e]
+                     (.preventDefault e)
+                     (.stopPropagation e)
+                     (reset! game-init? true))}
+        "Select your Character⚔️"]])))
 
 (defn- click-to-join-modal []
   (r/create-class

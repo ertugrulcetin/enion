@@ -54,11 +54,8 @@
                  (assoc-in [class :exp] exp)
                  (assoc-in [class :coin] coin))))
 
-(defn add-coin [token class coin]
-  (set token (update-in (get token) [class :coin] (fnil + 0) coin)))
-
 (defn level-up [token class attr]
-  (set token (merge (get token) {class attr})))
+  (set token (update (get token) class merge attr)))
 
 (defn complete-tutorial [token tutorial]
   (set token (update (get token) :tutorials (fnil conj #{}) tutorial)))
@@ -72,8 +69,10 @@
 (comment
   (set "abc" {:username {:name "abc" :password "123"}})
 
-  (get "mZJidk9bgI7Mw0VVLHoLv")
+  (get "RcGk_I_KPa2rOMdxdCMeF")
 
   (let [token "mZJidk9bgI7Mw0VVLHoLv"]
     (set token (assoc (get token) :quests #{})))
   )
+
+'{:last-played-class warrior, :last-played-race orc, warrior {:level 5, :exp 36, :coin 1565, :quests #{:squid}}}

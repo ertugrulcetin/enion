@@ -32,8 +32,14 @@
    [31.163869857788086 1.6 35.61369323730469]])
 
 (defn- trigger-start [portal]
-  (if (and (not dev?) (< (st/get-level) 7))
+  (cond
+    (not (st/finished-quests?))
+    (fire :ui-show-global-message "Finish all quests to use the portal!" 2000)
+
+    (and (not dev?) (< (st/get-level) 7))
     (fire :ui-show-global-message "You need to be level 7 to use the portal" 2500)
+
+    :else
     (do
       (dlog "trigger-start")
       (st/play-sound "portal_pass")

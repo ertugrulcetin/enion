@@ -392,11 +392,20 @@
           (j/assoc-in! npcs [id :entity :enabled] (not hidden?))))
       1500)))
 
-(comment
-  (disable-enable-npcs true)
-  (doseq [id (js/Object.keys npcs)]
-    (j/assoc-in! npcs [id :entity :enabled] false))
-  )
+(defn party-member? [player-id]
+  (some #(= % (js/parseInt player-id)) @party-member-ids))
+
+(defn level-up [{:keys [exp level health mana]}]
+  (set-health health)
+  (set-mana mana)
+  (j/assoc! player :exp exp
+            :level level))
+
+(defn get-level []
+  (j/get player :level))
+
+(defn finished-quests? []
+  (= #{:squid :ghoul :demon} (j/get player :quests)))
 
 (on :tab-hidden
     (fn [hidden?]
@@ -418,18 +427,6 @@
       (set! player (clj->js default-player-state))
       (pc/off-all-keyboard-events)
       (pc/off-all-mouse-events)))
-
-(defn party-member? [player-id]
-  (some #(= % (js/parseInt player-id)) @party-member-ids))
-
-(defn level-up [{:keys [exp level health mana]}]
-  (set-health health)
-  (set-mana mana)
-  (j/assoc! player :exp exp
-            :level level))
-
-(defn get-level []
-  (j/get player :level))
 
 (comment
   camera-entity

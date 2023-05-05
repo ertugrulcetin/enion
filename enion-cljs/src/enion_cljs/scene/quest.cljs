@@ -26,7 +26,7 @@
 
 (def complete-quest
   [{:title "Quest completed!"
-    :intro "Congratulations! <br/> You have successfully completed the quest✨ <br/><br/> Be ready for the next one!"}])
+    :intro "You have successfully completed the quest✨ <br/><br/> Be ready for the next one!"}])
 
 (def no-quests-available
   [{:title "No quests available"
