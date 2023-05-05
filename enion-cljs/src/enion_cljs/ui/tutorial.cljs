@@ -28,6 +28,14 @@
     [{:intro (str "Use <b>" skill-name "</b> to attack.<br/>")
       :element (j/call js/document :getElementById (str "skill-" skill))}]))
 
+(defn how-to-change-skill-order []
+  (intro/start-intro
+    [{:title "How to change skill order?"
+      :intro (str "<b>Right-click</b> on a skill and drag it to a new spot to move it.")
+      :element (j/call js/document :getElementById "skill-bar")}]
+    nil
+    true))
+
 (defn show-unlocked-skill [skill name]
   (intro/start-intro
     [{:title "Skill Unlocked ✨"
@@ -80,3 +88,5 @@
 
 (on :show-unlocked-skill-fleet-foot show-unlocked-skill-fleet-foot)
 (on :show-unlocked-skill show-unlocked-skill)
+
+(on :how-to-change-skill-order how-to-change-skill-order)

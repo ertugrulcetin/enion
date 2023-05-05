@@ -624,15 +624,16 @@
   (st/level-up opts)
   (fire :ui-level-up opts)
   (st/play-sound "levelUp")
-  (if (= level 3)
-    (fire :show-unlocked-skill-fleet-foot)
-    (show-unlocked-skill level))
-  (when (= level 10)
-    (js/setTimeout #(let [race (st/get-race)
-                          against (if (= "orc" race)
-                                    "Kill some Humans!"
-                                    "Kill some Orcs!")]
-                      (fire :ui-show-global-message (str "PvP Unlocked! ⚔️ " against) 15000)) 2000)))
+  (show-unlocked-skill level)
+  (case level
+    3 (fire :show-unlocked-skill-fleet-foot)
+    9 (fire :how-to-change-skill-order)
+    10 (js/setTimeout #(let [race (st/get-race)
+                             against (if (= "orc" race)
+                                       "Kill some Humans!"
+                                       "Kill some Orcs!")]
+                         (fire :ui-show-global-message (str "PvP Unlocked! ⚔️ " against) 15000)) 2000)
+    (show-unlocked-skill level)))
 
 (defn- process-exp [params]
   (let [{:keys [exp npc-exp level-up?] :as opts} (:drop params)]
