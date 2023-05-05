@@ -54,11 +54,17 @@
                  (assoc-in [class :exp] exp)
                  (assoc-in [class :coin] coin))))
 
+(defn add-coin [token class coin]
+  (set token (update-in (get token) [class :coin] (fnil + 0) coin)))
+
 (defn level-up [token class attr]
   (set token (merge (get token) {class attr})))
 
 (defn complete-tutorial [token tutorial]
   (set token (update (get token) :tutorials (fnil conj #{}) tutorial)))
+
+(defn complete-quest [token class quest]
+  (set token (update-in (get token) [class :quests] (fnil conj #{}) quest)))
 
 (defn reset-tutorial [token]
   (set token (update (get token) :tutorials #{})))
@@ -69,5 +75,5 @@
   (get "mZJidk9bgI7Mw0VVLHoLv")
 
   (let [token "mZJidk9bgI7Mw0VVLHoLv"]
-    (set token (assoc (get token) :tutorials #{})))
+    (set token (assoc (get token) :quests #{})))
   )

@@ -4,7 +4,6 @@
     [common.enion.skills :as common.skills]
     [enion-cljs.common :as common :refer [dlog fire]]
     [enion-cljs.scene.entities.camera :as entity.camera]
-    [enion-cljs.scene.entities.npc :as npc]
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.network :as net :refer [dispatch-pro]]
     [enion-cljs.scene.pc :as pc]
@@ -42,14 +41,17 @@
                                                  (st/play-sound "jump")
                                                  (pc/apply-impulse player-entity 0 200 0))}])
 
-(def fleet-food-required-mana (-> common.skills/skills (get "fleetFoot") :required-mana))
-(def attack-r-required-mana (-> common.skills/skills (get "attackR") :required-mana))
+(defn get-required-mana [skill]
+  (-> common.skills/skills (get skill) :required-mana))
+
+(def fleet-food-required-mana (get-required-mana "fleetFoot"))
+(def attack-r-required-mana (get-required-mana "attackR"))
 
 (defmulti skill-response #(-> % :skill :skill))
 
 (defmethod net/dispatch-pro-response :skill [params]
   (if-let [error (-> params :skill :error)]
-    (fire :ui-send-msg (hash-map error true))
+    (fire :show-text (hash-map error true))
     (skill-response params)))
 
 (defn can-skill-be-cancelled? [anim-state active-state state]
@@ -75,11 +77,11 @@
        (not (j/get st/settings :tutorial?))
        (not (j/get player :slow-down?))))
 
-(let [too-far-msg {:too-far true}]
+(let [too-far {:too-far true}]
   (defn close-for-attack? [selected-player-id]
     (let [result (<= (st/distance-to selected-player-id) common.skills/close-attack-distance-threshold)]
       (when-not result
-        (fire :ui-send-msg too-far-msg))
+        (fire :show-text too-far))
       result)))
 
 (defn close-for-r-attack? [selected-player-id]
@@ -169,18 +171,18 @@
     (utils/set-item "potions" (pr-str {:hp-potions (j/get st/player :hp-potions)
                                        :mp-potions mp-potions}))))
 
-(let [hp-recover {:hp true}]
+(let [hp-recover {:hp (-> common.skills/skills (get "hpPotion") :hp)}]
   (defmethod skill-response "hpPotion" [_]
     (fire :ui-cooldown "hpPotion")
-    (fire :ui-send-msg hp-recover)
+    (fire :show-text hp-recover)
     (skills.effects/apply-effect-hp-potion player)
     (st/play-sound "potion")
     (use-hp-potion)))
 
-(let [mp-recover {:mp true}]
+(let [mp-recover {:mp (-> common.skills/skills (get "mpPotion") :mp)}]
   (defmethod skill-response "mpPotion" [_]
     (fire :ui-cooldown "mpPotion")
-    (fire :ui-send-msg mp-recover)
+    (fire :show-text mp-recover)
     (skills.effects/apply-effect-mp-potion player)
     (st/play-sound "potion")
     (use-mp-potion)))
@@ -195,29 +197,22 @@
 
 (defmethod skill-response "attackR" [params]
   (fire :ui-cooldown "attackR")
-  (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)
-        npc? (-> params :skill :npc?)
-        enemy (if npc?
-                (st/get-npc selected-player-id)
-                (st/get-other-player selected-player-id))]
-    (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})
+  (let [damage (-> params :skill :damage)]
+    (fire :show-text {:hit damage})
     (st/play-sound "attackR")))
 
 (defmethod skill-response "baseDamage" [params]
   (let [damage (-> params :skill :damage)]
     (skills.effects/apply-effect-attack-cauldron player)
-    (fire :ui-send-msg {:cauldron damage})
+    (fire :show-text {:damage damage})
     (st/play-sound "attackR")))
 
 (defmethod skill-response "npcDamage" [params]
-  (let [{:keys [damage npc-id exp lost-exp]} (:skill params)]
+  (let [{:keys [damage exp lost-exp]} (:skill params)]
     (skills.effects/apply-effect-attack-cauldron player)
-    (fire :ui-send-msg {:npc {:name (npc/get-npc-name npc-id)
-                              :damage damage}})
+    (fire :show-text {:damage damage})
     (when lost-exp
-      (fire :ui-send-msg {:lost-exp lost-exp})
+      (fire :show-text {:lost-exp lost-exp})
       (fire :ui-set-exp exp))
     (st/play-sound "attackR")))
 
@@ -286,16 +281,13 @@
 
 (defmethod net/dispatch-pro-response :got-attack-one-hand-damage [params]
   (let [params (:got-attack-one-hand-damage params)
-        damage (:damage params)
-        player-id (:player-id params)]
+        damage (:damage params)]
     (skills.effects/apply-effect-attack-one-hand st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
+    (fire :show-text {:damage damage})))
 
 (defmethod net/dispatch-pro-response :got-attack-slow-down-damage [params]
   (let [params (:got-attack-slow-down-damage params)
         damage (:damage params)
-        player-id (:player-id params)
         slow-down? (:slow-down? params)]
     (when slow-down?
       (j/assoc! st/player
@@ -305,24 +297,19 @@
       (fire :ui-slow-down? true)
       (fire :ui-cancel-skill "fleetFoot"))
     (skills.effects/apply-effect-attack-slow-down st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
+    (fire :show-text {:damage damage})))
 
 (defmethod net/dispatch-pro-response :got-attack-dagger-damage [params]
   (let [params (:got-attack-dagger-damage params)
-        damage (:damage params)
-        player-id (:player-id params)]
+        damage (:damage params)]
     (skills.effects/apply-effect-attack-dagger st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
+    (fire :show-text {:damage damage})))
 
 (defmethod net/dispatch-pro-response :got-attack-stab-damage [params]
   (let [params (:got-attack-stab-damage params)
-        damage (:damage params)
-        player-id (:player-id params)]
+        damage (:damage params)]
     (skills.effects/apply-effect-attack-stab st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
+    (fire :show-text {:damage damage})))
 
 (defmethod net/dispatch-pro-response :cured-attack-slow-down-damage [_]
   (pc/update-anim-speed (st/get-model-entity) "run" 1)
@@ -336,11 +323,9 @@
 
 (defmethod net/dispatch-pro-response :got-attack-r-damage [params]
   (let [params (:got-attack-r-damage params)
-        damage (:damage params)
-        player-id (:player-id params)]
+        damage (:damage params)]
     (skills.effects/apply-effect-attack-r st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
+    (fire :show-text {:damage damage})))
 
 (defmethod net/dispatch-pro-response :fleet-foot-finished [_]
   (dlog "fleetFood finished")
@@ -356,30 +341,28 @@
 (defmethod net/dispatch-pro-response :shield-wall-finished [_]
   (dlog "shield wall finished"))
 
-(let [heal-msg {:heal true}]
+(let [heal-msg {:hp (-> common.skills/skills (get "heal") :hp)}]
   (defmethod net/dispatch-pro-response :got-heal [_]
     (skills.effects/add-to-healed-ids)
-    (fire :ui-send-msg heal-msg)))
+    (fire :show-text heal-msg)))
 
 (let [cure-msg {:cure true}]
   (defmethod net/dispatch-pro-response :got-cure [_]
     (skills.effects/apply-effect-got-cure st/player)
-    (fire :ui-send-msg cure-msg)
+    (fire :show-text cure-msg)
     (fire :ui-cured)))
 
 (let [defense-break-msg {:defense-break true}]
   (defmethod net/dispatch-pro-response :got-defense-break [_]
     (skills.effects/apply-effect-got-defense-break st/player)
-    (fire :ui-send-msg defense-break-msg)
+    (fire :show-text defense-break-msg)
     (fire :ui-got-defense-break)))
 
 (defmethod net/dispatch-pro-response :got-attack-priest-damage [params]
   (let [params (:got-attack-priest-damage params)
-        damage (:damage params)
-        player-id (:player-id params)]
+        damage (:damage params)]
     (skills.effects/apply-effect-attack-priest st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
+    (fire :show-text {:damage damage})))
 
 ;; write for :cured-defense-break-damage
 (defmethod net/dispatch-pro-response :cured-defense-break [_]
@@ -388,19 +371,15 @@
 ;; write a function like got-attack-one-hand-damage but for :got-attack-range
 (defmethod net/dispatch-pro-response :got-attack-range [params]
   (let [params (:got-attack-range params)
-        damage (:damage params)
-        player-id (:player-id params)]
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})
+        damage (:damage params)]
+    (fire :show-text {:damage damage})
     (entity.camera/shake-camera)))
 
 ;; write function for :got-attack-single
 (defmethod net/dispatch-pro-response :got-attack-single [params]
   (let [params (:got-attack-single params)
-        damage (:damage params)
-        player-id (:player-id params)]
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})
+        damage (:damage params)]
+    (fire :show-text {:damage damage})
     (skills.effects/apply-effect-attack-flame st/player)))
 
 (defmethod net/dispatch-pro-response :teleported [params]
@@ -415,7 +394,6 @@
 (defmethod net/dispatch-pro-response :got-attack-ice [params]
   (let [params (:got-attack-ice params)
         damage (:damage params)
-        player-id (:player-id params)
         ice-slow-down? (:ice-slow-down? params)]
     (when ice-slow-down?
       (j/assoc! st/player
@@ -425,8 +403,7 @@
       (fire :ui-slow-down? true)
       (fire :ui-cancel-skill "fleetFoot"))
     (skills.effects/apply-effect-ice-spell st/player)
-    (fire :ui-send-msg {:from (j/get (st/get-other-player player-id) :username)
-                        :damage damage})))
+    (fire :show-text {:damage damage})))
 
 (defmethod net/dispatch-pro-response :cured-attack-ice-damage [_]
   (pc/update-anim-speed (st/get-model-entity) "run" 1)

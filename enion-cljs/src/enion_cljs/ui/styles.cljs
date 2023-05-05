@@ -1048,6 +1048,7 @@
      :border-top "solid 1px #fff"
      :text-shadow "0px 1px 0px #fff"
      :font-size "18px"
+     :font-weight :bold
      :line-height "18px"
      :font-family "Arial, Helvetica, sans-serif"
      :animation (str "0.5s ease-in-out infinite alternate " (scale-bounce))}
@@ -1062,4 +1063,23 @@
 
 (defattrs change-server-modal []
   {:composes [(party-request-modal)]}
+  [:b {:color "#ffc107"}])
+
+(defattrs quest-progress []
+  {:position :absolute
+   :top "40%"
+   :transform "translateY(-40%)"
+   :left "15px"
+   :display :flex
+   :flex-direction :column
+   :justify-content :center
+   :z-index 2
+   :background "#10131dcc"
+   :border-radius "5px"
+   :padding "10px"
+   :text-align :center
+   :animation (str "0.7s ease-in-out infinite alternate " (scale-bounce))}
+  [:span
+   {:font-size "20px"
+    :color :white}]
   [:b {:color "#ffc107"}])

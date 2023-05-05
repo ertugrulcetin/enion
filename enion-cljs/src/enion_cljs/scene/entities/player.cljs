@@ -211,6 +211,11 @@
   (when (= "KeyC" (j/get-in e [:event :code]))
     (fire :ui-toggle-char-panel)))
 
+(defn- process-npc-talk [e]
+  (when (and (j/get st/player :in-npc-zone?)
+             (= "KeyF" (j/get-in e [:event :code])))
+    (fire :talk-to-quest-npc)))
+
 (defn- register-keyboard-events []
   (let [class (j/get player :class)
         [process-skills events] (case class
@@ -224,6 +229,7 @@
                       (when (st/chat-closed?)
                         (process-esc e)
                         (process-char-panel e)
+                        (process-npc-talk e)
                         (when (and (not (j/get-in e [:event :metaKey]))
                                    (not (j/get-in e [:event :ctrlKey]))
                                    (not (j/get-in e [:event :altKey])))
@@ -268,9 +274,10 @@
     (let [result (st/get-closest-terrain-hit e)
           hit-entity-name (j/get-in result [:entity :name])]
       (when (= "terrain" hit-entity-name)
-        (when dev?
+        #_(when dev?
           (println
             (common.utils/parse-float (j/get-in result [:point :x]) 2)
+            (common.utils/parse-float (j/get-in result [:point :y]) 2)
             (common.utils/parse-float (j/get-in result [:point :z]) 2)))
         (let [x (j/get-in result [:point :x])
               y (j/get-in result [:point :y])
@@ -399,6 +406,7 @@
                             hp-potions
                             mp-potions
                             tutorials
+                            quests
                             level
                             exp
                             required-exp]} player-entity]
@@ -418,6 +426,7 @@
               :exp exp
               :required-exp required-exp
               :tutorials tutorials
+              :quests quests
               :heal-counter 0)
     (when pos
       (j/call-in player-entity [:rigidbody :teleport] x y z))
@@ -716,3 +725,31 @@
       (if open?
         (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :show])
         (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :hide]))))
+
+(on :in-npc-zone
+    (fn [in-npc-zone?]
+      (j/assoc! player :in-npc-zone? in-npc-zone?)))
+
+(on :player-in-quest
+    (fn [[quest required-kills]]
+      (let [race (st/get-race)
+            npc (pc/find-by-name (if (= "orc" race) "orc_npc" "human_npc"))
+            quest-indicator (pc/find-by-name npc "quest_indicator")]
+        (st/play-sound "portal_pass")
+        (js/setTimeout
+          #(do
+             (if (= "orc" race)
+               (st/move-player (case quest
+                                 :ghoul [37.8 1.2 -19.87]
+                                 :demon [44.84 1.2 -19.84]
+                                 [33.66 0.7 -27.7]))
+               (st/move-player (case quest
+                                 :ghoul [-23.08 1 29.39]
+                                 :demon [-19.67 1 37.87]
+                                 [-31.79 0.7 29.93]))))
+          500)
+        (pc/disable quest-indicator)
+        (j/assoc! player
+                  :current-quest quest
+                  :required-kills required-kills)
+        (fire :ui-update-quest-progress [(-> common.enion.npc/npcs quest :name) 0 required-kills]))))

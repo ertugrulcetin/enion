@@ -2,12 +2,13 @@
   (:require
     [enion-cljs.scene.entities.app :as entity.root]
     [enion-cljs.scene.entities.camera :as entity.camera]
-    [enion-cljs.scene.entities.player :as entity.player]
-    [enion-cljs.scene.skills.effects :as entity.effects]))
+    [enion-cljs.scene.entities.player]
+    [enion-cljs.scene.quest]
+    [enion-cljs.scene.skills.effects :as entity.effects]
+    [enion-cljs.scene.text]))
 
 (defn init [init-ui]
   (entity.root/init init-ui)
-  ;; (entity.player/init player-data)
   (entity.camera/init)
   (entity.effects/init))
 

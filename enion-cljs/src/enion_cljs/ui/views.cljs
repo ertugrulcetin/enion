@@ -256,6 +256,7 @@
   (let [killer (:killer msg)
         killer-race (:killer-race msg)
         killed (:killed msg)]
+    ;; TODO fix here
     @(subscribe [::subs/current-time])
     [:div
      {:style {:visibility (cond
@@ -630,7 +631,7 @@
                          [:div (styles/re-spawn-modal)
                           (if (> @countdown-seconds 0)
                             [:p (str "You need to wait " (int @countdown-seconds) " seconds to re-spawn")]
-                            [:p "Press OK to return to the respawn point at the base"])
+                            [:p "Press OK to return to the respawn point"])
                           (when-not (> @countdown-seconds 0)
                             [:div (styles/re-spawn-button-container)
                              [:button
@@ -799,6 +800,13 @@
     [:button
      {:class (styles/online-counter ping? fps?)}
      (str "Online: " (or online "-") " (" server ")")]))
+
+(defn- quest-progress []
+  (let [{:keys [npc completed-kills required-kills] :as quest} @(subscribe [::subs/quest])]
+    (when quest
+      [:div (styles/quest-progress)
+       [:span "Kill " [:b required-kills] " " npc]
+       [:span [:b (str completed-kills "/" required-kills)] " Killed"]])))
 
 (defn- change-server-modal []
   (r/create-class
@@ -1262,6 +1270,7 @@
    (when @(subscribe [::subs/ping?])
      [ping-counter])
    [online-counter]
+   [quest-progress]
    [chat]])
 
 (defn main-panel []
@@ -1273,7 +1282,6 @@
        (on :ui-init-game #(dispatch [::events/init-game %]))
        (on :ui-set-as-party-leader #(dispatch [::events/set-as-party-leader %]))
        (on :init-skills #(dispatch [::events/init-skills %]))
-       (on :ui-send-msg #(dispatch [::events/add-message-to-info-box %]))
        (on :ui-selected-player #(dispatch [::events/set-selected-player %]))
        (on :ui-player-health #(dispatch [::events/set-health %]))
        (on :ui-player-mana #(dispatch [::events/set-mana %]))
@@ -1315,8 +1323,12 @@
        (on :ui-set-bp #(dispatch [::events/set-bp %]))
        (on :ui-toggle-char-panel #(dispatch [::events/toggle-char-panel]))
        (on :ui-show-global-message #(dispatch [::events/show-global-message %1 %2]))
+       (on :ui-remove-global-message #(dispatch [::events/remove-global-message]))
        (on :ui-show-something-went-wrong? #(dispatch [::events/show-something-went-wrong? %]))
-       (on :ui-set-total-coin #(dispatch [::events/set-total-coin %])))
+       (on :ui-set-total-coin #(dispatch [::events/set-total-coin %]))
+       (on :ui-talk-to-npc #(dispatch [::events/talk-to-npc %]))
+       (on :ui-update-quest-progress #(dispatch [::events/update-quest-progress %]))
+       (on :ui-complete-quest #(dispatch [::events/complete-quest %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)

@@ -29,10 +29,10 @@
      {:anim-state "teleport" :event "onTeleportCall" :call? true}
      {:anim-state "teleport" :event "onTeleportEnd" :skill? true :end? true}]))
 
-(def attack-range-required-mana (-> common.skills/skills (get "attackRange") :required-mana))
-(def attack-single-required-mana (-> common.skills/skills (get "attackSingle") :required-mana))
-(def attack-ice-required-mana (-> common.skills/skills (get "attackIce") :required-mana))
-(def teleport-required-mana (-> common.skills/skills (get "teleport") :required-mana))
+(def attack-range-required-mana (skills/get-required-mana "attackRange"))
+(def attack-single-required-mana (skills/get-required-mana "attackSingle"))
+(def attack-ice-required-mana (skills/get-required-mana "attackIce"))
+(def teleport-required-mana (skills/get-required-mana "teleport"))
 
 (let [too-far-msg {:too-far true}]
   (defn throw-nova [e]
@@ -44,7 +44,7 @@
           (do
             (if (> (pc/distance nova-pos (pc/get-pos (st/get-player-entity)))
                    common.skills/attack-range-distance-threshold)
-              (fire :ui-send-msg too-far-msg)
+              (fire :show-text too-far-msg)
               (let [model-entity (st/get-model-entity)
                     char-pos (pc/get-pos model-entity)]
                 (pc/set-anim-boolean (st/get-model-entity) "attackRange" true)
@@ -113,42 +113,31 @@
       (pc/setv temp-pos x y z)
       ((j/get-in player [:skills :throw-nova]) temp-pos)
       (doseq [enemy damaged-enemies]
-        (fire :ui-send-msg {:to (j/get (if (:npc? enemy)
-                                         (st/get-npc (:id enemy))
-                                         (st/get-other-player (:id enemy))) :username)
-                            :hit (:damage enemy)}))
+        (fire :show-text {:hit (:damage enemy)}))
+      (fire :show-text {:mp-used attack-range-required-mana})
       (st/play-sound "attackRange"))))
 
 (defmethod skills/skill-response "attackSingle" [params]
   (fire :ui-cooldown "attackSingle")
-  (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)
-        npc? (-> params :skill :npc?)
-        enemy (if npc?
-                (st/get-npc selected-player-id)
-                (st/get-other-player selected-player-id))]
-    (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})))
+  (let [damage (-> params :skill :damage)]
+    (fire :show-text {:hit damage})
+    (fire :show-text {:mp-used attack-single-required-mana})))
 
 (defmethod skills/skill-response "attackIce" [params]
   (fire :ui-cooldown "attackIce")
-  (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)
-        npc? (-> params :skill :npc?)
-        enemy (if npc?
-                (st/get-npc selected-player-id)
-                (st/get-other-player selected-player-id))]
-    (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})))
+  (let [damage (-> params :skill :damage)]
+    (fire :show-text {:hit damage})
+    (fire :show-text {:mp-used attack-ice-required-mana})))
 
 (defmethod skills/skill-response "teleport" [_]
-  (fire :ui-cooldown "teleport"))
+  (fire :ui-cooldown "teleport")
+  (fire :show-text {:mp-used teleport-required-mana}))
 
 (let [too-far-msg {:too-far true}]
   (defn close-for-attack-single? [selected-player-id]
     (let [result (<= (st/distance-to selected-player-id) common.skills/attack-single-distance-threshold)]
       (when-not result
-        (fire :ui-send-msg too-far-msg))
+        (fire :show-text too-far-msg))
       result)))
 
 (defn- attack-single? [e active-state selected-player-id]

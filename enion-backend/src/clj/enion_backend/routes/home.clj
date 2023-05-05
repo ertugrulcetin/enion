@@ -432,6 +432,48 @@
     nil))
 
 (reg-pro
+  :finish-quest
+  (fn [{:keys [id current-players] {:keys [quest coin]} :data}]
+    (let [level (get-in current-players [id :level])
+          token (get-in current-players [id :token])
+          class (get-in current-players [id :class])
+          total-coin (+ (get-in current-players [id :coin]) coin)
+          new-level (inc level)
+          attack-power (get common.skills/level->attack-power-table new-level)
+          new-required-exp (get common.skills/level->exp-table new-level)
+          {:keys [health mana]} (get-in common.skills/level->health-mana-table [new-level class])
+          completed-quests (get-in current-players [id :quests])]
+      (if (completed-quests quest)
+        {:error :quest-already-completed}
+        (do
+          (redis/complete-quest token class quest)
+          (redis/add-coin token class coin)
+          (if (< level 10)
+            (do
+              (swap! players (fn [players]
+                               (-> players
+                                   (assoc-in [id :exp] 0)
+                                   (assoc-in [id :level] new-level)
+                                   (assoc-in [id :health] health)
+                                   (assoc-in [id :mana] mana)
+                                   (assoc-in [id :required-exp] new-required-exp)
+                                   (assoc-in [id :coin] total-coin))))
+              {:quest quest
+               :level new-level
+               :exp 0
+               :attack-power attack-power
+               :required-exp new-required-exp
+               :health health
+               :mana mana
+               :coin coin
+               :total-coin total-coin})
+            (do
+              (swap! players assoc-in [id :coin] total-coin)
+              {:coin coin
+               :total-coin total-coin
+               :quest quest})))))))
+
+(reg-pro
   :init
   (fn [{:keys [id current-players] {:keys [username race class]} :data}]
     (cond
@@ -472,12 +514,12 @@
                     username? (not (str/blank? username))
                     username (generate-username username race class current-players)
                     level 1
-                    ;; exp (or (some-> data (get class) :exp) 0)
                     exp 0
                     bp 0
                     coin 0
-                    level (or (some-> data (get class) :level) level)
+                    ;; level (or (some-> data (get class) :level) level)
                     {:keys [health mana]} (get-in common.skills/level->health-mana-table [level class])
+                    quests (or (some-> data (get class) :quests) #{})
                     new-player? (str/blank? token)
                     token (if new-player? (nano-id) token)
                     _ (when data
@@ -502,8 +544,7 @@
                            :exp (or (some-> data (get class) :exp) exp)
                            :bp (or (some-> data (get class) :bp) bp)
                            :tutorials (or (some-> data :tutorials) #{})
-                           :quests (or (some-> data :quests) #{})
-                           :current-quest (some-> data :current-quest)
+                           :quests quests
                            :token token
                            :new-player? new-player?}]
                 (swap! players update id merge attrs)
@@ -1012,7 +1053,7 @@
                     (get current-world player-id))]
     (and player (alive? player) (close-npc-distance? player npc valid-drop-range))))
 
-(defn- process-drop [drop exp current-players player-id party-size]
+(defn- process-drop [drop npc-type exp current-players player-id party-size]
   (let [player (get current-players player-id)
         class (player :class)
         level (player :level)
@@ -1032,6 +1073,7 @@
         token (player :token)
         attack-power (when level-up? (get common.skills/level->attack-power-table new-level))]
     (send! player-id :drop (cond-> {:drop drop
+                                    :npc npc-type
                                     :npc-exp exp
                                     :exp new-exp}
                              level-up? (assoc :level-up? true
@@ -1076,6 +1118,8 @@
   :drop
   (fn [{:keys [data]}]
     (let [npc (:npc data)
+          npc-type (:type npc)
+          npc-exp (:exp npc)
           drop (npc.drop/get-drops (:drop npc))
           {:keys [party-id player-id]} (:top-damager data)
           current-players @players
@@ -1085,10 +1129,10 @@
               party-size (count player-ids)]
           (doseq [player-id player-ids]
             (when (can-player-get-the-drop? player-id current-players current-world npc)
-              (process-drop drop (:exp npc) current-players player-id party-size)))))
+              (process-drop drop npc-type npc-exp current-players player-id party-size)))))
       (when player-id
         (when (can-player-get-the-drop? player-id current-players current-world npc)
-          (process-drop drop (:exp npc) current-players player-id nil)))
+          (process-drop drop npc-type npc-exp current-players player-id nil)))
       nil)))
 
 (comment
@@ -1119,7 +1163,7 @@
 
   (swap! world (fn [world]
                  (reduce (fn [world id]
-                           (assoc-in world [id :mana] 350))
+                           (assoc-in world [id :mana] 1))
                    world
                    (keys @players))))
 

@@ -6,7 +6,7 @@
 
 (defonce current-intro (atom nil))
 
-(defn- start-intro
+(defn start-intro
   ([steps]
    (start-intro steps nil nil))
   ([steps on-exit show-ui-panel?]

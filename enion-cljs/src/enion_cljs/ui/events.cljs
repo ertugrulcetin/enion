@@ -131,17 +131,6 @@
     (.blur elem)))
 
 (reg-event-db
-  ::add-message-to-info-box*
-  (fn [db [_ msg]]
-    (update-in db [:info-box :messages] conj msg)))
-
-(reg-event-fx
-  ::add-message-to-info-box
-  (fn [_ [_ msg]]
-    #_{::dispatch-throttle [::add-message-to-info-box* [::add-message-to-info-box* msg] 100]}
-    {:dispatch [::add-message-to-info-box* msg]}))
-
-(reg-event-db
   ::add-message-to-chat-all
   (fn [db [_ {:keys [username msg killer killer-race killed]}]]
     (let [now (js/Date.now)]
@@ -382,8 +371,7 @@
                      exp
                      required-exp
                      tutorials
-                     quests
-                     current-quest]}]]
+                     quests]}]]
     (-> db
         (assoc-in [:player :id] id)
         (assoc-in [:player :username] username)
@@ -399,8 +387,7 @@
         (assoc-in [:player :bp] bp)
         (assoc-in [:servers :current-server] server-name)
         (assoc :tutorials tutorials)
-        (assoc :quests quests)
-        (assoc :current-quest current-quest))))
+        (assoc :quests quests))))
 
 (reg-event-db
   ::set-as-party-leader
@@ -689,7 +676,7 @@
   ::show-tutorial-message
   (fn [{:keys [db]}]
     (let [tutorials (:tutorials db)
-          in-quest? (boolean (:current-quest db))
+          in-quest? (:in-quest? db)
           next-tutorial (some
                           (fn [tutorial]
                             (let [tutorial-completed? ((:name tutorial) tutorials)]
@@ -698,5 +685,39 @@
                                 tutorial)))
                           tutorial/tutorials)]
       (if next-tutorial
-        {:dispatch [::show-global-message next-tutorial]}
+        {:dispatch [::show-global-message next-tutorial]
+         ::fire [:set-current-tutorial (:name next-tutorial)]}
         {:dispatch [::remove-global-message]}))))
+
+(reg-event-fx
+  ::talk-to-npc
+  (fn [{:keys [db]} [_ quests]]
+    (if (-> db :quest :completed?)
+      {:db (assoc db :in-quest? false
+                  :quest nil)
+       ::fire [:show-complete-quest-modal]}
+      (let [completed-quests (:quests db)
+            next-quest (some
+                         (fn [q]
+                           (when-not (completed-quests q)
+                             q))
+                         quests)]
+        (if next-quest
+          {:db (assoc db :in-quest? true)
+           ::fire [:show-quest-modal next-quest]}
+          {::fire [:show-no-quests-modal]})))))
+
+(reg-event-db
+  ::update-quest-progress
+  (fn [db [_ [npc completed-kills required-kills] completed?]]
+    (assoc db :quest {:npc npc
+                      :completed-kills completed-kills
+                      :required-kills required-kills
+                      :completed? completed?})))
+
+(reg-event-fx
+  ::complete-quest
+  (fn [{:keys [db]} [_ [quest-npc npc completed-kills required-kills]]]
+    {:db (update db :quests conj quest-npc)
+     :dispatch-n [[::update-quest-progress [npc completed-kills required-kills] true]
+                  [::show-global-message "Quest Completed ⚔️ Go talk to NPC!"]]}))

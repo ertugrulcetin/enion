@@ -29,41 +29,33 @@
 (def last-one-hand-combo (volatile! (js/Date.now)))
 
 (def attack-one-hand-cooldown (-> common.skills/skills (get "attackOneHand") :cooldown))
-(def attack-one-hand-required-mana (-> common.skills/skills (get "attackOneHand") :required-mana))
-(def attack-slow-down-required-mana (-> common.skills/skills (get "attackSlowDown") :required-mana))
-(def shield-required-mana (-> common.skills/skills (get "shieldWall") :required-mana))
-(def battle-fury-required-mana (-> common.skills/skills (get "battleFury") :required-mana))
+(def attack-one-hand-required-mana (skills/get-required-mana "attackOneHand"))
+(def attack-slow-down-required-mana (skills/get-required-mana "attackSlowDown"))
+(def shield-required-mana (skills/get-required-mana "shieldWall"))
+(def battle-fury-required-mana (skills/get-required-mana "battleFury"))
 
 (defmethod skills/skill-response "attackOneHand" [params]
   (fire :ui-cooldown "attackOneHand")
-  (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)
-        npc? (-> params :skill :npc?)
-        enemy (if npc?
-                (st/get-npc selected-player-id)
-                (st/get-other-player selected-player-id))]
-    (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})))
+  (let [damage (-> params :skill :damage)]
+    (fire :show-text {:hit damage})
+    (fire :show-text {:mp-used attack-one-hand-required-mana})))
 
 (defmethod skills/skill-response "attackSlowDown" [params]
   (fire :ui-cooldown "attackSlowDown")
-  (let [selected-player-id (-> params :skill :selected-player-id)
-        damage (-> params :skill :damage)
-        npc? (-> params :skill :npc?)
-        enemy (if npc?
-                (st/get-npc selected-player-id)
-                (st/get-other-player selected-player-id))]
-    (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})))
+  (let [damage (-> params :skill :damage)]
+    (fire :show-text {:hit damage})
+    (fire :show-text {:mp-used attack-slow-down-required-mana})))
 
 (defmethod skills/skill-response "shieldWall" [_]
   (fire :ui-cooldown "shieldWall")
   (skills.effects/apply-effect-shield-wall player)
+  (fire :show-text {:mp-used shield-required-mana})
   (st/play-sound "pv-sw"))
 
 (defmethod skills/skill-response "battleFury" [_]
   (fire :ui-cooldown "battleFury")
   (skills.effects/apply-effect-battle-fury player)
+  (fire :show-text {:mp-used battle-fury-required-mana})
   (st/play-sound "attackBoost"))
 
 (defn- one-hand-combo? [e active-state selected-player-id]

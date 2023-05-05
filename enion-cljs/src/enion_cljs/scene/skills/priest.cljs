@@ -26,10 +26,10 @@
            {:anim-state "cure" :event "onCureCall" :call? true}
            {:anim-state "cure" :event "onCureEnd" :skill? true :end? true}]))
 
-(def heal-required-mana (-> common.skills/skills (get "heal") :required-mana))
-(def cure-required-mana (-> common.skills/skills (get "cure") :required-mana))
-(def break-defense-required-mana (-> common.skills/skills (get "breakDefense") :required-mana))
-(def attack-priest-required-mana (-> common.skills/skills (get "attackPriest") :required-mana))
+(def heal-required-mana (skills/get-required-mana "heal"))
+(def cure-required-mana (skills/get-required-mana "cure"))
+(def break-defense-required-mana (skills/get-required-mana "breakDefense"))
+(def attack-priest-required-mana (skills/get-required-mana "attackPriest"))
 
 (def too-far-msg {:too-far true})
 
@@ -41,13 +41,13 @@
                         (st/ally-selected? selected-player-id)
                         (<= (st/distance-to selected-player-id) common.skills/priest-skills-distance-threshold)))]
     (when (and (st/ally-selected? selected-player-id) (not close?))
-      (fire :ui-send-msg too-far-msg))
+      (fire :show-text too-far-msg))
     close?))
 
 (defn enemy-close-for-skill? [selected-player-id]
   (let [result (<= (st/distance-to selected-player-id) common.skills/priest-skills-distance-threshold)]
     (when-not result
-      (fire :ui-send-msg too-far-msg))
+      (fire :show-text too-far-msg))
     result))
 
 (defn heal? [e selected-player-id npc?]
@@ -73,14 +73,15 @@
        (st/enough-mana? break-defense-required-mana)
        (enemy-close-for-skill? selected-player-id)))
 
-(let [heal-msg {:heal true}]
+(let [heal-msg {:hp (-> common.skills/skills (get "heal") :hp)}]
   (defmethod skills/skill-response "heal" [params]
     (fire :ui-cooldown "heal")
     (st/play-sound "heal")
     (let [selected-player-id (-> params :skill :selected-player-id)]
       (when (= selected-player-id net/current-player-id)
         (skills.effects/add-to-healed-ids)
-        (fire :ui-send-msg heal-msg)))))
+        (fire :show-text heal-msg)))
+    (fire :show-text {:mp-used heal-required-mana})))
 
 (let [cure-msg {:cure true}]
   (defmethod skills/skill-response "cure" [params]
@@ -89,16 +90,13 @@
     (let [selected-player-id (-> params :skill :selected-player-id)]
       (when (= selected-player-id net/current-player-id)
         (skills.effects/apply-effect-got-cure player)
-        (fire :ui-send-msg cure-msg)
-        (fire :ui-cured)))))
+        (fire :show-text cure-msg)
+        (fire :ui-cured))
+      (fire :show-text {:mp-used cure-required-mana}))))
 
 (defmethod skills/skill-response "breakDefense" [params]
-  (let [selected-player-id (-> params :skill :selected-player-id)
-        npc? (-> params :skill :npc?)
-        enemy (if npc?
-                (st/get-npc selected-player-id)
-                (st/get-other-player selected-player-id))]
-    (fire :ui-send-msg {:break-defense (j/get enemy :username)}))
+  (fire :show-text {:break-defense true})
+  (fire :show-text {:mp-used break-defense-required-mana})
   (fire :ui-cooldown "breakDefense")
   (st/play-sound "breakDefense"))
 
@@ -112,8 +110,8 @@
                 (st/get-npc selected-player-id)
                 (st/get-other-player selected-player-id))]
     (skills.effects/apply-effect-attack-priest enemy)
-    (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})))
+    (fire :show-text {:hit damage}))
+  (fire :show-text {:mp-used attack-priest-required-mana}))
 
 (defn- get-selected-player-id-for-priest-skill [selected-player-id npc?]
   (if (st/enemy-selected? selected-player-id npc?)

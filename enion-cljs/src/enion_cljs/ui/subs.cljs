@@ -395,3 +395,8 @@
   ::current-time
   (fn [db]
     (:current-time db)))
+
+(reg-sub
+  ::quest
+  (fn [db]
+    (:quest db)))

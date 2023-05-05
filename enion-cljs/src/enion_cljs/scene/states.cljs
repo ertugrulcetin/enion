@@ -6,7 +6,7 @@
     [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]))
 
-(def speed (if dev? 3000 550))
+(def speed 550)
 (def speed-fleet-foot 750)
 (def speed-fleet-foot-asas 900)
 
@@ -31,7 +31,7 @@
 (defonce player (clj->js default-player-state))
 
 (comment
-  (j/assoc! player :speed 1550))
+  (j/assoc! player :speed 2550))
 
 (defonce other-players #js {})
 
@@ -273,6 +273,9 @@
 (defn get-race []
   (j/get player :race))
 
+(defn get-class []
+  (j/get player :class))
+
 (defn move-player
   ([[x y z]]
    (j/call-in (get-player-entity) [:rigidbody :teleport] x y z))
@@ -301,7 +304,7 @@
   (defn enough-mana? [required-mana]
     (let [result (>= (j/get player :mana) required-mana)]
       (when-not result
-        (fire :ui-send-msg not-enough-mana-msg))
+        (fire :show-text not-enough-mana-msg))
       result)))
 
 (let [temp (pc/vec3)]

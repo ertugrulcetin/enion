@@ -4,6 +4,7 @@
     [cljs.reader :as reader]
     [clojure.string :as str]
     [common.enion.npc :as common.npc]
+    [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [dev? fire on dlog ws-url]]
     [enion-cljs.scene.drop :as drop]
     [enion-cljs.scene.entities.npc :as npc]
@@ -95,6 +96,7 @@
       (set! current-player-id (-> params :init :id))
       (fire :ui-init-game (assoc data :server-name @server-name))
       (fire :ui-init-tutorial-data data)
+      (fire :check-available-quests (:quests data))
       (save-token-if-new-player data)
       (stop-intro-music)
       (poki/gameplay-start)
@@ -113,7 +115,7 @@
 (defmethod dispatch-pro-response :party [params]
   (dlog "party" params)
   (if-let [error (-> params :party :error)]
-    (fire :ui-send-msg (hash-map error true))
+    (fire :show-text (hash-map error true))
     (party-response params)))
 
 (defmethod party-response :party-request [params]
@@ -155,14 +157,14 @@
     (vswap! st/party-member-ids conj player-id)
     (fire :ui-set-as-party-leader)
     (update-username-text-color @st/party-member-ids true)
-    (fire :ui-send-msg {:joined-party (st/get-username player-id)})
+    (fire :show-text {:joined-party (st/get-username player-id)})
     (fire :register-party-members (register-party-members @st/party-member-ids))))
 
 (defmethod party-response :joined-party [params]
   (let [player-id (-> params :party :player-id)]
     (vswap! st/party-member-ids conj player-id)
     (update-username-text-color @st/party-member-ids true)
-    (fire :ui-send-msg {:joined-party (st/get-username player-id)})
+    (fire :show-text {:joined-party (st/get-username player-id)})
     (fire :register-party-members (register-party-members @st/party-member-ids))))
 
 (def party-cancelled-msg {:party-cancelled true})
@@ -171,7 +173,7 @@
   (update-username-text-color @st/party-member-ids false)
   (vreset! st/party-member-ids [])
   (fire :cancel-party)
-  (fire :ui-send-msg party-cancelled-msg))
+  (fire :show-text party-cancelled-msg))
 
 (defmethod party-response :exit-from-party [_]
   (cancel-party))
@@ -186,7 +188,7 @@
         (vswap! st/party-member-ids (fn [ids] (vec (remove #(= player-id %) ids))))
         (update-username-text-color [player-id] false)
         (fire :register-party-members (register-party-members @st/party-member-ids))
-        (fire :ui-send-msg {:member-removed-from-party (st/get-username player-id)})))))
+        (fire :show-text {:member-removed-from-party (st/get-username player-id)})))))
 
 (defmethod party-response :party-cancelled [_]
   (cancel-party))
@@ -200,7 +202,7 @@
         (vswap! st/party-member-ids (fn [ids] (vec (remove #(= player-id %) ids))))
         (fire :register-party-members (register-party-members @st/party-member-ids))
         (update-username-text-color [player-id] false)
-        (fire :ui-send-msg {:member-exit-from-party username})))))
+        (fire :show-text {:member-exit-from-party username})))))
 
 (let [no-selected-player-msg {:no-selected-player true}]
   (on :add-to-party
@@ -208,7 +210,7 @@
         (if-let [selected-player-id (st/get-selected-player-id)]
           (dispatch-pro :party {:type :add-to-party
                                 :selected-player-id (js/parseInt selected-player-id)})
-          (fire :ui-send-msg no-selected-player-msg)))))
+          (fire :show-text no-selected-player-msg)))))
 
 (on :exit-from-party
     (fn []
@@ -232,7 +234,7 @@
 
 (defmethod party-response :add-to-party [params]
   (let [username (-> params :party :selected-player-id st/get-username)]
-    (fire :ui-send-msg {:party-requested-user username})))
+    (fire :show-text {:party-requested-user username})))
 
 (defmethod party-response :accept-party-request [params]
   (let [party-member-ids* (-> params :party :party-members-ids vec)]
@@ -245,7 +247,7 @@
   (fire :close-party-request-modal))
 
 (defmethod party-response :party-request-rejected [params]
-  (fire :ui-send-msg {:party-request-rejected (-> params :party :player-id st/get-username)}))
+  (fire :show-text {:party-request-rejected (-> params :party :player-id st/get-username)}))
 
 (comment
   (dispatch-pro :party {:type :exit-from-party
@@ -463,19 +465,26 @@
         (fire :ui-show-something-went-wrong?)))
     3000))
 
-(defn- create-tutorial-key-press-listener [key codes]
-  (let [tutorial (key (j/get st/player :tutorials))
-        key-down-fn (when-not tutorial
+(defn- create-tutorial-key-press-listener [tutorial codes]
+  (let [tutorial-done? (tutorial (j/get st/player :tutorials))
+        key-down-fn (when-not tutorial-done?
                       (fn [e]
-                        (when (and (not (key (j/get st/player :tutorials)))
-                                   (codes (j/get-in e [:event :code])))
-                          (utils/finish-tutorial-step key))))]
-    (when-not tutorial
+                        (when (and (not (tutorial (j/get st/player :tutorials)))
+                                   (codes (j/get-in e [:event :code]))
+                                   (= tutorial (j/get st/player :current-tutorial)))
+                          (utils/finish-tutorial-step tutorial))))]
+    (when-not tutorial-done?
       (pc/on-keyboard :EVENT_KEYDOWN key-down-fn))))
+
+(on :set-current-tutorial
+    (fn [tutorial]
+      (j/assoc! st/player :current-tutorial tutorial)))
 
 (defn- register-tutorial-key-events []
   (create-tutorial-key-press-listener :navigate-wasd #{"KeyW" "KeyA" "KeyS" "KeyD"})
   (create-tutorial-key-press-listener :select-enemy #{"Tab"})
+  (create-tutorial-key-press-listener :run-to-enemy #{"KeyR"})
+  (create-tutorial-key-press-listener :jump #{"Space"})
   (create-tutorial-key-press-listener :open-character-panel #{"KeyC"})
   (create-tutorial-key-press-listener :open-leader-board #{"KeyL"}))
 
@@ -580,7 +589,7 @@
 (defmethod dispatch-pro-response :earned-bp [params]
   (let [bp (-> params :earned-bp :bp)
         total-bp (-> params :earned-bp :total)]
-    (fire :ui-send-msg {:bp bp})
+    (fire :show-text {:bp bp})
     (fire :ui-set-bp total-bp)))
 
 (defn- process-drop [params]
@@ -597,29 +606,84 @@
           nil)
         (when (= type :coin)
           (fire :ui-set-total-coin (-> params :drop :total-coin)))
-        (fire :ui-send-msg {:drop {:name (get-in common.npc/drops [type :name])
-                                   :amount amount
-                                   :earned? (= type :coin)}})))))
+        (fire :show-text {:drop {:name (get-in common.npc/drops [type :name])
+                                 :amount amount}})))))
+
+(defn- show-unlocked-skill [level]
+  (let [class (st/get-class)
+        [skill name] (some
+                       (fn [[k v]]
+                         (when (and (= class (:class v)) (= level (:required-level v)))
+                           [k (:name v)]))
+                       common.skills/skills)]
+    (when skill
+      (fire :show-unlocked-skill skill name))))
+
+(defn- level-up [{:keys [level] :as opts}]
+  (effects/apply-effect-level-up st/player)
+  (st/level-up opts)
+  (fire :ui-level-up opts)
+  (st/play-sound "levelUp")
+  (if (= level 3)
+    (fire :show-unlocked-skill-fleet-foot)
+    (show-unlocked-skill level)))
 
 (defn- process-exp [params]
   (let [{:keys [exp npc-exp level-up?] :as opts} (:drop params)]
     (if level-up?
-      (do
-        (effects/apply-effect-level-up st/player)
-        (st/level-up opts)
-        (fire :ui-level-up opts)
-        (st/play-sound "levelUp"))
+      (level-up opts)
       (fire :ui-set-exp exp))
-    (fire :ui-send-msg {:npc-exp npc-exp})))
+    (fire :show-text {:npc-exp npc-exp})))
+
+(defn- process-quest [params]
+  (when-let [quest-npc (j/get st/player :current-quest)]
+    (let [npc (-> params :drop :npc)
+          required-kills (j/get st/player :required-kills)]
+      (when (= npc quest-npc)
+        (j/update! st/player :completed-kills (fnil + 0) 1)
+        (if (= (j/get st/player :completed-kills) required-kills)
+          (do
+            (fire :ui-complete-quest [quest-npc
+                                      (-> common.enion.npc/npcs npc :name)
+                                      (j/get st/player :completed-kills)
+                                      required-kills])
+            (st/play-sound "questComplete"))
+          (fire :ui-update-quest-progress [(-> common.enion.npc/npcs npc :name)
+                                           (j/get st/player :completed-kills)
+                                           required-kills]))))))
+
+(on :finish-quest
+    (fn [quests]
+      (let [current-quest (j/get st/player :current-quest)]
+        (dispatch-pro :finish-quest {:quest current-quest
+                                     :coin (-> quests current-quest :coin)})
+        (j/assoc! st/player
+                  :current-quest nil
+                  :completed-kills 0
+                  :required-kills 0))))
+
+(defmethod dispatch-pro-response :finish-quest [params]
+  (let [{:keys [level quest coin total-coin error] :as opts} (:finish-quest params)]
+    (if error
+      (fire :ui-show-global-message "This quest is already completed" 5000)
+      (do
+        (j/update! st/player :quests conj quest)
+        (when level
+          (level-up opts))
+        (fire :show-text {:drop {:name "Coin"
+                                 :amount coin}})
+        (fire :ui-set-total-coin total-coin)
+        (fire :check-available-quests (j/get st/player :quests))))))
 
 (defmethod dispatch-pro-response :drop [params]
   (process-drop params)
-  (process-exp params))
+  (process-exp params)
+  (process-quest params))
 
-(let [re-spawn-error-msg {:re-spawn-error "Re-spawn failed. Try again."}]
+(let [re-spawn-error-msg {:re-spawn-error true}]
   (defmethod dispatch-pro-response :re-spawn [params]
     (if (-> params :re-spawn :error)
-      (fire :ui-send-msg re-spawn-error-msg)
+      (fire :show-text re-spawn-error-msg)
       (let [pos (-> params :re-spawn :pos)
             health (-> params :re-spawn :health)
             mana (-> params :re-spawn :mana)]

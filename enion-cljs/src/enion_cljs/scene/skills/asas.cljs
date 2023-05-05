@@ -29,8 +29,10 @@
      {:anim-state "hide" :event "onHideEnd" :skill? true :end? true}]))
 
 (def attack-dagger-cooldown (-> common.skills/skills (get "attackDagger") :cooldown))
-(def attack-dagger-required-mana (-> common.skills/skills (get "attackDagger") :required-mana))
-(def attack-stab-required-mana (-> common.skills/skills (get "attackStab") :required-mana))
+(def attack-dagger-required-mana (skills/get-required-mana "attackDagger"))
+(def attack-stab-required-mana (skills/get-required-mana "attackStab"))
+(def phantom-vision-required-mana (skills/get-required-mana "phantomVision"))
+(def hide-required-mana (skills/get-required-mana "hide"))
 
 (def last-one-hand-combo (volatile! (js/Date.now)))
 
@@ -139,8 +141,8 @@
                 (st/get-npc selected-player-id)
                 (st/get-other-player selected-player-id))]
     (skills.effects/apply-effect-attack-dagger enemy)
-    (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})))
+    (fire :show-text {:hit damage})
+    (fire :show-text {:mp-used attack-dagger-required-mana})))
 
 (defmethod skills/skill-response "attackStab" [params]
   (fire :ui-cooldown "attackStab")
@@ -151,17 +153,19 @@
                 (st/get-npc selected-player-id)
                 (st/get-other-player selected-player-id))]
     (skills.effects/apply-effect-attack-stab enemy)
-    (fire :ui-send-msg {:to (j/get enemy :username)
-                        :hit damage})))
+    (fire :show-text {:hit damage})
+    (fire :show-text {:mp-used attack-stab-required-mana})))
 
 (defmethod skills/skill-response "phantomVision" [_]
   (fire :ui-cooldown "phantomVision")
+  (fire :show-text {:mp-used phantom-vision-required-mana})
   (skills.effects/apply-effect-phantom-vision player)
   (skills/enable-phantom-vision)
   (st/play-sound "pv-sw"))
 
 (defmethod skills/skill-response "hide" [_]
   (fire :ui-cooldown "hide")
+  (fire :show-text {:mp-used hide-required-mana})
   (j/call-in player [:skills :hide]))
 
 (defmethod net/dispatch-pro-response :hide-finished [_]
@@ -197,9 +201,6 @@
     (skills/can-attack-to-enemy? selected-player-id)
     (st/enough-mana? attack-stab-required-mana)
     (skills/close-for-attack? selected-player-id)))
-
-(def phantom-vision-required-mana (-> common.skills/skills (get "phantomVision") :required-mana))
-(def hide-required-mana (-> common.skills/skills (get "hide") :required-mana))
 
 (defn- phantom-vision? [e]
   (and

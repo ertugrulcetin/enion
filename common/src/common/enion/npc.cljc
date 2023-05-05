@@ -16,7 +16,7 @@
            :name "Demon"
            :char-name-y-offset 0.1
            :level 6}
-   :skeleton-warrior {:health 1750
+   :skeleton-warrior {:health 2250
                       :name "Skeleton Warrior"
                       :char-name-y-offset 0.3
                       :level 9}

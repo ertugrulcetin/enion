@@ -46,9 +46,9 @@
              :change-pos-speed 0.02
              :chase-range-threshold 15
              :chase-speed 0.06
-             :cooldown 2500
+             :cooldown 2000
              :damage-buffer-size 100
-             :damage-fn #(utils/rand-between 55 75)
+             :damage-fn #(utils/rand-between 55 95)
              :delay-after-last-time-attacked 2000
              :drop {:coin {:prob 0.9 :amount [50 100]}
                     :hp-potion {:prob 0.4 :amount [2 4]}
@@ -67,7 +67,7 @@
                         :chase-speed 0.1
                         :cooldown 2000
                         :damage-buffer-size 100
-                        :damage-fn #(utils/rand-between 80 120)
+                        :damage-fn #(utils/rand-between 160 220)
                         :delay-after-last-time-attacked 1000
                         :drop {:coin {:prob 0.9 :amount [150 300]}
                                :hp-potion {:prob 0.5 :amount [2 5]}
