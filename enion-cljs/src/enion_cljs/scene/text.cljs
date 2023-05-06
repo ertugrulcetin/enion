@@ -104,7 +104,8 @@
         (:skill-failed msg) (show-text "Skill failed" warning true)
         (:drop msg) (show-text (str (-> msg :drop :amount) " " (-> msg :drop :name)) default true 2)
         (:pvp-locked msg) (show-text "Reach level 10 for PvP!" warning true 2)
-        (:enemy-low-level msg) (show-text "Enemy below level 10, can't attack!" warning true 2))))
+        (:enemy-low-level msg) (show-text "Enemy below level 10, can't attack!" warning true 2)
+        (:low-health msg) (show-text "Low Health!" damage true 2))))
 
 (comment
   (count text-pool)

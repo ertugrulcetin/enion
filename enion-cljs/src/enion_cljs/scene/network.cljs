@@ -249,11 +249,6 @@
 (defmethod party-response :party-request-rejected [params]
   (fire :show-text {:party-request-rejected (-> params :party :player-id st/get-username)}))
 
-(comment
-  (dispatch-pro :party {:type :exit-from-party
-                        :selected-player-id 10})
-  )
-
 (defn- process-world-snapshot-for-player [state]
   (let [health (:health state)
         mana (:mana state)
@@ -626,8 +621,12 @@
   (st/play-sound "levelUp")
   (show-unlocked-skill level)
   (case level
+    2 (fire :how-to-use-potions)
     3 (fire :show-unlocked-skill-fleet-foot)
-    9 (fire :how-to-change-skill-order)
+    4 (fire :how-to-change-skill-order)
+    6 (fire :settings-button)
+    8 (fire :create-party)
+    9 (fire :main-menu)
     10 (js/setTimeout #(let [race (st/get-race)
                              against (if (= "orc" race)
                                        "Kill some Humans!"

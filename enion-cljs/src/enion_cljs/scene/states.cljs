@@ -126,7 +126,7 @@
                    :health health
                    :total-health total-health
                    :enemy? enemy?
-                   :level  level
+                   :level level
                    :npc? npc?)
          (when (or (not= (j/get prev-selected-player :id) id)
                    (not= (j/get prev-selected-player :health) health))
@@ -212,11 +212,23 @@
     (when enemy?
       (j/assoc-in! player-entity [:collision :enabled] true))))
 
+(def showed-low-health? (volatile! false))
+(def low-health {:low-health true})
+
 ;; TODO use kezban lib for nested when-lets
 (defn set-health
   ([health]
    (j/assoc! player :health health)
-   (fire :ui-player-health health))
+   (fire :ui-player-health health)
+   (cond
+     (and (not @showed-low-health?)
+          (< health (* 0.3 (j/get player :total-health))))
+     (do
+       (vreset! showed-low-health? true)
+       (fire :show-text low-health))
+
+     (> health (* 0.3 (j/get player :total-health)))
+     (vreset! showed-low-health? false)))
   ([player-id health]
    (j/assoc-in! other-players [player-id :health] health)
    (when-let [id (get-selected-player-id)]
@@ -398,8 +410,11 @@
 (defn level-up [{:keys [exp level health mana]}]
   (set-health health)
   (set-mana mana)
-  (j/assoc! player :exp exp
-            :level level))
+  (j/assoc! player
+            :exp exp
+            :level level
+            :total-health health
+            :total-mana mana))
 
 (defn get-level []
   (j/get player :level))

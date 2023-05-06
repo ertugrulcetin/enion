@@ -36,6 +36,41 @@
     nil
     true))
 
+(defn how-to-use-potions []
+  (intro/start-intro
+    [{:title "Use HP potion"
+      :intro "Use HP potion to heal yourself."
+      :element (j/call js/document :getElementById "skill-hpPotion")}
+     {:title "Use MP potion"
+      :intro "Use MP potion to recover mana."
+      :element (j/call js/document :getElementById "skill-mpPotion")}]
+    nil
+    true))
+
+(defn settings-button []
+  (intro/start-intro
+    [{:title "Adjust settings"
+      :intro "You can adjust your settings here."
+      :element (j/call js/document :getElementById "settings")}]
+    nil
+    true))
+
+(defn create-party []
+  (intro/start-intro
+    [{:title "Create party"
+      :intro "Create a party here and play with <b>your friends!</b>"
+      :element (j/call js/document :getElementById "party")}]
+    nil
+    true))
+
+(defn main-menu []
+  (intro/start-intro
+    [{:title "Main Menu"
+      :intro "You can change your <b>Character</b> or <b>Server</b> here. "
+      :element (j/call js/document :getElementById "main-menu")}]
+    nil
+    true))
+
 (defn show-unlocked-skill [skill name]
   (intro/start-intro
     [{:title "Skill Unlocked ✨"
@@ -88,5 +123,8 @@
 
 (on :show-unlocked-skill-fleet-foot show-unlocked-skill-fleet-foot)
 (on :show-unlocked-skill show-unlocked-skill)
-
 (on :how-to-change-skill-order how-to-change-skill-order)
+(on :how-to-use-potions how-to-use-potions)
+(on :settings-button settings-button)
+(on :create-party create-party)
+(on :main-menu main-menu)

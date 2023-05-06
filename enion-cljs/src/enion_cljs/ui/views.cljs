@@ -669,7 +669,9 @@
   [:div {:class (styles/party-list-container @(subscribe [::subs/minimap?]))
          :on-mouse-over #(fire :on-ui-element? true)
          :on-mouse-out #(fire :on-ui-element? false)}
-   [:div (styles/party-action-button-container)
+   [:div
+    {:id "party"
+     :class (styles/party-action-button-container)}
     (let [selected-party-member @(subscribe [::subs/selected-party-member])]
       (cond
         @(subscribe [::subs/party-leader-selected-himself?])
@@ -683,8 +685,8 @@
          "Remove from party"]
 
         @(subscribe [::subs/able-to-add-party-member?])
-        [:button#add-to-party {:class (styles/party-action-button)
-                               :on-click #(fire :add-to-party)}
+        [:button {:class (styles/party-action-button)
+                  :on-click #(fire :add-to-party)}
          "Add to party"]
 
         @(subscribe [::subs/able-to-exit-from-party?])
@@ -699,7 +701,7 @@
 (defn- settings-button []
   (let [minimap-open? @(subscribe [::subs/minimap?])
         open? @(subscribe [::subs/settings-modal-open?])]
-    [:button
+    [:button#settings
      {:class (styles/settings-button minimap-open?)
       :on-mouse-over #(fire :on-ui-element? true)
       :on-mouse-out #(fire :on-ui-element? false)
@@ -711,7 +713,7 @@
 (defn- change-server-button []
   (let [minimap-open? @(subscribe [::subs/minimap?])
         open? @(subscribe [::subs/change-server-modal-open?])]
-    [:button
+    [:button#main-menu
      {:class (styles/change-server-button minimap-open?)
       :on-mouse-over #(fire :on-ui-element? true)
       :on-mouse-out #(fire :on-ui-element? false)
@@ -836,6 +838,9 @@
     [:tr
      [:td.center "Chat"]
      [:td [:span.action-key.settings "Enter"]]]
+    [:tr
+     [:td.center "Rotate Camera"]
+     [:td.no-padding [:span "Hold Right Click and Drag"]]]
     [:tr
      [:td.center "Double mouse right click"]
      [:td.no-padding [:span "Uses HP Potion"]]]]])
@@ -1295,7 +1300,6 @@
        (on :ui-set-bp #(dispatch [::events/set-bp %]))
        (on :ui-toggle-char-panel #(dispatch [::events/toggle-char-panel]))
        (on :ui-show-global-message #(dispatch [::events/show-global-message %1 %2]))
-       (on :ui-remove-global-message #(dispatch [::events/remove-global-message]))
        (on :ui-show-something-went-wrong? #(dispatch [::events/show-something-went-wrong? %]))
        (on :ui-set-total-coin #(dispatch [::events/set-total-coin %]))
        (on :ui-talk-to-npc #(dispatch [::events/talk-to-npc %]))

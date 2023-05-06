@@ -34,7 +34,7 @@
 (defn- trigger-start [portal]
   (cond
     (not (st/finished-quests?))
-    (fire :ui-show-global-message "Finish all quests to use the portal!" 2000)
+    (fire :ui-show-global-message "Finish all quests to use the portal!" 3000)
 
     (and (not dev?) (< (st/get-level) 7))
     (fire :ui-show-global-message "You need to be level 7 to use the portal" 2500)

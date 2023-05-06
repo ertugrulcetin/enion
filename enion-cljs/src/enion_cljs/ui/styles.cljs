@@ -670,7 +670,7 @@
    :right 0
    :margin-top (if minimap-open? "170px" "50px")})
 
-(defattrs party-action-button-container []
+(defclass party-action-button-container []
   {:display :flex
    :flex-direction :row
    :justify-content :end})
@@ -786,7 +786,8 @@
    [:&.center
     {:text-align :center}]
    [:&.no-padding
-    {:padding "0px"}]]
+    {:padding "0px"
+     :font-size "16px"}]]
   [:span
    {:margin-left "10px"
     :width "50%"}

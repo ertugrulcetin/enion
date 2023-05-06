@@ -626,15 +626,24 @@
 (reg-event-fx
   ::show-global-message
   (fn [{:keys [db]} [_ text duration]]
-    {:db (assoc db :global-message text)
-     :dispatch-later [(when duration
-                        {:ms duration
-                         :dispatch [::remove-global-message]})]}))
+    (let [id (inc (:global-message-id db))]
+      {:db (assoc db :global-message text
+                  :global-message-id id)
+       :dispatch-later [(when duration
+                          {:ms duration
+                           :dispatch [::remove-global-message id]})]})))
 
 (reg-event-db
   ::remove-global-message
-  (fn [db]
-    (assoc db :global-message nil)))
+  (fn [db [_ i]]
+    (cond
+      (and i (= i (:global-message-id db)))
+      (assoc db :global-message nil)
+
+      (nil? i)
+      (assoc db :global-message nil)
+
+      :else db)))
 
 (reg-event-fx
   ::level-up

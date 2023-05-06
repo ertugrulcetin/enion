@@ -1181,7 +1181,7 @@
   (swap! world (fn [world]
                  (reduce (fn [world id]
                            (-> world
-                             (assoc-in [id :health] 5)
+                             (assoc-in [id :health] 100)
                              (assoc-in [id :mana] 5)))
                    world
                    (keys @players))))
