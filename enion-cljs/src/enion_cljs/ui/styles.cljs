@@ -26,6 +26,11 @@
 (def grid-gap "10px")
 (def disabled-overlay-color "rgba(128, 128, 128, 0.7)")
 
+(defkeyframes appear []
+  ["0%" {:transform "scale(0.9) translate(-50%)"}]
+  ["50%" {:transform "scale(1.5) translate(-50%)"}]
+  ["100%" {:transform "scale(1) translate(-50%)"}])
+
 (defkeyframes scale-bounce []
   ["0%" {:transform "scale(1)"}]
   ["100%" {:transform "scale(1.1)"}])
@@ -1102,7 +1107,8 @@
    :z-index 99
    :color :white
    :background "#10131dcc"
-   :border-radius "5px"}
+   :border-radius "5px"
+   :animation (str (appear) " 0.5s ease-out")}
   [:div.image-container
    {:display :flex
     :justify-content :center}

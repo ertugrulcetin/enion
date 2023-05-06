@@ -468,6 +468,14 @@
                :total-coin total-coin
                :quest quest})))))))
 
+(defn- get-pos-for-player [race class data]
+  (cond
+    (or (nil? data)
+        (not= #{:squid :ghoul :demon} (get-in data [class :quests])))
+    (if (= "orc" race) [37.84 0.6 -42.58] [-39.01 0.6 40.36])
+    (= "orc" race) (common.skills/random-pos-for-orc)
+    :else (common.skills/random-pos-for-human)))
+
 (reg-pro
   :init
   (fn [{:keys [id current-players] {:keys [username race class]} :data}]
@@ -503,9 +511,7 @@
                     class (or class
                               (some-> data :last-played-class)
                               (find-least-repetitive-class race current-players))
-                    pos (if (= "orc" race)
-                          (common.skills/random-pos-for-orc)
-                          (common.skills/random-pos-for-human))
+                    pos (get-pos-for-player race class data)
                     username? (not (str/blank? username))
                     username (generate-username username race class current-players)
                     level 1
@@ -1022,9 +1028,8 @@
           (alive? world-state) re-spawn-failed
           (not (re-spawn-duration-finished? player)) re-spawn-failed
           :else (let [_ (cancel-all-tasks-of-player id)
-                      new-pos (if (= "orc" (:race player))
-                                (common.skills/random-pos-for-orc)
-                                (common.skills/random-pos-for-human))
+                      {:keys [race class data]} player
+                      new-pos (get-pos-for-player race class data)
                       {:keys [px py pz]} world-state
                       new-pos (if (:commercial-break-rewarded data)
                                 [px py pz]
@@ -1371,10 +1376,9 @@
 
 (defn- get-servers-list [_]
   {:status 200
-   :body {
-          ;"EU-1" {:ws-url "wss://enion-eu-1.fly.dev:443/ws"
-          ;        :stats-url "https://enion-eu-1.fly.dev/stats"}
-           "EU-2" {:ws-url "wss://enion-eu-2.fly.dev:443/ws"
+   :body {;; "EU-1" {:ws-url "wss://enion-eu-1.fly.dev:443/ws"
+          ;;        :stats-url "https://enion-eu-1.fly.dev/stats"}
+          "EU-2" {:ws-url "wss://enion-eu-2.fly.dev:443/ws"
                   :stats-url "https://enion-eu-2.fly.dev/stats"}
           ;; "EU-3" {:ws-url "wss://enion-eu-3.fly.dev:443/ws"
           ;;        :stats-url "https://enion-eu-3.fly.dev/stats"}
