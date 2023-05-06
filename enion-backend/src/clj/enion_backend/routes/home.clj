@@ -574,7 +574,7 @@
 (reg-pro
   :request-all-players
   (fn [_]
-    {:players (map #(select-keys % [:id :username :race :class :health :mana :pos]) (vals @players))
+    {:players (map #(select-keys % [:id :username :race :class :health :level :mana :pos]) (vals @players))
      :npcs (npc/npc-types->ids)}))
 
 (def ping-high {:error :ping-high})
@@ -1097,6 +1097,9 @@
                                               :mana mana)
                              (> coin-drop 0) (assoc :coin coin-drop
                                                     :total-coin coin)))
+    (when (and level-up? (= new-level common.skills/chick-destroyed-level))
+      (doseq [id (filter #(not= player-id %) (keys current-players))]
+        (send! id :chick-destroyed {:player-id player-id})))
     (when level-up?
       (add-effect :level-up player-id))
     (if level-up?

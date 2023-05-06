@@ -1,6 +1,7 @@
 (ns enion-cljs.scene.entities.player
   (:require
     [applied-science.js-interop :as j]
+    [common.enion.skills :as common.skills]
     [enion-cljs.common :as common :refer [dev? fire on dlog]]
     [enion-cljs.scene.entities.base :as entity.base]
     [enion-cljs.scene.entities.camera :as entity.camera]
@@ -516,7 +517,7 @@
               :lod-2 lod-2
               :anim-component (j/get model-entity :anim))))
 
-(defn create-player [{:keys [id username class race pos health mana] :as opts}]
+(defn create-player [{:keys [id username class race pos health mana level] :as opts}]
   (when-not id
     (throw (ex-info "Id does not exist for player!" {})))
   (if (j/get st/other-players id)
@@ -557,6 +558,9 @@
       (utils/create-char-name-text (assoc params :template-entity template-entity))
       (create-skill-fns state true)
       (add-player-id-to-char-meshes params model-entity template-entity state)
+      (if (< level common.skills/chick-destroyed-level)
+        (-> entity (pc/find-by-name "chick") pc/enable)
+        (-> entity (pc/find-by-name "chick") pc/disable))
       (if enemy?
         (j/call-in entity [:rigidbody :teleport] x y z)
         (pc/set-pos entity x y z))
@@ -582,6 +586,8 @@
               :class (j/get player :class)}
         [template-entity model-entity] (create-model-and-template-entity opts)]
     (utils/create-char-name-text (assoc opts :template-entity template-entity))
+    (when (< (:level player-data) common.skills/chick-destroyed-level)
+      (-> player-entity (pc/find-by-name "chick") pc/enable))
     (j/assoc! player :camera (pc/find-by-name "camera"))
     (j/assoc! player
               :this this

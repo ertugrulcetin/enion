@@ -40,6 +40,7 @@
     (utils/create-char-name-text {:template-entity entity
                                   :username npc-name
                                   :enemy? true
+                                  :npc? true
                                   :y-offset (-> common.npc/npcs npc-type :char-name-y-offset)})
     (pc/add-child (pc/root) entity)
     ;; due to 0.002 scale, we had to multiply by 500

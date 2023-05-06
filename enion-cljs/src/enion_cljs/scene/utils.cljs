@@ -28,7 +28,7 @@
 (defn tutorial-finished? [tutorial-step]
   (tutorial-step (j/get st/player :tutorials)))
 
-(defn create-char-name-text [{:keys [template-entity username race class other-player? enemy? y-offset]}]
+(defn create-char-name-text [{:keys [template-entity username race class other-player? enemy? npc? y-offset]}]
   (let [username-text-entity (pc/clone (pc/find-by-name "char_name"))]
     (j/assoc-in! username-text-entity [:element :text] username)
     (j/assoc-in! username-text-entity [:element :color] st/username-color)
@@ -36,6 +36,8 @@
       (j/assoc-in! username-text-entity [:element :color] st/username-enemy-color))
     (j/assoc-in! username-text-entity [:element :outlineThickness] 0.5)
     (pc/add-child template-entity username-text-entity)
+    (when npc?
+      (-> username-text-entity (pc/find-by-name "chick") pc/disable))
     (when (and (= race "orc")
                (or (= class "priest")
                    (= class "warrior")))

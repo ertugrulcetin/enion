@@ -615,6 +615,10 @@
       (fire :show-unlocked-skill skill name))))
 
 (defn- level-up [{:keys [level] :as opts}]
+  (when (= level common.skills/chick-destroyed-level)
+    (-> (st/get-player-entity)
+        (pc/find-by-name "chick")
+        pc/disable))
   (effects/apply-effect-level-up st/player)
   (st/level-up opts)
   (fire :ui-level-up opts)
@@ -716,6 +720,12 @@
       (fire :show-re-spawn-modal #(dispatch-pro :re-spawn)))
     2000)
   (poki/gameplay-stop))
+
+(defmethod dispatch-pro-response :chick-destroyed [params]
+  (let [player-id (-> params :chick-destroyed :player-id)]
+    (some-> (st/get-other-player-entity player-id)
+            (pc/find-by-name "chick")
+            pc/disable)))
 
 (on :close-socket-for-re-init
     (fn []
