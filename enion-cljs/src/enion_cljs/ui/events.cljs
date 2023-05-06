@@ -563,7 +563,7 @@
   ::fetch-server-list
   (fn [_ [_ click-to-join?]]
     {:http {:method :get
-            :uri "https://enion-eu-1.fly.dev/servers"
+            :uri "https://enion-eu-2.fly.dev/servers"
             :on-success [::fetch-server-list-success click-to-join?]
             :on-failure [::fetch-server-list-failure click-to-join?]}}))
 
