@@ -1,5 +1,6 @@
 (ns enion-cljs.scene.entities.camera
   (:require
+    ["/enion_cljs/vendor/tween" :as tw]
     [applied-science.js-interop :as j]
     [enion-cljs.scene.pc :as pc :refer [app]]
     [enion-cljs.scene.states :as st]
@@ -11,6 +12,7 @@
                          :mouse-edge-range 15
                          :mouse-over? false
                          :camera-rotation-speed 10
+                         :chase-camera? true
                          :edge-scroll-speed 100
                          :page-x nil
                          :right-click? false
@@ -28,7 +30,7 @@
   (j/get state :target-angle)
   (j/get state :eulers)
 
-  (j/assoc! state :eulers (pc/vec3 -10659.52 13.32  0))
+  (j/assoc! state :eulers (pc/vec3 -10659.52 13.32 0))
 
   (j/assoc! state :eulers (pc/vec3 -10285.025 16218.33 0))
 
@@ -148,6 +150,36 @@
               :shaking? true
               :last-shake-time (js/Date.now))))
 
+(let [tween (volatile! nil)]
+  (defn chase-player-from-back []
+    (when (j/get state :chase-camera?)
+      (some-> @tween (j/call :stop))
+      (let [e (pc/get-loc-euler (j/get st/player :model-entity))
+            x (j/get e :x)
+            y (j/get e :y)
+            last (if (= x 0)
+                   y
+                   (if (> y 0)
+                     (- 180 y)
+                     (+ 180 (- y))))
+            initial (mod (j/get-in state [:eulers :x]) 360)
+            initial-pos #js {:value initial}
+            last-pos #js {:value (cond
+                                   (and (= x 0) (neg? last) (> initial last) (> (- initial last) 180))
+                                   (+ 360 last)
+
+                                   (and (= x 0) (pos? last) (> initial last) (> (- initial last) 180))
+                                   (+ (- 360 last) 90)
+                                   :else last)}
+            tween-interpolation (-> (j/call pc/app :tween initial-pos)
+                                    (j/call :to last-pos 1 pc/linear))]
+        (vreset! tween tween-interpolation)
+        (j/call tween-interpolation :on "update"
+                (fn []
+                  (j/assoc! (j/get state :eulers) :x (j/get initial-pos :value))))
+        (j/call tween-interpolation :start)
+        nil))))
+
 (def camera-y-up-limit 3)
 
 (defn- post-update-fn [dt _]
@@ -164,10 +196,7 @@
     (pc/set-pos entity (get-world-point))
     (when-not (j/get state :shaking?)
       (pc/set-euler origin-entity target-angle)
-      (pc/look-at entity (pc/get-pos origin-entity))
-      ;; Over-shoulder
-      #_(let [p (pc/get-loc-pos entity)]
-        (pc/set-loc-pos entity (+ (j/get p :x) 0.3) (j/get p :y) (j/get p :z))))
+      (pc/look-at entity (pc/get-pos origin-entity)))
     (when (and (j/get state :mouse-over?)
                (not (j/get state :right-click?))
                page-x
@@ -203,3 +232,16 @@
                     {:init (fnt (init-fn this))
                      :update (fnt (update-fn dt))
                      :post-update (fnt (post-update-fn dt this))}))
+
+(comment
+  (j/get st/player :target-y)
+
+  (pc/get-loc-euler (j/get st/player :model-entity))
+
+  (j/assoc! (j/get state :eulers) :x (+ 180 -56))
+
+  (pc/get-loc-euler (j/get st/player :model-entity))
+
+  (j/assoc! (j/get state :eulers) :x y)
+
+  )

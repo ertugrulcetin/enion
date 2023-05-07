@@ -110,6 +110,18 @@
   ([e x y z]
    (j/call e :setLocalScale x y z)))
 
+(let [q js/pc.Quat]
+  (defn quat []
+    (q.)))
+
+(defn set-from-euler
+  ([q v]
+   (j/call q :setFromEulerAngles v))
+  ([q x y z]
+   (j/call q :setFromEulerAngles x y z)))
+
+(defn slerp [])
+
 (defn raycast-first [from to]
   (j/call-in app [:systems :rigidbody :raycastFirst] from to))
 

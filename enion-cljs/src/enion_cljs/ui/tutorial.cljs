@@ -79,6 +79,11 @@
     nil
     true))
 
+(defn chick-destroyed []
+  (intro/start-intro
+    [{:title "You're no longer a chick!"
+      :intro (str "You reached <b>level 15</b> and destroyed the chick! 🐥<br/><br/> Earned <b>50,000 Coins!</b>")}]))
+
 (def tutorials
   [{:name :navigate-wasd
     :text "Navigate with WASD Keys"
@@ -128,3 +133,4 @@
 (on :settings-button settings-button)
 (on :create-party create-party)
 (on :main-menu main-menu)
+(on :chick-destroyed chick-destroyed)

@@ -31,6 +31,7 @@
 (defonce player (clj->js default-player-state))
 
 (comment
+
   (j/assoc! player :speed 2550))
 
 (defonce other-players #js {})

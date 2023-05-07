@@ -763,6 +763,16 @@
   (at-media {:max-width "1250px"}
             {:width "90%"}))
 
+(defattrs settings-switches []
+  {:display :flex
+   :flex-direction :row
+   :justify-content :space-between
+   :width "50%"
+   :transform "translateX(50%)"}
+  (at-media {:max-width "1250px"}
+            {:width "100%"
+             :transform :unset}))
+
 (defclass settings-exit-button []
   {:composes [(button)]
    :margin-top "20px"

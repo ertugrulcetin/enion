@@ -114,10 +114,12 @@
          (fn [acc k v]
            (assoc acc k (vec (map :id v)))) {})))
 
-(defn notify-players-for-exit [id]
+(defn notify-players-for-exit [id username]
   (doseq [other-player-id (filter #(not= id %) (keys @world))]
     (println "Sending exit notification...")
-    (send! other-player-id :player-exit id)))
+    (send! other-player-id :player-exit id)
+    (send! other-player-id :global-message {:id :server
+                                            :msg (str username " left")})))
 
 (comment
   (mount/stop)
@@ -352,7 +354,9 @@
 (defn notify-players-for-new-join [id attrs]
   (doseq [other-player-id (filter #(not= id %) (keys @world))]
     (println "Sending new join...")
-    (send! other-player-id :player-join attrs)))
+    (send! other-player-id :player-join attrs)
+    (send! other-player-id :global-message {:id :server
+                                            :msg (str (:username attrs) " joined")})))
 
 (def race-set #{"orc" "human"})
 (def class-set #{"warrior" "mage" "asas" "priest"})
@@ -488,7 +492,7 @@
            (not (common.skills/username? username))) {:error :invalid-username}
       (and (not (str/blank? username))
            (or ((get-usernames) (str/lower-case username))
-               (= "system" (str/lower-case username)))) {:error :username-taken}
+               (#{"system" "server" "admin" "gm"} (str/lower-case username)))) {:error :username-taken}
       :else (try
               (println "Player joining...")
               (let [orcs-count (count (get-orcs current-players))
@@ -1084,19 +1088,25 @@
         {:keys [health mana]} (when level-up? (get-in common.skills/level->health-mana-table [new-level class]))
         new-required-exp (when level-up? (get common.skills/level->exp-table new-level))
         token (player :token)
-        attack-power (when level-up? (get common.skills/level->attack-power-table new-level))]
+        attack-power (when level-up? (get common.skills/level->attack-power-table new-level))
+        level-15-rewarded-coin 50000
+        coin (if (= new-level common.skills/chick-destroyed-level)
+               (+ coin level-15-rewarded-coin)
+               coin)]
     (send! player-id :drop (cond-> {:drop drop
                                     :npc npc-type
                                     :npc-exp exp
                                     :exp new-exp}
-                             level-up? (assoc :level-up? true
-                                              :level new-level
-                                              :attack-power attack-power
-                                              :required-exp new-required-exp
-                                              :health health
-                                              :mana mana)
-                             (> coin-drop 0) (assoc :coin coin-drop
-                                                    :total-coin coin)))
+                             level-up?
+                             (assoc :level-up? true
+                                    :level new-level
+                                    :attack-power attack-power
+                                    :required-exp new-required-exp
+                                    :health health
+                                    :mana mana)
+                             (> coin-drop 0)
+                             (assoc :coin coin-drop
+                                    :total-coin coin)))
     (when (and level-up? (= new-level common.skills/chick-destroyed-level))
       (doseq [id (filter #(not= player-id %) (keys current-players))]
         (send! id :chick-destroyed {:player-id player-id})))
@@ -1332,16 +1342,17 @@
                                  (assoc-in [player-id :token] token))))
             (s/on-closed socket
                          (fn []
-                           (cancel-all-tasks-of-player player-id)
-                           (remove-from-party {:id player-id
-                                               :players* @players
-                                               :exit? true})
-                           (swap! players dissoc player-id)
-                           (swap! world dissoc player-id)
-                           (future
-                             (Thread/sleep 1000)
+                           (let [username (get-in @players [player-id :username])]
+                             (cancel-all-tasks-of-player player-id)
+                             (remove-from-party {:id player-id
+                                                 :players* @players
+                                                 :exit? true})
+                             (swap! players dissoc player-id)
                              (swap! world dissoc player-id)
-                             (notify-players-for-exit player-id)))))
+                             (future
+                               (Thread/sleep 1000)
+                               (swap! world dissoc player-id)
+                               (notify-players-for-exit player-id username))))))
           (s/consume
             (fn [payload]
               (try

@@ -258,7 +258,7 @@
                   :description (str "Powerful fire-based attack that unleashes a burst "
                                     "of intense flames in a certain radius")
                   :required-mana 300
-                  :damage-fn (create-damage-fn 2.15)
+                  :damage-fn (create-damage-fn 1.85)
                   :required-level 10
                   :class "mage"}
    "attackSingle" {:cooldown 1500

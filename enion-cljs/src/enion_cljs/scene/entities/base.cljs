@@ -38,7 +38,7 @@
       (pc/enable walls)
       (doseq [e (j/get walls :children)]
         (j/call-in e [:collision :on] "collisionstart"
-                   #(fire :ui-show-global-message "Finish all quests to explore map!" 3000))))
+                   #(fire :ui-show-global-message "Finish all quests to explore map!" 5000))))
     (pc/disable (pc/find-by-name "walls"))))
 
 (defn unregister-base-trigger-events []

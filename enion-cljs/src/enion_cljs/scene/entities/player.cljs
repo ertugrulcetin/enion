@@ -5,6 +5,7 @@
     [enion-cljs.common :as common :refer [dev? fire on dlog]]
     [enion-cljs.scene.entities.base :as entity.base]
     [enion-cljs.scene.entities.camera :as entity.camera]
+    [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.asas :as skills.asas]
     [enion-cljs.scene.skills.core :as skills]
@@ -218,6 +219,9 @@
              (= "KeyF" (j/get-in e [:event :code])))
     (fire :talk-to-quest-npc)))
 
+(defn- adjust-chase-camera-from-back []
+  (js/setTimeout #(entity.camera/chase-player-from-back) 100))
+
 (defn- register-keyboard-events []
   (let [class (j/get player :class)
         [process-skills events] (case class
@@ -240,6 +244,8 @@
                         (look-at-&-run-towards-selected-player e))))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
+                      (when (and (st/chat-closed?) (not (k/pressing-wasd?)))
+                        (adjust-chase-camera-from-back))
                       (st/process-running)))
     (skills/register-skill-events events)
     (on :update-skills-order skills/register-key->skills)
@@ -347,7 +353,9 @@
   (pc/on-mouse :EVENT_MOUSEUP
                (fn [e]
                  (when (pc/button? e :MOUSEBUTTON_LEFT)
-                   (j/assoc! player :mouse-left-locked? false))))
+                   (j/assoc! player :mouse-left-locked? false)
+                   (when (j/get player :target-pos-available?)
+                     (adjust-chase-camera-from-back)))))
 
   (pc/on-mouse :EVENT_MOUSEMOVE
                (fn [e]
@@ -721,6 +729,7 @@
           :sound? (some-> (j/assoc-in! (st/get-player-entity) [:c :sound :volume] (if v 1 0)))
           :camera-rotation-speed (j/assoc! entity.camera/state :camera-rotation-speed v)
           :edge-scroll-speed (j/assoc! entity.camera/state :edge-scroll-speed v)
+          :chase-camera? (j/assoc! entity.camera/state :chase-camera? v)
           :graphics-quality (j/assoc-in! pc/app [:graphicsDevice :maxPixelRatio] v)
           :fps? (if v
                   (j/call-in (pc/find-by-name "Root") [:c :script :fps :fps :show])
@@ -740,9 +749,7 @@
 
 (on :player-in-quest
     (fn [[quest required-kills]]
-      (let [race (st/get-race)
-            npc (pc/find-by-name (if (= "orc" race) "orc_npc" "human_npc"))
-            quest-indicator (pc/find-by-name npc "quest_indicator")]
+      (let [race (st/get-race)]
         (st/play-sound "portal_pass")
         (js/setTimeout
           #(do
@@ -756,7 +763,6 @@
                                  :demon [-19.67 1 37.87]
                                  [-31.79 0.7 29.93]))))
           500)
-        (pc/disable quest-indicator)
         (j/assoc! player
                   :current-quest quest
                   :required-kills required-kills)

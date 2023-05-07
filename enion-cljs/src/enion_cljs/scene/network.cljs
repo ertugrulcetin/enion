@@ -570,9 +570,10 @@
 (defmethod dispatch-pro-response :global-message [params]
   (let [msg (:global-message params)
         current-player? (= (:id msg) current-player-id)]
-    (fire :add-global-message (assoc msg :username (if current-player?
-                                                     (j/get st/player :username)
-                                                     (st/get-username (:id msg)))))))
+    (fire :add-global-message (assoc msg :username (cond
+                                                     (= (:id msg) :server) "Server"
+                                                     current-player? (j/get st/player :username)
+                                                     :else (st/get-username (:id msg)))))))
 
 (defmethod dispatch-pro-response :party-message [params]
   (let [msg (:party-message params)
@@ -624,6 +625,8 @@
   (fire :ui-level-up opts)
   (st/play-sound "levelUp")
   (show-unlocked-skill level)
+  (when (= level common.skills/chick-destroyed-level)
+    (fire :chick-destroyed))
   (case level
     2 (fire :how-to-use-potions)
     3 (fire :show-unlocked-skill-fleet-foot)

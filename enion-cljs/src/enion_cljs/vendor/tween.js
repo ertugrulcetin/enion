@@ -705,6 +705,11 @@ pc.extend(pc, function () {
     return new pct(target, tm);
    }
 
+      // Add pc.Application#tween method
+    pc.Application.prototype.tween = function (target) {
+        return new pc.Tween(target, this._tweenManager);
+    };
+
 
     // Add pc.Entity#tween method
     pc.Entity.prototype.tween = function (target, options) {

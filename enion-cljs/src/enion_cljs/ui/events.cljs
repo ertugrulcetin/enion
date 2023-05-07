@@ -20,6 +20,7 @@
    :fps? false
    :ping? false
    :minimap? false
+   :chase-camera? true
    :camera-rotation-speed 20
    :edge-scroll-speed 100
    :graphics-quality 0.75})

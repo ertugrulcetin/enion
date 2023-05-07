@@ -854,6 +854,7 @@
                      fps?
                      ping?
                      minimap?
+                     chase-camera?
                      camera-rotation-speed
                      edge-scroll-speed
                      graphics-quality]} @(subscribe [::subs/settings])]
@@ -861,12 +862,7 @@
           {:class (styles/settings-modal)
            :on-mouse-over #(fire :on-ui-element? true)
            :on-mouse-out #(fire :on-ui-element? false)}
-          [:div
-           {:style {:display :flex
-                    :flex-direction :row
-                    :justify-content :center
-                    :gap "30px"
-                    :margin-top "10px"}}
+          [:div (styles/settings-switches)
            [:div
             {:style {:display :flex
                      :flex-direction :column
@@ -912,6 +908,17 @@
                       :type "checkbox"
                       :checked minimap?
                       :on-change #(dispatch-sync [::events/update-settings :minimap? (not minimap?)])}]
+             [:span.slider.round]]]
+           [:div
+            {:style {:display :flex
+                     :flex-direction :column
+                     :align-items :center}}
+            [:strong "Chase Camera"]
+            [:label.switch
+             [:input {:style {:outline :none}
+                      :type "checkbox"
+                      :checked chase-camera?
+                      :on-change #(dispatch-sync [::events/update-settings :chase-camera? (not chase-camera?)])}]
              [:span.slider.round]]]]
           [:br]
           [settings-table camera-rotation-speed edge-scroll-speed graphics-quality]
