@@ -677,6 +677,8 @@ pc.extend(pc, function () {
     };
 }());
 
+var pca = pc.Application;
+var pct = pc.Tween;
 // Expose prototype methods and create a default tween manager on the application
 (function () {
     // Add pc.Application#addTweenManager method
@@ -699,15 +701,13 @@ pc.extend(pc, function () {
      my_app._tweenManager.update(dt);
    });
 
-   pct = pc.Tween;
-
    function createTween(target, tm){
     return new pct(target, tm);
    }
 
       // Add pc.Application#tween method
-    pc.Application.prototype.tween = function (target) {
-        return new pc.Tween(target, this._tweenManager);
+    pca.prototype.tween = function (target) {
+        return new pct(target, this._tweenManager);
     };
 
 

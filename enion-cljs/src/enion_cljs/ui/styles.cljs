@@ -773,6 +773,25 @@
             {:width "100%"
              :transform :unset}))
 
+(defclass settings-cancel []
+  {:position :absolute
+   :width "50px"
+   :height "50px"
+   :top 0
+   :right 0
+   :padding "10px"}
+  [:&:before
+   {:content "\"X\""
+    :position :absolute
+    :top "5px"
+    :right "15px"
+    :font-size "35px"
+    :font-weight :bold
+    :color :white
+    :cursor :pointer}
+   (at-media {:max-width "1250px"}
+             {:font-size "20px"})])
+
 (defclass settings-exit-button []
   {:composes [(button)]
    :margin-top "20px"

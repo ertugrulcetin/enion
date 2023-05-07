@@ -9,7 +9,7 @@
 (def re-spawn-duration-in-milli-secs 5000)
 (def party-request-duration-in-milli-secs 11000)
 
-(def chick-destroyed-level 15)
+(def chick-destroyed-level 10)
 
 
 (defn rand-between

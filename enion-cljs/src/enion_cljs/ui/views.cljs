@@ -862,6 +862,9 @@
           {:class (styles/settings-modal)
            :on-mouse-over #(fire :on-ui-element? true)
            :on-mouse-out #(fire :on-ui-element? false)}
+          [:div
+           {:class (styles/settings-cancel)
+            :on-click #(dispatch [::events/close-settings-modal])}]
           [:div (styles/settings-switches)
            [:div
             {:style {:display :flex
