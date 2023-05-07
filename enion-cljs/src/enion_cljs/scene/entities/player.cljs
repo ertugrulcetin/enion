@@ -5,7 +5,6 @@
     [enion-cljs.common :as common :refer [dev? fire on dlog]]
     [enion-cljs.scene.entities.base :as entity.base]
     [enion-cljs.scene.entities.camera :as entity.camera]
-    [enion-cljs.scene.keyboard :as k]
     [enion-cljs.scene.pc :as pc]
     [enion-cljs.scene.skills.asas :as skills.asas]
     [enion-cljs.scene.skills.core :as skills]
@@ -233,6 +232,8 @@
     (pc/on-keyboard :EVENT_KEYDOWN
                     (fn [e]
                       (when (st/chat-closed?)
+                        (when (and (pc/pressed? :KEY_W) (not (pc/pressed? :KEY_S)))
+                          (adjust-chase-camera-from-back))
                         (process-esc e)
                         (process-char-panel e)
                         (process-npc-talk e)
@@ -244,8 +245,6 @@
                         (look-at-&-run-towards-selected-player e))))
     (pc/on-keyboard :EVENT_KEYUP
                     (fn [e]
-                      (when (and (st/chat-closed?) (not (k/pressing-wasd?)))
-                        (adjust-chase-camera-from-back))
                       (st/process-running)))
     (skills/register-skill-events events)
     (on :update-skills-order skills/register-key->skills)
@@ -283,10 +282,10 @@
           hit-entity-name (j/get-in result [:entity :name])]
       (when (= "terrain" hit-entity-name)
         #_(when dev?
-          (println
-            (common.utils/parse-float (j/get-in result [:point :x]) 2)
-            (common.utils/parse-float (j/get-in result [:point :y]) 2)
-            (common.utils/parse-float (j/get-in result [:point :z]) 2)))
+            (println
+              (common.utils/parse-float (j/get-in result [:point :x]) 2)
+              (common.utils/parse-float (j/get-in result [:point :y]) 2)
+              (common.utils/parse-float (j/get-in result [:point :z]) 2)))
         (let [x (j/get-in result [:point :x])
               y (j/get-in result [:point :y])
               z (j/get-in result [:point :z])
