@@ -100,6 +100,16 @@
   (fn [db _]
     (assoc-in db [:change-server-modal :open?] false)))
 
+(reg-event-db
+  ::open-join-discord-server-modal
+  (fn [db _]
+    (assoc-in db [:join-discord-modal :open?] true)))
+
+(reg-event-db
+  ::close-join-discord-server-modal
+  (fn [db _]
+    (assoc-in db [:join-discord-modal :open?] false)))
+
 (reg-fx
   ::dispatch-throttle
   (fn [[id event-vec milli-secs]]

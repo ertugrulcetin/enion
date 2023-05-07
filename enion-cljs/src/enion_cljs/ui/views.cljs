@@ -766,6 +766,25 @@
            :on-click #(dispatch [::events/close-change-server-modal])}
           "No"]]])}))
 
+(defn- join-discord-modal []
+  (r/create-class
+    {:component-will-unmount #(fire :on-ui-element? false)
+     :reagent-render
+     (fn []
+       [:div (styles/change-server-modal)
+        [:p "Seems like you're enjoying the game! Would you like to join our " [:b "Discord Server"] "?"]
+        [:div (styles/party-request-buttons-container)
+         [:button
+          {:class (styles/party-request-accept-button)
+           :on-click #(do
+                        (js/window.open "https://discord.gg/rmaTrYdV5V" "_blank")
+                        (dispatch [::events/close-join-discord-server-modal]))}
+          "Yes"]
+         [:button
+          {:class (styles/party-request-reject-button)
+           :on-click #(dispatch [::events/close-join-discord-server-modal])}
+          "No"]]])}))
+
 (defn- settings-table [camera-rotation-speed edge-scroll-speed graphics-quality]
   [:table (styles/settings-table)
    [:thead
@@ -1314,7 +1333,8 @@
        (on :ui-set-total-coin #(dispatch [::events/set-total-coin %]))
        (on :ui-talk-to-npc #(dispatch [::events/talk-to-npc %]))
        (on :ui-update-quest-progress #(dispatch [::events/update-quest-progress %]))
-       (on :ui-complete-quest #(dispatch [::events/complete-quest %])))
+       (on :ui-complete-quest #(dispatch [::events/complete-quest %]))
+       (on :ui-ask-join-discord #(dispatch [::events/open-join-discord-server-modal])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -1344,6 +1364,8 @@
                [settings-modal])
              (when @(subscribe [::subs/change-server-modal-open?])
                [change-server-modal])
+             (when @(subscribe [::subs/join-discord-modal-open?])
+               [join-discord-modal])
              [selected-player]
              (when @(subscribe [::subs/minimap?])
                [minimap])

@@ -639,6 +639,7 @@
                                        "Kill some Humans!"
                                        "Kill some Orcs!")]
                          (fire :ui-show-global-message (str "PvP Unlocked! ⚔️ " against) 15000)) 2000)
+    (11 14) (fire :ui-ask-join-discord)
     (show-unlocked-skill level)))
 
 (defn- process-exp [params]

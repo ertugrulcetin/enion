@@ -31,6 +31,11 @@
     (-> db :change-server-modal :open?)))
 
 (reg-sub
+  ::join-discord-modal-open?
+  (fn [db]
+    (-> db :join-discord-modal :open?)))
+
+(reg-sub
   ::ping?
   (fn [db]
     (-> db :settings :ping?)))
