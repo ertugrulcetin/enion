@@ -5,7 +5,7 @@
     [cljs.reader :as reader]
     [clojure.string :as str]
     [day8.re-frame.http-fx :as http-fx]
-    [enion-cljs.common :as common :refer [fire dev?]]
+    [enion-cljs.common :as common :refer [fire dev? api-url]]
     [enion-cljs.ui.db :as db]
     [enion-cljs.ui.tutorial :as tutorial]
     [enion-cljs.ui.utils :as ui.utils]
@@ -27,9 +27,10 @@
 
 (reg-event-fx
   ::initialize-db
-  [(inject-cofx ::settings)]
-  (fn [{:keys [settings]} [_ initializing?]]
+  [(inject-cofx ::settings) (inject-cofx ::token)]
+  (fn [{:keys [settings token]} [_ initializing?]]
     {:db (assoc db/default-db
+                :token token
                 :settings settings
                 :initializing? initializing?
                 :in-iframe? (not= js/window (j/get js/window :parent)))}))
@@ -61,6 +62,12 @@
         (assoc cofx :settings default-settings))
       (catch js/Error _
         (assoc cofx :settings default-settings)))))
+
+(reg-cofx
+  ::token
+  (fn [cofx _]
+    (when-let [ls (common.utils/get-local-storage)]
+      (assoc cofx :token (j/call ls :getItem "token")))))
 
 (reg-event-fx
   ::update-settings
@@ -573,10 +580,24 @@
 (reg-event-fx
   ::fetch-server-list
   (fn [_ [_ click-to-join?]]
-    {:http {:method :get
-            :uri "https://enion-eu-2.fly.dev/servers"
+    {:http {:uri (str api-url "/servers")
+            :method :get
             :on-success [::fetch-server-list-success click-to-join?]
             :on-failure [::fetch-server-list-failure click-to-join?]}}))
+
+(reg-event-fx
+  ::fetch-player-info
+  (fn [{:keys [db]}]
+    (when-let [token (:token db)]
+      {:http {:uri (str api-url "/player_info")
+              :method :post
+              :params {:token token}
+              :on-success [::fetch-player-info-success]}})))
+
+(reg-event-fx
+  ::fetch-player-info-success
+  (fn [_ [_ player]]
+    {::fire [:set-player-for-init-modal player]}))
 
 (defn- update-keys [f m]
   (into {} (map (fn [[k v]] [(f k) v]) m)))

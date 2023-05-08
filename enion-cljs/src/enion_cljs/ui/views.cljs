@@ -1139,10 +1139,19 @@
                        (dispatch [::events/connect-to-available-server]))}
          [click-to-join-indicator-text]]])}))
 
+(def username (r/atom nil))
+(def race (r/atom nil))
+(def class (r/atom nil))
+
+(on :set-player-for-init-modal
+    (fn [{:keys [last-played-race last-played-class] :as player}]
+      (when (seq player)
+        (some->> (get-in player [(keyword last-played-class) :username]) (reset! username))
+        (some->> last-played-race (reset! race))
+        (some->> last-played-class (reset! class)))))
+
 (defn- init-modal []
-  (let [username (r/atom nil)
-        race (r/atom nil)
-        class (r/atom nil)]
+  (let []
     (r/create-class
       {:component-did-mount #(dispatch [::events/notify-ui-is-ready])
        :component-will-mount #(when-not dev? (dispatch [::events/fetch-server-list]))
@@ -1281,7 +1290,8 @@
 
 (defn main-panel []
   (r/create-class
-    {:component-did-mount
+    {:component-will-mount #(dispatch [::events/fetch-player-info])
+     :component-did-mount
      (fn []
        (add-mouse-listeners)
        (add-key-listeners)

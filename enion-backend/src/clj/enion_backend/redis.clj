@@ -69,7 +69,7 @@
 (comment
   (set "abc" {:username {:name "abc" :password "123"}})
 
-  (get "RcGk_I_KPa2rOMdxdCMeF")
+  (set "4TSkP1l9dArDKEDI8zDQC" (assoc-in (get "4TSkP1l9dArDKEDI8zDQC") ["mage":level] 29))
 
   (let [token "mZJidk9bgI7Mw0VVLHoLv"]
     (set token (assoc (get token) :quests #{})))

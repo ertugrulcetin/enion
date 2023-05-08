@@ -36,6 +36,7 @@
            :release {:compiler-options {:source-map true}
                      :build-options {:ns-aliases {day8.re-frame.tracing day8.re-frame.tracing-stubs}}
                      :closure-defines {enion-cljs.common/ws-url "wss://enion.fly.dev:443/ws"
+                                       enion-cljs.common/api-url "https://enion-eu-2.fly.dev"
                                        goog.DEBUG false}}}
           :browser-test {:target :browser-test
                          :ns-regexp "-test$"

@@ -1377,6 +1377,10 @@
   ;; Routing lib expects some sort of HTTP response, so just give it `nil`
   nil)
 
+(defn- player-info [req]
+  {:status 200
+   :body (some-> req :params :token redis/get)})
+
 (defn- stats [_]
   (let [players @players
         orcs (count (get-orcs players))
@@ -1407,6 +1411,7 @@
   [""
    {:middleware [middleware/wrap-formats]}
    ["/" {:get home-page}]
+   ["/player_info" {:post player-info}]
    ["/stats" {:post stats}]
    ["/servers" {:get get-servers-list}]
    ["/ws" {:get ws-handler}]])
