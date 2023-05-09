@@ -4,15 +4,15 @@
 
 
 (def npcs
-  {:squid {:health 750
+  {:squid {:health 500
            :name "Squid"
            :char-name-y-offset 0.2
            :level 1}
-   :ghoul {:health 1000
+   :ghoul {:health 850
            :name "Ghoul"
            :char-name-y-offset 0.1
            :level 3}
-   :demon {:health 1250
+   :demon {:health 1000
            :name "Demon"
            :char-name-y-offset 0.1
            :level 6}
@@ -36,9 +36,3 @@
               :name "Deruvish Aethertide"
               :char-name-y-offset 0.5
               :level 30}})
-
-
-(def drops
-  {:coin {:name "Coin"}
-   :hp-potion {:name "HP Potion"}
-   :mp-potion {:name "MP Potion"}})

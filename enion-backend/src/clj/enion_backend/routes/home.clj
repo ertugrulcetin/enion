@@ -118,8 +118,9 @@
   (doseq [other-player-id (filter #(not= id %) (keys @world))]
     (println "Sending exit notification...")
     (send! other-player-id :player-exit id)
-    (send! other-player-id :global-message {:id :server
-                                            :msg (str username " left")})))
+    (when-not (str/blank? username)
+      (send! other-player-id :global-message {:id :server
+                                              :msg (str username " left")}))))
 
 (comment
   (mount/stop)
