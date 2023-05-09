@@ -858,6 +858,12 @@
      [:td.center "Chat"]
      [:td [:span.action-key.settings "Enter"]]]
     [:tr
+     [:td.center "Character Panel"]
+     [:td [:span.action-key.settings "C"]]]
+    [:tr
+     [:td.center "Leader Board"]
+     [:td [:span.action-key.settings "L"]]]
+    [:tr
      [:td.center "Rotate Camera"]
      [:td.no-padding [:span "Hold Right Click and Drag"]]]
     [:tr
