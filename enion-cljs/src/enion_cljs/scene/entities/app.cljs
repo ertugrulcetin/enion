@@ -100,6 +100,8 @@
                   ;;TODO window.Terrain/Water/Wave acik onlari da null'a setle
                   (when dev?
                     (simulation/init))
+                  (some-> (pc/find-by-name "player") pc/enable)
+                  (some-> (pc/find-by-name "effects") pc/enable)
                   (when-not dev?
                     (let [fill-mode-none (j/get-in js/window [:pc :FILLMODE_NONE])
                           fill-mode-aspect (j/get-in js/window [:pc :FILLMODE_KEEP_ASPECT])]

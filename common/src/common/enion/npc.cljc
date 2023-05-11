@@ -36,3 +36,10 @@
               :name "Deruvish Aethertide"
               :char-name-y-offset 0.5
               :level 30}})
+
+
+(def drops
+  {:coin {:name "Coin"}
+   :hp-potion {:name "HP Potion"}
+   :mp-potion {:name "MP Potion"}})
+

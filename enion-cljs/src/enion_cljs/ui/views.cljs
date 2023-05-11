@@ -349,7 +349,12 @@
 (defn inventory-squares []
   (for [i (range 24)]
     ^{:key i}
-    [:div {:class (styles/inventory-square)}]))
+    [:div {:class (styles/inventory-square)}
+     #_[:img {:src (img->img-url "attack_one_hand.png")
+            :style {:width "48px"
+                    :height "48px"
+                    :margin-left "1px"
+                    :margin-top "1px"}}]]))
 
 (defn- char-name []
   [:tr

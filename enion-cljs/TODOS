@@ -1,3 +1,4 @@
+Player remains in the party even tho he exists the game
 Can apply locked skills with skill failed, fix in UI
 MP potions particles do not show up
 Sometimes players global state have players without socket, so handle this case. Remove them from the global state. Also notify the other players that the player is disconnected.
