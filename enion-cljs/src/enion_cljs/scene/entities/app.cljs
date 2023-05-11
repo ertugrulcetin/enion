@@ -104,10 +104,12 @@
                   (some-> (pc/find-by-name "effects") pc/enable)
                   (when-not dev?
                     (let [fill-mode-none (j/get-in js/window [:pc :FILLMODE_NONE])
-                          fill-mode-aspect (j/get-in js/window [:pc :FILLMODE_KEEP_ASPECT])]
+                          fill-mode-aspect (j/get-in js/window [:pc :FILLMODE_KEEP_ASPECT])
+                          draw-full-screen-quad (j/get-in js/window [:pc :drawFullscreenQuad])]
                       (j/assoc! js/window :pc (seq {}))
                       (j/assoc-in! js/window [:pc :FILLMODE_NONE] fill-mode-none)
-                      (j/assoc-in! js/window [:pc :FILLMODE_KEEP_ASPECT] fill-mode-aspect)))
+                      (j/assoc-in! js/window [:pc :FILLMODE_KEEP_ASPECT] fill-mode-aspect)
+                      (j/assoc-in! js/window [:pc :drawFullscreenQuad] draw-full-screen-quad)))
                   (poki/init)
                   (let [{:keys [hidden visibility-change]} (visibility-props)]
                     (when hidden

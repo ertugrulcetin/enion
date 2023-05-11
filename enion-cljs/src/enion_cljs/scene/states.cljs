@@ -297,6 +297,9 @@
      (j/call-in entity [:rigidbody :teleport] x y z)
      (pc/set-pos entity x y z))))
 
+(comment
+  (move-player [34.79 1.5 -14.32]))
+
 (defn rotate-player [player-id x y z]
   (when-let [entity (get-model-entity player-id)]
     (let [eul (pc/get-loc-euler entity)
