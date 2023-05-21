@@ -740,3 +740,24 @@
       (some-> @socket (j/call :close 3001 "re-init"))
       (cancel-sending-states-to-server)
       (cancel-ping-interval)))
+
+(on :buy-item
+    (fn [item]
+      (dispatch-pro :buy-item {:item item})))
+
+(defmethod dispatch-pro-response :buy-item [params]
+  (fire :ui-update-inventory-and-coin (:buy-item params)))
+
+(on :sell-item
+    (fn [item-attrs]
+      (dispatch-pro :sell-item {:item item-attrs})))
+
+(defmethod dispatch-pro-response :sell-item [params]
+  (fire :ui-update-inventory-and-coin (:sell-item params)))
+
+(on :update-item-order
+    (fn [idxs]
+      (dispatch-pro :update-item-order idxs)))
+
+(defmethod dispatch-pro-response :update-item-order [params]
+  (fire :ui-update-inventory-and-coin (:update-item-order params)))

@@ -1,7 +1,9 @@
 (ns enion-cljs.ui.subs
   (:require
+    [applied-science.js-interop :as j]
     [clojure.string :as str]
     [common.enion.skills :as common.skills]
+    [enion-cljs.ui.utils :as utils]
     [re-frame.core :refer [reg-sub reg-sub-raw]]))
 
 (reg-sub
@@ -121,6 +123,12 @@
   ::coin
   (fn [db]
     (-> db :player :coin)))
+
+(reg-sub
+  ::coin-str
+  :<- [::coin]
+  (fn [coin]
+    (utils/to-locale coin)))
 
 (reg-sub
   ::bp
@@ -402,3 +410,43 @@
   ::quest
   (fn [db]
     (:quest db)))
+
+(reg-sub
+  ::item-description
+  (fn [db]
+    (:item-description db)))
+
+(reg-sub
+  ::item-description-type
+  (fn [db]
+    (:item-description-type db)))
+
+(reg-sub
+  ::selected-buy-item
+  (fn [db]
+    (:selected-buy-item db)))
+
+(reg-sub
+  ::selected-sell-item
+  (fn [db]
+    (:selected-sell-item db)))
+
+(reg-sub
+  ::buy-item-modal-error
+  (fn [db]
+    (:buy-item-modal-error db)))
+
+(reg-sub
+  ::inventory
+  (fn [db]
+    (-> db :player :inventory)))
+
+(reg-sub
+  ::shop-panel-open?
+  (fn [db]
+    (:shop-panel-open? db)))
+
+(reg-sub
+  ::selected-inventory-item
+  (fn [db]
+    (:selected-inventory-item db)))

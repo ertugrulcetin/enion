@@ -123,7 +123,7 @@
 (defclass equip []
   {:position "relative"
    :display "grid"
-   :grid-template-columns "repeat(6, 1fr)"
+   :grid-template-columns "repeat(3, 1fr)"
    :grid-gap "5px"
    :height "50px"
    :align-items "center"
@@ -138,11 +138,18 @@
   {:width "45px"
    :height "45px"
    :border "3px solid #293c40"
-   :border-radius "5px"
-   :filter "blur(2px)"}
+   :border-radius "5px"}
+  [:img.placeholder {:width "43px"
+                     :height "43px"
+                     :margin-left "1px"
+                     :margin-top "1px"}]
   (at-media {:max-width "1250px"}
             {:width "20px"
-             :height "20px"}))
+             :height "20px"}
+            [:img.placeholder {:width "18px"
+                               :height "18px"
+                               :margin-left "1px"
+                               :margin-top "1px"}]))
 
 (defclass inventory-wrapper []
   {:display "flex"
@@ -163,11 +170,39 @@
   {:width "50px"
    :height "50px"
    :border "3px solid #293c40"
-   :border-radius "5px"
-   :filter "blur(2px)"}
+   :border-radius "5px"}
+  [:img {:width "48px"
+         :height "48px"
+         :margin-left "1px"
+         :margin-top "1px"}]
   (at-media {:max-width "1250px"}
             {:width "20px"
-             :height "20px"}))
+             :height "20px"}
+            [:img {:width "20px"
+                   :height "20px"
+                   :margin-left "1px"
+                   :margin-top "1px"}]))
+
+(defclass shop-panel []
+  {:composes [(char-panel)]
+   :transform "translate(-50%, -50%)"
+   :margin-top "5%"
+   :top "50%"
+   :left "50%"})
+
+(defclass shop-panel-container []
+  {:composes [(char-panel-container)]
+   :background-color "#10131df5"})
+
+(defclass shop-wrapper []
+  {:composes [(inventory-wrapper)]
+   :margin-top "30px"})
+
+(defclass item-container []
+  {:composes [(inventory-container)]})
+
+(defclass coins-header []
+  {:composes [(char-panel-header)]})
 
 (defclass section-overlay []
   {:position "absolute"
@@ -360,6 +395,13 @@
     :padding-right "10px"}]
   [:span {:font-size "18px"}]
   [:span.info {:font-size "16px"}])
+
+(defclass item-description []
+  {:composes [(skill-description)]}
+  [:span.item-name {:font-size "20px"}]
+  [:span.same-class {:color "green"}]
+  [:span.different-class {:color "red"}]
+  [:span.not-enough-coin {:color "red"}])
 
 (defclass temp-skill-order-description []
   {:composes [(skill-description)]
@@ -792,6 +834,11 @@
    (at-media {:max-width "1250px"}
              {:font-size "20px"})])
 
+(defclass shop-close []
+  {:composes [(settings-cancel)]}
+  [:&:before
+   {:font-size "20px"}])
+
 (defclass settings-exit-button []
   {:composes [(button)]
    :margin-top "20px"
@@ -1176,3 +1223,25 @@
    {:font-size "20px"
     :color :white}]
   [:b {:color "#ffc107"}])
+
+(defattrs buy-item-modal []
+  {:composes [(change-server-modal)]
+   :background-color "#10131df5"})
+
+(defclass buy-item-button []
+  {:border "2px solid white"})
+
+(defclass buy-item-button-accept []
+  {:composes [(party-request-accept-button) (buy-item-button)]})
+
+(defclass buy-item-button-reject []
+  {:composes [(party-request-reject-button) (buy-item-button)]})
+
+(defattrs item-error-popup-message []
+  {:composes [(error-popup-message)]
+   :color :white})
+
+(defclass item-error-popup-ok-button []
+  {:composes [(error-popup-ok-button)]
+   :border "2px solid white"}
+  [:&:hover {:border "2px solid white"}])

@@ -387,6 +387,7 @@
                      level
                      coin
                      exp
+                     inventory
                      required-exp
                      tutorials
                      quests]}]]
@@ -403,6 +404,7 @@
         (assoc-in [:player :required-exp] required-exp)
         (assoc-in [:player :attack-power] attack-power)
         (assoc-in [:player :bp] bp)
+        (assoc-in [:player :inventory] inventory)
         (assoc-in [:servers :current-server] server-name)
         (assoc :tutorials tutorials)
         (assoc :quests quests))))
@@ -746,7 +748,7 @@
         (if next-quest
           {:db (assoc db :in-quest? true)
            ::fire [:show-quest-modal next-quest]}
-          {::fire [:show-no-quests-modal]})))))
+          {::fire [:show-no-quests-modal (-> db :player :level)]})))))
 
 (reg-event-db
   ::update-quest-progress
@@ -762,3 +764,68 @@
     {:db (update db :quests conj quest-npc)
      :dispatch-n [[::update-quest-progress [npc completed-kills required-kills] true]
                   [::show-global-message "Quest Completed ⚔️ Go talk to NPC!"]]}))
+
+(reg-event-db
+  ::show-item-description
+  (fn [db [_ item type]]
+    (assoc db
+           :item-description item
+           :item-description-type type)))
+
+(reg-event-db
+  ::show-buy-item-dialog
+  (fn [db [_ item]]
+    (assoc db :selected-buy-item item)))
+
+(reg-event-db
+  ::cancel-buy-item
+  (fn [db]
+    (assoc db :selected-buy-item nil)))
+
+(reg-event-fx
+  ::buy-item
+  (fn [{:keys [db]} [_ item]]
+    {:db (assoc db :selected-buy-item nil)
+     ::fire [:buy-item item]}))
+
+(reg-event-db
+  ::show-sell-item-dialog
+  (fn [db [_ item]]
+    (assoc db :selected-sell-item item)))
+
+(reg-event-db
+  ::cancel-sell-item
+  (fn [db]
+    (assoc db :selected-sell-item nil)))
+
+(reg-event-db
+  ::update-inventory-and-coin
+  (fn [db [_ {:keys [inventory coin err]}]]
+    (if err
+      (assoc db :buy-item-modal-error err)
+      (-> db
+          (assoc-in [:player :inventory] inventory)
+          (assoc-in [:player :coin] coin)))))
+
+(reg-event-db
+  ::clear-buy-item-modal-error
+  (fn [db]
+    (assoc db :buy-item-modal-error nil)))
+
+(reg-event-fx
+  ::sell-item
+  (fn [{:keys [db]} [_ item-attrs]]
+    {:db (assoc db :selected-sell-item nil)
+     ::fire [:sell-item item-attrs]}))
+
+(reg-event-fx
+  ::select-item-in-inventory
+  (fn [{:keys [db]} [_ idx item]]
+    (let [prev-item-idx (:selected-inventory-item-idx db)]
+      (when (or item prev-item-idx)
+        (if (nil? prev-item-idx)
+          {:db (assoc db :selected-inventory-item item
+                      :selected-inventory-item-idx idx)}
+          {::fire [:update-item-order {:idx idx
+                                       :prev-idx prev-item-idx}]
+           :db (dissoc db :selected-inventory-item :selected-inventory-item-idx)})))))

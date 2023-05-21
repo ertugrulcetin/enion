@@ -9,39 +9,41 @@
 (def squid
   [{:name :squid
     :title "Squid Quest"
-    :intro (str "Kill <b>1 Squid</b> to complete quest and earn <b>500</b> Coins!<br/>"
+    :intro (str "Kill <b>1 Squid</b> to complete quest and earn <b>5000</b> Coins!<br/>"
                 "<img src=\"img/npc/squid.png\" style=\"position: relative;left: calc(50% - 64px);top: 20px; \">")}])
 
 (def ghoul
   [{:name :ghoul
     :title "Ghoul Quest"
-    :intro (str "Kill <b>2 Ghouls</b> to complete quest and earn <b>1000</b> Coins!<br/>"
+    :intro (str "Kill <b>2 Ghouls</b> to complete quest and earn <b>10000</b> Coins!<br/>"
                 "<img src=\"img/npc/ghoul.png\" style=\"position: relative;left: calc(50% - 64px);top: 20px; \">")}])
 
 (def demon
   [{:name :demon
     :title "Demon Quest"
-    :intro (str "Kill <b>3 Demons</b> to complete quest and earn <b>2000</b> Coins!<br/>"
+    :intro (str "Kill <b>3 Demons</b> to complete quest and earn <b>35000</b> Coins!<br/>"
                 "<img src=\"img/npc/demon.png\" style=\"position: relative;left: calc(50% - 64px);top: 20px; \">")}])
 
 (def complete-quest
   [{:title "Quest completed!"
     :intro "You have successfully completed the quest✨ <br/><br/> Be ready for the next one!"}])
 
-(def no-quests-available
+(defn no-quests-available [below-lvl-10?]
   [{:title "No quests available"
-    :intro "There are no quests available at the moment. <br/><br/> Come back later!"}])
+    :intro (str "There are no quests available at the moment. <br/><br/> Come back later!"
+                (when below-lvl-10?
+                  "<br/><br/>Reach <b>level 10</b> to earn <b>50,000 Coins!</b>"))}])
 
 (def all-quests
   {:quests {:squid {:steps squid
                     :required-kills 1
-                    :coin 500}
+                    :coin 5000}
             :ghoul {:steps ghoul
                     :required-kills 2
-                    :coin 1000}
+                    :coin 10000}
             :demon {:steps demon
                     :required-kills 3
-                    :coin 2000}}
+                    :coin 35000}}
    :order [squid ghoul demon]})
 
 (on :ui-show-talk-to-npc
@@ -70,8 +72,9 @@
         false)))
 
 (on :show-no-quests-modal
-    (fn []
-      (intro/start-intro no-quests-available nil false)))
+    (fn [level]
+      (println level)
+      (intro/start-intro (no-quests-available (< level 10)) nil false)))
 
 (on :check-available-quests
     (fn [completed-quests]

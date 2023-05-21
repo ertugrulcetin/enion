@@ -4,6 +4,7 @@
     [enion-backend.middleware :as middleware]
     [enion-backend.routes.asas]
     [enion-backend.routes.home :refer [home-routes]]
+    [enion-backend.routes.item]
     [enion-backend.routes.mage]
     [enion-backend.routes.party]
     [enion-backend.routes.priest]

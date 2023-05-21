@@ -544,6 +544,7 @@
                            :mana mana
                            :pos pos
                            :coin (or (some-> data (get class) :coin) coin)
+                           :inventory (some-> data (get class) :inventory)
                            :level level
                            :attack-power (get common.skills/level->attack-power-table level)
                            :required-exp (get common.skills/level->exp-table level)

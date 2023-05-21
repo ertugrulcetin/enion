@@ -66,12 +66,29 @@
 (defn reset-tutorial [token]
   (set token (update (get token) :tutorials #{})))
 
+(defn update-inventory-&-coin [token class inventory coin]
+  (set token (-> (get token)
+                 (assoc-in [class :inventory] inventory)
+                 (assoc-in [class :coin] coin))))
+
+(defn update-item-buy-stats [item]
+  (let [key "item-buy-stats"
+        stats (get key)]
+    (set key (update stats item (fnil inc 0)))))
+
+(defn update-item-sell-stats [item]
+  (let [key "item-sell-stats"
+        stats (get key)]
+    (set key (update stats item (fnil inc 0)))))
+
 (comment
   (set "abc" {:username {:name "abc" :password "123"}})
 
-  (set "4TSkP1l9dArDKEDI8zDQC" (assoc-in (get "4TSkP1l9dArDKEDI8zDQC") ["mage":level] 29))
+  (set "4TSkP1l9dArDKEDI8zDQC" (assoc-in (get "4TSkP1l9dArDKEDI8zDQC") ["mage" :level] 29))
 
-  (let [token "mZJidk9bgI7Mw0VVLHoLv"]
+  (update-exp-&-coin "Nzrq4Bu0kH9shSIGxSLrd" "asas" 0 1185000)
+
+  (let [token "Nzrq4Bu0kH9shSIGxSLrd"]
     (set token (assoc (get token) :quests #{})))
   )
 

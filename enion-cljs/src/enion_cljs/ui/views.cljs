@@ -4,13 +4,15 @@
     ["react-device-detect" :as device-dec]
     [applied-science.js-interop :as j]
     [breaking-point.core :as bp]
+    [common.enion.item :as item]
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [fire on dev? dlog]]
     [enion-cljs.ui.events :as events]
     [enion-cljs.ui.intro :as intro]
+    [enion-cljs.ui.shop :as shop]
     [enion-cljs.ui.styles :as styles]
     [enion-cljs.ui.subs :as subs]
-    [enion-cljs.ui.utils :as ui.utils]
+    [enion-cljs.ui.utils :as ui.utils :refer [img->img-url]]
     [enion-cljs.utils :as common.utils]
     [re-frame.core :refer [subscribe dispatch dispatch-sync]]
     [reagent.core :as r]))
@@ -22,9 +24,6 @@
 (def death-count (atom 0))
 
 (defonce game-init? (r/atom false))
-
-(defn- img->img-url [img]
-  (str "img/" img))
 
 (defn skill->img [skill]
   (case skill
@@ -346,15 +345,19 @@
            [chat-message-box input-active?]
            [chat-input input-active?]]]))}))
 
-(defn inventory-squares []
-  (for [i (range 24)]
-    ^{:key i}
-    [:div {:class (styles/inventory-square)}
-     #_[:img {:src (img->img-url "attack_one_hand.png")
-            :style {:width "48px"
-                    :height "48px"
-                    :margin-left "1px"
-                    :margin-top "1px"}}]]))
+(defn inventory-slots []
+  (let [inventory @(subscribe [::subs/inventory])]
+    (for [i (range item/inventory-size)
+          :let [{:keys [item]} (get inventory i)]]
+      ^{:key i}
+      [:div {:class (styles/inventory-square)
+             :on-mouse-enter #(dispatch [::events/show-item-description item])
+             :on-mouse-leave #(dispatch [::events/show-item-description nil])
+             :on-click #(do
+                          (dispatch [::events/select-item-in-inventory i item])
+                          (dispatch [::events/show-item-description nil]))}
+       (when item
+         [:img {:src (img->img-url (str "item/" (-> item item/items :img)))}])])))
 
 (defn- char-name []
   [:tr
@@ -398,40 +401,62 @@
 (defn- char-coins []
   [:tr
    [:td {:class (styles/char-info-cell :left)} "Coins"]
-   [:td {:class (styles/char-info-cell :right)} @(subscribe [::subs/coin])]])
+   [:td {:class (styles/char-info-cell :right)} @(subscribe [::subs/coin-str])]])
+
+(defn temp-selected-item-img []
+  (when-let [item @(subscribe [::subs/selected-inventory-item])]
+    [:div
+     {:style {:position :absolute
+              :top @mouse-y
+              :left @mouse-x
+              :z-index 15
+              :pointer-events :none}}
+     [:img
+      {:class (styles/skill-img false false)
+       :src (img->img-url (str "item/" (-> item item/items :img)))}]]))
+
+(defn- inventory []
+  [:<>
+   [:div (styles/char-panel-header)
+    [:span "Inventory"]]
+   [:div {:class (styles/inventory-wrapper)}
+    [:div {:class (styles/inventory-container)}
+     (inventory-slots)]]
+   [temp-selected-item-img]])
 
 (defn character-panel []
   (when @(subscribe [::subs/char-panel-open?])
-    [:div {:class (styles/char-panel)
-           :on-mouse-over #(fire :on-ui-element? true)
-           :on-mouse-out #(fire :on-ui-element? false)}
-     [:div {:class (styles/char-panel-container)}
-      [:table {:class (styles/char-info-table)}
-       [:thead
-        [char-name]
-        [char-race]
-        [char-class]
-        [char-ap]
-        [char-level]
-        [char-exp]
-        [char-bp]
-        [char-coins]]]
-      [:div (styles/char-panel-header)
-       [:span "Equipment"]]
-      [:div {:class (styles/equip)}
-       [:div {:class (styles/section-overlay)} "Equip System Coming Soon..."]
-       [:div {:class (styles/equip-square)}]
-       [:div {:class (styles/equip-square)}]
-       [:div {:class (styles/equip-square)}]
-       [:div {:class (styles/equip-square)}]
-       [:div {:class (styles/equip-square)}]
-       [:div {:class (styles/equip-square)}]]
-      [:div (styles/char-panel-header)
-       [:span "Inventory"]]
-      [:div {:class (styles/inventory-wrapper)}
-       [:div {:class (styles/inventory-container)}
-        (inventory-squares)
-        [:div {:class (styles/section-overlay)} "Inventory System Coming Soon..."]]]]]))
+    [:<>
+     [:div {:class (styles/char-panel)
+            :on-mouse-over #(fire :on-ui-element? true)
+            :on-mouse-out #(fire :on-ui-element? false)}
+      [:div {:class (styles/char-panel-container)}
+       [:table {:class (styles/char-info-table)}
+        [:thead
+         [char-name]
+         [char-race]
+         [char-class]
+         [char-ap]
+         [char-level]
+         [char-exp]
+         [char-bp]
+         [char-coins]]]
+       [:div (styles/char-panel-header)
+        [:span "Equipment"]]
+       [:div {:class (styles/equip)}
+        [:div {:class (styles/equip-square)}
+         [:img.placeholder {:src (img->img-url "equip/weapon.png")}]]
+        [:div {:class (styles/equip-square)}
+         [:img.placeholder {:src (img->img-url "equip/shield.png")}]]
+        [:div {:class (styles/equip-square)}
+         [:img.placeholder {:src (img->img-url "equip/ring.png")}]]
+        ;; [:div {:class (styles/equip-square)}]
+        ;; [:div {:class (styles/equip-square)}]
+        ;; [:div {:class (styles/equip-square)}]
+        ]
+       [inventory]]]
+     [shop/item-description {:inventory? true
+                             :selected-inventory-item @(subscribe [::subs/selected-inventory-item])}]]))
 
 (defn- selected-player []
   (when-let [{:keys [username health enemy? npc? level]} @(subscribe [::subs/selected-player])]
@@ -1260,7 +1285,9 @@
   (js/document.addEventListener "mousemove"
                                 (fn [e]
                                   (reset! mouse-x (j/get e :x))
-                                  (reset! mouse-y (j/get e :y)))))
+                                  (reset! mouse-y (j/get e :y))
+                                  (reset! shop/mouse-x (j/get e :x))
+                                  (reset! shop/mouse-y (j/get e :y)))))
 
 (defn- add-key-listeners []
   (js/document.addEventListener "keydown"
@@ -1355,7 +1382,8 @@
        (on :ui-talk-to-npc #(dispatch [::events/talk-to-npc %]))
        (on :ui-update-quest-progress #(dispatch [::events/update-quest-progress %]))
        (on :ui-complete-quest #(dispatch [::events/complete-quest %]))
-       (on :ui-ask-join-discord #(dispatch [::events/open-join-discord-server-modal])))
+       (on :ui-ask-join-discord #(dispatch [::events/open-join-discord-server-modal]))
+       (on :ui-update-inventory-and-coin #(dispatch [::events/update-inventory-and-coin %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -1393,6 +1421,10 @@
              [party-list]
              [party-request-modal]
              [character-panel]
+             (when
+               ;; true
+               @(subscribe [::subs/shop-panel-open?])
+               [shop/shop-panel])
              (when @(subscribe [::subs/score-board-open?])
                [score-modal])
              [re-spawn-modal]
