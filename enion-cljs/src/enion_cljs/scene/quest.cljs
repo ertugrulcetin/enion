@@ -49,7 +49,7 @@
 (on :ui-show-talk-to-npc
     (fn [show?]
       (if show?
-        (fire :ui-show-global-message {:text "Talk to NPC"
+        (fire :ui-show-global-message {:text "TALK"
                                        :action-key "F"})
         (fire :ui-show-tutorial-message))))
 
@@ -73,7 +73,6 @@
 
 (on :show-no-quests-modal
     (fn [level]
-      (println level)
       (intro/start-intro (no-quests-available (< level 10)) nil false)))
 
 (on :check-available-quests

@@ -35,6 +35,11 @@
   ["0%" {:transform "scale(1)"}]
   ["100%" {:transform "scale(1.1)"}])
 
+(defkeyframes blink-frames [color]
+  ["0%" {:border-color color}]
+  ["50%" {:border-color "transparent"}]
+  ["100%" {:border-color color}])
+
 (def action-key-span
   [:span
    {:padding "5px"
@@ -139,17 +144,17 @@
    :height "45px"
    :border "3px solid #293c40"
    :border-radius "5px"}
-  [:img.placeholder {:width "43px"
-                     :height "43px"
-                     :margin-left "1px"
-                     :margin-top "1px"}]
+  [:img {:width "43px"
+         :height "43px"
+         :margin-left "1px"
+         :margin-top "1px"}]
   (at-media {:max-width "1250px"}
             {:width "20px"
              :height "20px"}
-            [:img.placeholder {:width "18px"
-                               :height "18px"
-                               :margin-left "1px"
-                               :margin-top "1px"}]))
+            [:img {:width "18px"
+                   :height "18px"
+                   :margin-left "1px"
+                   :margin-top "1px"}]))
 
 (defclass inventory-wrapper []
   {:display "flex"
@@ -166,11 +171,12 @@
    :height "min-content"
    :margin-bottom "15px"})
 
-(defclass inventory-square []
+(defclass inventory-square [scroll-selected?]
   {:width "50px"
    :height "50px"
    :border "3px solid #293c40"
-   :border-radius "5px"}
+   :border-radius "5px"
+   :animation (when scroll-selected? (str (blink-frames "orange") " 1s infinite"))}
   [:img {:width "48px"
          :height "48px"
          :margin-left "1px"
@@ -881,11 +887,6 @@
   (at-media {:max-width "1250px"}
             {:width "100%"
              :transform :unset}))
-
-(defkeyframes blink-frames [color]
-  ["0%" {:border-color color}]
-  ["50%" {:border-color "transparent"}]
-  ["100%" {:border-color color}])
 
 (defclass blink-animation []
   {:border "2px solid transparent"

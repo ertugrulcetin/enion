@@ -1,7 +1,7 @@
 (ns enion-cljs.ui.subs
   (:require
-    [applied-science.js-interop :as j]
     [clojure.string :as str]
+    [common.enion.item :as common.item]
     [common.enion.skills :as common.skills]
     [enion-cljs.ui.utils :as utils]
     [re-frame.core :refer [reg-sub reg-sub-raw]]))
@@ -112,7 +112,12 @@
 (reg-sub
   ::attack-power
   (fn [db]
-    (-> db :player :attack-power)))
+    (if-let [weapon (-> db :player :equip :weapon)]
+      (let [{:keys [item level]} weapon]
+        (js/Math.round (* (+ (-> db :player :attack-power)
+                             (get-in common.item/items [item :levels level :ap] 0))
+                          (+ 1 (/ level 100)))))
+      (-> db :player :attack-power))))
 
 (reg-sub
   ::exp
@@ -450,3 +455,19 @@
   ::selected-inventory-item
   (fn [db]
     (:selected-inventory-item db)))
+
+(reg-sub
+  ::equip
+  (fn [db [_ type]]
+    (-> db :player :equip type)))
+
+(reg-sub
+  ::scroll-selected?
+  :<- [::selected-inventory-item]
+  (fn [item]
+    (= :scroll (get-in common.item/items [(:item item) :type]))))
+
+(reg-sub
+  ::upgrade-item
+  (fn [db]
+    (:upgrade-item db)))

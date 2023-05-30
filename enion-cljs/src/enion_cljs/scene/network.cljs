@@ -3,6 +3,7 @@
     [applied-science.js-interop :as j]
     [cljs.reader :as reader]
     [clojure.string :as str]
+    [common.enion.item :as common.item]
     [common.enion.npc :as common.npc]
     [common.enion.skills :as common.skills]
     [enion-cljs.common :refer [dev? fire on dlog ws-url]]
@@ -761,3 +762,46 @@
 
 (defmethod dispatch-pro-response :update-item-order [params]
   (fire :ui-update-inventory-and-coin (:update-item-order params)))
+
+(on :equip
+    (fn [[item selected-inventory-item-idx type]]
+      (dispatch-pro :equip {:item item
+                            :idx selected-inventory-item-idx
+                            :type type})))
+
+(defn- equip-items [{:keys [player-id] :as equip}]
+  (let [model (if player-id
+                (st/get-model-entity player-id)
+                (st/get-model-entity))
+        weapons (mapcat (j/get :children) (pc/find-all-by-name model "weapon"))
+        shields (pc/get-children model "shields")
+        {:keys [weapon shield]} (:equip equip)]
+    (doseq [w weapons]
+      (pc/disable w))
+    (doseq [s shields]
+      (pc/disable s))
+    (if weapon
+      (->> weapon :item common.item/items :entity (pc/find-all-by-name model) (map pc/enable) doall)
+      (doall (map pc/enable (pc/find-all-by-name model "item_basic"))))
+    (when shield
+      (->> shield :item common.item/items :entity (pc/find-by-name model) pc/enable))))
+
+(defmethod dispatch-pro-response :equip [params]
+  (let [equip (:equip params)]
+    (equip-items equip)
+    (fire :ui-update-inventory-and-equip equip)))
+
+(on :equip-items
+    (fn [data]
+      (equip-items data)))
+
+(defmethod dispatch-pro-response :player-equip [params]
+  (let [equip (:player-equip params)]
+    (equip-items equip)))
+
+(on :upgrade-item
+    (fn [upgrade-item]
+      (dispatch-pro :upgrade-item upgrade-item)))
+
+(defmethod dispatch-pro-response :upgrade-item [params]
+  (fire :ui-upgrade-item-result (:upgrade-item params)))

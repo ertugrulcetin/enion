@@ -42,11 +42,12 @@
         offset-top -100]
     (fn [{:keys [inventory? selected-inventory-item]}]
       (when (nil? selected-inventory-item)
-        (when-let [{:keys [levels name buy sell class inc-chance]} (get item/items @(subscribe [::subs/item-description]))]
+        (when-let [{:keys [levels name buy sell class inc-chance]} (get item/items (:item @(subscribe [::subs/item-description])))]
           (let [player-class @(subscribe [::subs/class])
                 coin @(subscribe [::subs/coin])
                 item-desc-type @(subscribe [::subs/item-description-type])
-                offset-inventory (if inventory? 100 0)]
+                offset-inventory (if inventory? 100 0)
+                {:keys [level]} @(subscribe [::subs/item-description])]
             [:div
              {:style {:position :absolute
                       :top (+ @mouse-y @offset-height offset-top)
@@ -60,20 +61,19 @@
                        (when-let [oh (j/get % :offsetHeight)]
                          (reset! offset-height oh)))
                :class (styles/item-description)}
-              [:span.item-name (if levels (str name " (+1)") name)]
+              [:span.item-name (if levels (str name " (+" level ")") name)]
               (when class
                 (let [same-class? (= player-class (clojure.core/name class))]
                   [:<>
                    [:br]
                    [:span {:class (if same-class? "same-class" "different-class")}
                     (str "Class: " (str/capitalize (clojure.core/name class)))]]))
-              (when-let [ap (and levels (get-in levels [1 :ap]))]
+              (when-let [ap (and levels (get-in levels [level :ap]))]
                 [:<>
                  [:br]
                  [:br]
-                 [:span
-                  (str "Attack Power: " ap)]])
-              (when-let [defence (and levels (get-in levels [1 :defence]))]
+                 [:span (str "Attack Power: " ap " + adds " level "% of your attack power")]])
+              (when-let [defence (and levels (get-in levels [level :defence]))]
                 [:<>
                  [:br]
                  [:br]
@@ -96,7 +96,7 @@
 (defn- shop-items []
   (for [item items-in-order]
     ^{:key item}
-    [:div {:class (styles/inventory-square)
+    [:div {:class (styles/inventory-square nil)
            :on-mouse-enter #(dispatch [::events/show-item-description item :buy])
            :on-mouse-leave #(dispatch [::events/show-item-description nil])
            :on-click #(do
@@ -106,10 +106,10 @@
 
 (defn inventory-squares []
   (let [inventory @(subscribe [::subs/inventory])]
-    (for [i (range item/inventory-size)
+    (for [i (range item/inventory-max-size)
           :let [{:keys [item] :as item-attrs} (get inventory i)]]
       ^{:key i}
-      [:div {:class (styles/inventory-square)
+      [:div {:class (styles/inventory-square nil)
              :on-mouse-enter #(dispatch [::events/show-item-description item :sell])
              :on-mouse-leave #(dispatch [::events/show-item-description nil])
              :on-click #(do
@@ -132,7 +132,6 @@
      "No"]]])
 
 (defn sell-item-modal [selected-item-attrs]
-  (println "selected-item-attrs:  " selected-item-attrs)
   [:div (styles/buy-item-modal)
    [:p "Do you want to sell " [:b (-> :item selected-item-attrs item/items :name)] "?"]
    [:div (styles/party-request-buttons-container)
@@ -157,25 +156,28 @@
     "OK"]])
 
 (defn shop-panel []
-  [:<>
-   [:div {:class (styles/shop-panel)
-          :on-mouse-over #(fire :on-ui-element? true)
-          :on-mouse-out #(fire :on-ui-element? false)}
-    [:div
-     {:class (styles/shop-close)}]
-    [:div {:class (styles/shop-panel-container)}
-     [:div {:class (styles/shop-wrapper)}
-      [:div {:class (styles/item-container)}
-       (shop-items)]]
-     [:div {:class (styles/coins-header)}
-      [:span "Coins: " @(subscribe [::subs/coin-str])]]
-     [:div {:class (styles/shop-wrapper)}
-      [:div {:class (styles/item-container)}
-       (inventory-squares)]]]]
-   [item-description]
-   (when-let [selected-item @(subscribe [::subs/selected-buy-item])]
-     [buy-item-modal selected-item])
-   (when-let [selected-item @(subscribe [::subs/selected-sell-item])]
-     [sell-item-modal selected-item])
-   (when-let [err @(subscribe [::subs/buy-item-modal-error])]
-     [error-popup err])])
+  (r/create-class
+    {:component-did-mount #(dispatch [::events/remove-global-message])
+     :reagent-render (fn [] [:<>
+                             [:div {:class (styles/shop-panel)
+                                    :on-mouse-over #(fire :on-ui-element? true)
+                                    :on-mouse-out #(fire :on-ui-element? false)}
+                              [:div
+                               {:class (styles/shop-close)
+                                :on-click #(dispatch [::events/close-shop])}]
+                              [:div {:class (styles/shop-panel-container)}
+                               [:div {:class (styles/shop-wrapper)}
+                                [:div {:class (styles/item-container)}
+                                 (shop-items)]]
+                               [:div {:class (styles/coins-header)}
+                                [:span "Coins: " @(subscribe [::subs/coin-str])]]
+                               [:div {:class (styles/shop-wrapper)}
+                                [:div {:class (styles/item-container)}
+                                 (inventory-squares)]]]]
+                             [item-description]
+                             (when-let [selected-item @(subscribe [::subs/selected-buy-item])]
+                               [buy-item-modal selected-item])
+                             (when-let [selected-item @(subscribe [::subs/selected-sell-item])]
+                               [sell-item-modal selected-item])
+                             (when-let [err @(subscribe [::subs/buy-item-modal-error])]
+                               [error-popup err])])}))

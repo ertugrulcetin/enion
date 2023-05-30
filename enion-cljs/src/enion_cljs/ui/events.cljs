@@ -4,6 +4,8 @@
     [applied-science.js-interop :as j]
     [cljs.reader :as reader]
     [clojure.string :as str]
+    [common.enion.item :as item]
+    [common.enion.item :as common.item]
     [day8.re-frame.http-fx :as http-fx]
     [enion-cljs.common :as common :refer [fire dev? api-url]]
     [enion-cljs.ui.db :as db]
@@ -388,6 +390,7 @@
                      coin
                      exp
                      inventory
+                     equip
                      required-exp
                      tutorials
                      quests]}]]
@@ -405,6 +408,7 @@
         (assoc-in [:player :attack-power] attack-power)
         (assoc-in [:player :bp] bp)
         (assoc-in [:player :inventory] inventory)
+        (assoc-in [:player :equip] equip)
         (assoc-in [:servers :current-server] server-name)
         (assoc :tutorials tutorials)
         (assoc :quests quests))))
@@ -808,6 +812,16 @@
           (assoc-in [:player :coin] coin)))))
 
 (reg-event-db
+  ::update-inventory-and-equip
+  (fn [db [_ {:keys [inventory equip err]}]]
+    (if err
+      (assoc db :buy-item-modal-error err)
+      (-> db
+          (assoc-in [:player :inventory] inventory)
+          (assoc-in [:player :equip] equip)
+          (dissoc :selected-inventory-item :selected-inventory-item-idx)))))
+
+(reg-event-db
   ::clear-buy-item-modal-error
   (fn [db]
     (assoc db :buy-item-modal-error nil)))
@@ -821,11 +835,74 @@
 (reg-event-fx
   ::select-item-in-inventory
   (fn [{:keys [db]} [_ idx item]]
-    (let [prev-item-idx (:selected-inventory-item-idx db)]
-      (when (or item prev-item-idx)
-        (if (nil? prev-item-idx)
+    (let [prev-item-idx (:selected-inventory-item-idx db)
+          prev-item (:selected-inventory-item db)]
+      (when (and (or item prev-item-idx)
+                 (nil? (:upgrade-item db)))
+        (cond
+          (and item
+               prev-item
+               (= :scroll (get-in item/items [(:item prev-item) :type]))
+               (not= :scroll (get-in item/items [(:item item) :type])))
+          {:db (-> db
+                   (assoc :upgrade-item {:item item
+                                         :item-idx idx
+                                         :scroll prev-item
+                                         :scroll-idx prev-item-idx})
+                   (dissoc :selected-inventory-item :selected-inventory-item-idx))}
+
+          (nil? prev-item-idx)
           {:db (assoc db :selected-inventory-item item
-                      :selected-inventory-item-idx idx)}
+                      :selected-inventory-item-idx idx)
+           :dispatch-n [(when (and item (nil? prev-item) (= :scroll (get-in item/items [(:item item) :type])))
+                          [::show-global-message "Select item to upgrade" 15000])]}
+
+          :else
           {::fire [:update-item-order {:idx idx
                                        :prev-idx prev-item-idx}]
-           :db (dissoc db :selected-inventory-item :selected-inventory-item-idx)})))))
+           :db (dissoc db :selected-inventory-item :selected-inventory-item-idx)
+           :dispatch-n [(when (and item (nil? prev-item) (= :scroll (get-in item/items [(:item item) :type])))
+                          [::show-global-message "Select item to upgrade" 15000])]})))))
+
+(reg-event-fx
+  ::equip
+  (fn [{:keys [db]} [_ type]]
+    (let [selected-inventory-item (:selected-inventory-item db)
+          selected-inventory-item-idx (:selected-inventory-item-idx db)
+          inventory (-> db :player :inventory)]
+      (if (and (nil? selected-inventory-item) (= (count inventory) common.item/inventory-max-size))
+        {:dispatch [::show-global-message "Your inventory is full" 5000]}
+        {::fire [:equip [selected-inventory-item selected-inventory-item-idx type]]}))))
+
+(reg-event-db
+  ::open-shop
+  (fn [db]
+    (assoc db :shop-panel-open? true)))
+
+(reg-event-db
+  ::close-shop
+  (fn [db]
+    (assoc db :shop-panel-open? false)))
+
+(reg-event-fx
+  ::upgrade-item
+  (fn [{:keys [db]}]
+    {:db (dissoc db :upgrade-item)
+     ::fire [:upgrade-item (:upgrade-item db)]}))
+
+(reg-event-db
+  ::cancel-upgrade-item
+  (fn [db]
+    (dissoc db :upgrade-item)))
+
+(reg-event-fx
+  ::upgrade-item-result
+  (fn [{:keys [db]} [_ {:keys [inventory success?]}]]
+    {:db (assoc-in db [:player :inventory] inventory)
+     :dispatch-n [(if success?
+                    [::show-global-message "Item upgraded successfully ✨"]
+                    [::show-global-message "Item upgrade failed 😔"])]
+     ::fire (if success?
+              [:play-sound "levelUp"]
+              [:play-sound "die"])}))
+

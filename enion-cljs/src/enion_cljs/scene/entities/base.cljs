@@ -19,7 +19,8 @@
   (let [race (st/get-race)
         enemy-base-box (pc/find-by-name (if (= "orc" race) "human_base_trigger" "orc_base_trigger"))
         base-box (pc/find-by-name (if (= "orc" race) "orc_base_trigger" "human_base_trigger"))
-        npc-box (pc/find-by-name (if (= "orc" race) "orc_npc_model" "human_npc_model"))]
+        npc-box (pc/find-by-name (if (= "orc" race) "orc_npc_model" "human_npc_model"))
+        shop-npc-box (pc/find-by-name (if (= "orc" race) "orc_npc_shop_model" "human_npc_shop_model"))]
     (swap! entities conj enemy-base-box npc-box)
     (j/call-in enemy-base-box [:collision :on] "triggerenter" (fn [] (trigger-start)))
     (j/call-in enemy-base-box [:collision :on] "triggerleave" (fn [] (trigger-end)))
@@ -29,10 +30,18 @@
                                                             (reset! init-forest? true))))
     (j/call-in npc-box [:collision :on] "triggerenter" (fn []
                                                          (fire :ui-show-talk-to-npc true)
-                                                         (fire :in-npc-zone true)))
+                                                         (fire :in-npc-zone true)
+                                                         (fire :set-npc-type :quest)))
     (j/call-in npc-box [:collision :on] "triggerleave" (fn []
                                                          (fire :ui-show-talk-to-npc false)
-                                                         (fire :in-npc-zone false))))
+                                                         (fire :in-npc-zone false)))
+    (j/call-in shop-npc-box [:collision :on] "triggerenter" (fn []
+                                                              (fire :ui-show-talk-to-npc true)
+                                                              (fire :in-npc-zone true)
+                                                              (fire :set-npc-type :shop)))
+    (j/call-in shop-npc-box [:collision :on] "triggerleave" (fn []
+                                                              (fire :ui-show-talk-to-npc false)
+                                                              (fire :in-npc-zone false))))
   (if-not (st/finished-quests?)
     (let [walls (pc/find-by-name "walls")]
       (pc/enable walls)

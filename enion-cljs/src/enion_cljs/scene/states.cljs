@@ -391,6 +391,8 @@
 (defn play-sound [track]
   (some-> (get-player-entity) (j/call-in [:c :sound :slots track :play])))
 
+(on :play-sound play-sound)
+
 (defn stop-sound [track]
   (some-> (get-player-entity) (j/call-in [:c :sound :slots track :stop])))
 

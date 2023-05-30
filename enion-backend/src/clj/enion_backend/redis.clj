@@ -81,15 +81,28 @@
         stats (get key)]
     (set key (update stats item (fnil inc 0)))))
 
+(defn update-inventory-&-equip [token class inventory equip]
+  (set token (-> (get token)
+                 (assoc-in [class :inventory] inventory)
+                 (assoc-in [class :equip] equip))))
+
+(defn update-inventory [token class inventory]
+  (set token (-> (get token) (assoc-in [class :inventory] inventory))))
+
 (comment
   (set "abc" {:username {:name "abc" :password "123"}})
 
   (set "4TSkP1l9dArDKEDI8zDQC" (assoc-in (get "4TSkP1l9dArDKEDI8zDQC") ["mage" :level] 29))
 
-  (update-exp-&-coin "Nzrq4Bu0kH9shSIGxSLrd" "asas" 0 1185000)
+  (get "Ij4idBJAy4y_By09qr1sP")
 
-  (let [token "Nzrq4Bu0kH9shSIGxSLrd"]
-    (set token (assoc (get token) :quests #{})))
+  (update-exp-&-coin "Nzrq4Bu0kH9shSIGxSLrd" "mage" 0 1185000)
+
+  (let [token "Nzrq4Bu0kH9shSIGxSLrd"
+        data (get token)]
+    (set token (-> data
+                   (assoc-in ["asas" :inventory] {})
+                   (assoc-in ["asas" :equip] nil))))
   )
 
 '{:last-played-class warrior, :last-played-race orc, warrior {:level 5, :exp 36, :coin 1565, :quests #{:squid}}}

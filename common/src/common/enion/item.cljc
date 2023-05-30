@@ -1,6 +1,6 @@
 (ns common.enion.item)
 
-(def inventory-size 24)
+(def inventory-max-size 24)
 
 
 (def items

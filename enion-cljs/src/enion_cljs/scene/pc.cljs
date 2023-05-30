@@ -31,8 +31,12 @@
   ([entity name]
    (j/call entity :findByName name)))
 
-(defn find-all-by-name [name]
-  (j/call-in app [:root :find] (fn [x] (= name (j/get x :name)))))
+(defn find-all-by-name
+  ([name]
+   (j/call-in app [:root :find] (fn [x] (= name (j/get x :name)))))
+  ([entity name]
+   (j/call entity :find (fn [x]
+                          (= name (j/get x :name))))))
 
 (defn find-by-tag [tag]
   (j/call-in app [:root :findByTag] tag))
@@ -343,3 +347,6 @@
 (let [clamp* (j/get-in js/pc [:math :clamp])]
   (defn clamp [value min max]
     (clamp* value min max)))
+
+(defn get-children [e name]
+  (j/get (find-by-name e name) :children))

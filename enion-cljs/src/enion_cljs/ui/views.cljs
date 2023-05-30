@@ -287,7 +287,7 @@
      (scroll-to-bottom elem)
      #_(if info?
          (let [gap (- (j/get elem :scrollHeight) (+ (j/get elem :scrollTop)
-                                                   (j/get elem :offsetHeight)))]
+                                                    (j/get elem :offsetHeight)))]
            (when (< gap 50)
              (scroll-to-bottom elem)))
          (scroll-to-bottom elem)))))
@@ -346,18 +346,21 @@
            [chat-input input-active?]]]))}))
 
 (defn inventory-slots []
-  (let [inventory @(subscribe [::subs/inventory])]
-    (for [i (range item/inventory-size)
-          :let [{:keys [item]} (get inventory i)]]
+  (let [inventory @(subscribe [::subs/inventory])
+        scroll-selected? @(subscribe [::subs/scroll-selected?])]
+    (for [i (range item/inventory-max-size)
+          :let [item (get inventory i)]]
       ^{:key i}
-      [:div {:class (styles/inventory-square)
+      [:div {:class (styles/inventory-square (and scroll-selected?
+                                                  (:item item)
+                                                  (not= :scroll (get-in item/items [(:item item) :type]))))
              :on-mouse-enter #(dispatch [::events/show-item-description item])
              :on-mouse-leave #(dispatch [::events/show-item-description nil])
              :on-click #(do
                           (dispatch [::events/select-item-in-inventory i item])
                           (dispatch [::events/show-item-description nil]))}
        (when item
-         [:img {:src (img->img-url (str "item/" (-> item item/items :img)))}])])))
+         [:img {:src (img->img-url (str "item/" (-> item :item item/items :img)))}])])))
 
 (defn- char-name []
   [:tr
@@ -413,7 +416,7 @@
               :pointer-events :none}}
      [:img
       {:class (styles/skill-img false false)
-       :src (img->img-url (str "item/" (-> item item/items :img)))}]]))
+       :src (img->img-url (str "item/" (-> item :item item/items :img)))}]]))
 
 (defn- inventory []
   [:<>
@@ -423,6 +426,20 @@
     [:div {:class (styles/inventory-container)}
      (inventory-slots)]]
    [temp-selected-item-img]])
+
+(defn upgrade-item-modal [{:keys [item]}]
+  [:div (styles/buy-item-modal)
+   [:p "Do you want to upgrade " [:b (str (get-in item/items [(:item item) :name]) " (+" (-> item :level) ")")] "?"]
+   [:p "(You could lose the item if the upgrade fails!)"]
+   [:div (styles/party-request-buttons-container)
+    [:button
+     {:class (styles/buy-item-button-accept)
+      :on-click #(dispatch [::events/upgrade-item])}
+     "Yes"]
+    [:button
+     {:class (styles/buy-item-button-reject)
+      :on-click #(dispatch [::events/cancel-upgrade-item])}
+     "No"]]])
 
 (defn character-panel []
   (when @(subscribe [::subs/char-panel-open?])
@@ -444,12 +461,23 @@
        [:div (styles/char-panel-header)
         [:span "Equipment"]]
        [:div {:class (styles/equip)}
-        [:div {:class (styles/equip-square)}
-         [:img.placeholder {:src (img->img-url "equip/weapon.png")}]]
-        [:div {:class (styles/equip-square)}
-         [:img.placeholder {:src (img->img-url "equip/shield.png")}]]
-        [:div {:class (styles/equip-square)}
-         [:img.placeholder {:src (img->img-url "equip/ring.png")}]]
+        [:div {:class (styles/equip-square)
+               :on-click #(dispatch [::events/equip :weapon])
+               :on-mouse-enter #(dispatch [::events/show-item-description @(subscribe [::subs/equip :weapon])])
+               :on-mouse-leave #(dispatch [::events/show-item-description nil])}
+         (if-let [{:keys [item]} @(subscribe [::subs/equip :weapon])]
+           [:img {:src (img->img-url (str "item/" (get-in item/items [item :img])))}]
+           [:img {:src (img->img-url "equip/weapon.png")}])]
+        [:div {:class (styles/equip-square)
+               :on-click #(dispatch [::events/equip :shield])
+               :on-mouse-enter #(dispatch [::events/show-item-description @(subscribe [::subs/equip :shield])])
+               :on-mouse-leave #(dispatch [::events/show-item-description nil])}
+         (if-let [{:keys [item]} @(subscribe [::subs/equip :shield])]
+           [:img {:src (img->img-url (str "item/" (get-in item/items [item :img])))}]
+           [:img {:src (img->img-url "equip/shield.png")}])]
+        [:div {:class (styles/equip-square)
+               :on-click #(dispatch [::events/equip])}
+         [:img {:src (img->img-url "equip/ring.png")}]]
         ;; [:div {:class (styles/equip-square)}]
         ;; [:div {:class (styles/equip-square)}]
         ;; [:div {:class (styles/equip-square)}]
@@ -523,21 +551,21 @@
           esc-key-pressed? (atom false)
           esc-key-pressed-timeout-id (atom nil)]
       (j/call js/document :addEventListener "keydown"
-        (fn [e]
-          (when (= esc-key-code (.-keyCode e))
-            (reset! esc-key-pressed? true)
-            (reset! esc-key-pressed-timeout-id
-              (js/setTimeout
-                (fn []
-                  (when @esc-key-pressed?
-                    (callback)
-                    (reset! esc-key-pressed? false)))
-                500)))))
+              (fn [e]
+                (when (= esc-key-code (.-keyCode e))
+                  (reset! esc-key-pressed? true)
+                  (reset! esc-key-pressed-timeout-id
+                          (js/setTimeout
+                            (fn []
+                              (when @esc-key-pressed?
+                                (callback)
+                                (reset! esc-key-pressed? false)))
+                            500)))))
       (j/call js/document :addEventListener "keyup"
-        (fn [e]
-          (when (= esc-key-code (.-keyCode e))
-            (reset! esc-key-pressed? false)
-            (js/clearTimeout @esc-key-pressed-timeout-id))))))
+              (fn [e]
+                (when (= esc-key-code (.-keyCode e))
+                  (reset! esc-key-pressed? false)
+                  (js/clearTimeout @esc-key-pressed-timeout-id))))))
 
 (defn- party-request-modal* [username on-accept on-reject time]
   (let [party-request-duration (- common.skills/party-request-duration-in-milli-secs 1000)
@@ -1383,7 +1411,10 @@
        (on :ui-update-quest-progress #(dispatch [::events/update-quest-progress %]))
        (on :ui-complete-quest #(dispatch [::events/complete-quest %]))
        (on :ui-ask-join-discord #(dispatch [::events/open-join-discord-server-modal]))
-       (on :ui-update-inventory-and-coin #(dispatch [::events/update-inventory-and-coin %])))
+       (on :ui-update-inventory-and-coin #(dispatch [::events/update-inventory-and-coin %]))
+       (on :ui-update-inventory-and-equip #(dispatch [::events/update-inventory-and-equip %]))
+       (on :ui-open-shop #(dispatch [::events/open-shop %]))
+       (on :ui-upgrade-item-result #(dispatch [::events/upgrade-item-result %])))
      :reagent-render
      (fn []
        [:div (styles/ui-panel)
@@ -1421,12 +1452,12 @@
              [party-list]
              [party-request-modal]
              [character-panel]
-             (when
-               ;; true
-               @(subscribe [::subs/shop-panel-open?])
+             (when @(subscribe [::subs/shop-panel-open?])
                [shop/shop-panel])
              (when @(subscribe [::subs/score-board-open?])
                [score-modal])
+             (when-let [upgrade-item @(subscribe [::subs/upgrade-item])]
+               [upgrade-item-modal upgrade-item])
              [re-spawn-modal]
              [actions-section]
              [temp-skill-img]

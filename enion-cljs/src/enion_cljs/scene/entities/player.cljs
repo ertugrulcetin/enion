@@ -216,7 +216,9 @@
 (defn- process-npc-talk [e]
   (when (and (j/get st/player :in-npc-zone?)
              (= "KeyF" (j/get-in e [:event :code])))
-    (fire :talk-to-quest-npc)))
+    (if (= :quest (j/get st/player :npc-type))
+      (fire :talk-to-quest-npc)
+      (fire :ui-open-shop))))
 
 (defn- adjust-chase-camera-from-back []
   (js/setTimeout #(entity.camera/chase-player-from-back) 100))
@@ -452,13 +454,13 @@
                               :y 0.55
                               :z (- (+ 39 (rand 4)))}
           tween-pos (-> (j/call entity :tween temp-first-pos)
-                      (j/call :to temp-final-pos 0.3 js/pc.Linear))
+                        (j/call :to temp-final-pos 0.3 js/pc.Linear))
           _ (j/call tween-pos :on "update"
-              (fn []
-                (j/call-in entity [:rigidbody :teleport]
-                  (j/get temp-first-pos :x)
-                  (j/get temp-first-pos :y)
-                  (j/get temp-first-pos :z))))]
+                    (fn []
+                      (j/call-in entity [:rigidbody :teleport]
+                                 (j/get temp-first-pos :x)
+                                 (j/get temp-first-pos :y)
+                                 (j/get temp-first-pos :z))))]
       (j/call tween-pos :start)
       nil))
 
@@ -524,7 +526,7 @@
               :lod-2 lod-2
               :anim-component (j/get model-entity :anim))))
 
-(defn create-player [{:keys [id username class race pos health mana level] :as opts}]
+(defn create-player [{:keys [id username class race pos health mana level equip] :as opts}]
   (when-not id
     (throw (ex-info "Id does not exist for player!" {})))
   (if (j/get st/other-players id)
@@ -613,14 +615,17 @@
     (set-default-camera-angle)
     (on :create-players (fn [players]
                           (doseq [p players]
-                            (st/add-player (create-player p)))))
+                            (st/add-player (create-player p))
+                            (fire :equip-items {:equip (:equip p)
+                                                :player-id (:id p)}))))
     (on :cooldown-ready? (fn [{:keys [ready? skill]}]
                            (st/set-cooldown ready? skill)))
     (when-not dev?
       (j/assoc! (st/get-player-entity) :name (str (random-uuid))))
     (entity.base/unregister-base-trigger-events)
     (entity.base/register-base-trigger-events)
-    (text/init-pool)))
+    (text/init-pool)
+    (fire :equip-items player-data)))
 
 (defn- play-running-sound [dt model-entity]
   (when (and (= "run" (pc/get-anim-state model-entity))
@@ -745,6 +750,10 @@
 (on :in-npc-zone
     (fn [in-npc-zone?]
       (j/assoc! player :in-npc-zone? in-npc-zone?)))
+
+(on :set-npc-type
+    (fn [type]
+      (j/assoc! player :npc-type type)))
 
 (on :player-in-quest
     (fn [[quest required-kills]]

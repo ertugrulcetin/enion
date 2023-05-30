@@ -6,6 +6,7 @@
     [clojure.set :as set]
     [clojure.string :as str]
     [clojure.tools.logging :as log]
+    [common.enion.item :as common.item]
     [common.enion.skills :as common.skills]
     [enion-backend.async :as easync :refer [dispatch dispatch-in reg-pro]]
     [enion-backend.layout :as layout]
@@ -407,8 +408,8 @@
       {:id id
        :data data
        :username (or (and username? username)
-                   (some-> data (get class) :username)
-                   username)
+                     (some-> data (get class) :username)
+                     username)
        :health (get-in common.skills/level->health-mana-table [level class :health])
        :mana (get-in common.skills/level->health-mana-table [level class :mana])
        :pos pos
@@ -545,6 +546,7 @@
                            :pos pos
                            :coin (or (some-> data (get class) :coin) coin)
                            :inventory (some-> data (get class) :inventory)
+                           :equip (some-> data (get class) :equip)
                            :level level
                            :attack-power (get common.skills/level->attack-power-table level)
                            :required-exp (get common.skills/level->exp-table level)
@@ -580,7 +582,7 @@
 (reg-pro
   :request-all-players
   (fn [_]
-    {:players (map #(select-keys % [:id :username :race :class :health :level :mana :pos]) (vals @players))
+    {:players (map #(select-keys % [:id :username :race :class :health :level :equip :mana :pos]) (vals @players))
      :npcs (npc/npc-types->ids)}))
 
 (def ping-high {:error :ping-high})
@@ -767,7 +769,13 @@
     damage))
 
 (defn get-attack-power [player]
-  (get common.skills/level->attack-power-table (player :level)))
+  (let [{:keys [weapon]} (:equip player)
+        {:keys [item level]} weapon
+        ap (get common.skills/level->attack-power-table (player :level))]
+    (if weapon
+      (* (+ ap (get-in common.item/items [item :levels level :ap] 0))
+         (+ 1 (/ level 100)))
+      ap)))
 
 (defn attack-to-npc [{:keys [id
                              attack-power
@@ -1174,9 +1182,9 @@
     (swap! world (fn [world]
                    (reduce (fn [world id]
                              (-> world
-                               (assoc-in [id :health] 0)))
-                     world
-                     (keys @players))))
+                                 (assoc-in [id :health] 0)))
+                           world
+                           (keys @players))))
 
     (swap! players (fn [players]
                      (reduce
@@ -1192,8 +1200,8 @@
   (swap! world (fn [world]
                  (reduce (fn [world id]
                            (assoc-in world [id :mana] 1))
-                   world
-                   (keys @players))))
+                         world
+                         (keys @players))))
 
   (reset-states)
   ;; set everyones health to 1600 in world atom
@@ -1201,19 +1209,19 @@
   (swap! world (fn [world]
                  (reduce (fn [world id]
                            (-> world
-                             (assoc-in [id :health] 100)
-                             (assoc-in [id :mana] 5)))
-                   world
-                   (keys @players))))
+                               (assoc-in [id :health] 100)
+                               (assoc-in [id :mana] 5)))
+                         world
+                         (keys @players))))
 
   ;;remove party from all players also make party-leader? false if true
   (swap! players (fn [players]
                    (reduce (fn [players id]
                              (-> players
-                               (assoc-in [id :party-id] nil)
-                               (assoc-in [id :party-leader?] false)))
-                     players
-                     (keys players))))
+                                 (assoc-in [id :party-id] nil)
+                                 (assoc-in [id :party-leader?] false)))
+                           players
+                           (keys players))))
 
 
   (clojure.pprint/pprint @players)
