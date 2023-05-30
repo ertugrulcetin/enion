@@ -42,56 +42,60 @@
         offset-top -100]
     (fn [{:keys [inventory? selected-inventory-item]}]
       (when (nil? selected-inventory-item)
-        (when-let [{:keys [levels name buy sell class inc-chance]} (get item/items (:item @(subscribe [::subs/item-description])))]
-          (let [player-class @(subscribe [::subs/class])
-                coin @(subscribe [::subs/coin])
-                item-desc-type @(subscribe [::subs/item-description-type])
-                offset-inventory (if inventory? 100 0)
-                {:keys [level]} @(subscribe [::subs/item-description])]
-            [:div
-             {:style {:position :absolute
-                      :top (+ @mouse-y @offset-height offset-top)
-                      :left (+ offset-inventory (- @mouse-x (/ @offset-width 2)))
-                      :z-index 99
-                      :pointer-events :none}}
-             [:div
-              {:ref #(do
-                       (when-let [ow (j/get % :offsetWidth)]
-                         (reset! offset-width ow))
-                       (when-let [oh (j/get % :offsetHeight)]
-                         (reset! offset-height oh)))
-               :class (styles/item-description)}
-              [:span.item-name (if levels (str name " (+" level ")") name)]
-              (when class
-                (let [same-class? (= player-class (clojure.core/name class))]
+        (let [item* @(subscribe [::subs/item-description])
+              item* (if (map? item*)
+                      (:item item*)
+                      item*)]
+          (when-let [{:keys [levels name buy sell class inc-chance]} (get item/items item*)]
+            (let [player-class @(subscribe [::subs/class])
+                  coin @(subscribe [::subs/coin])
+                  item-desc-type @(subscribe [::subs/item-description-type])
+                  offset-inventory (if inventory? 100 0)
+                  {:keys [level]} @(subscribe [::subs/item-description])]
+              [:div
+               {:style {:position :absolute
+                        :top (+ @mouse-y @offset-height offset-top)
+                        :left (+ offset-inventory (- @mouse-x (/ @offset-width 2)))
+                        :z-index 99
+                        :pointer-events :none}}
+               [:div
+                {:ref #(do
+                         (when-let [ow (j/get % :offsetWidth)]
+                           (reset! offset-width ow))
+                         (when-let [oh (j/get % :offsetHeight)]
+                           (reset! offset-height oh)))
+                 :class (styles/item-description)}
+                [:span.item-name (if levels (str name " (+" level ")") name)]
+                (when class
+                  (let [same-class? (= player-class (clojure.core/name class))]
+                    [:<>
+                     [:br]
+                     [:span {:class (if same-class? "same-class" "different-class")}
+                      (str "Class: " (str/capitalize (clojure.core/name class)))]]))
+                (when-let [ap (and levels (get-in levels [level :ap]))]
                   [:<>
                    [:br]
-                   [:span {:class (if same-class? "same-class" "different-class")}
-                    (str "Class: " (str/capitalize (clojure.core/name class)))]]))
-              (when-let [ap (and levels (get-in levels [level :ap]))]
-                [:<>
-                 [:br]
-                 [:br]
-                 [:span (str "Attack Power: " ap " + adds " level "% of your attack power")]])
-              (when-let [defence (and levels (get-in levels [level :defence]))]
-                [:<>
-                 [:br]
-                 [:br]
-                 [:span
-                  (str "Defence: " defence "%")]])
-              (when inc-chance
-                [:<>
-                 [:br]
-                 [:br]
-                 [:span
-                  (str "Upgrades item, adding a " inc-chance "% increased chance of success")]])
-              [:br]
-              [:br]
-              (case item-desc-type
-                :buy [:span (when (< coin buy) {:class ["not-enough-coin"]})
-                      (str "Buy: " (ui.utils/to-locale buy) " Coins")]
-                :sell [:span (str "Sell: " (ui.utils/to-locale sell) " Coins")]
-                nil)]]))))))
+                   [:br]
+                   [:span (str "Attack Power: " ap " + adds " level "% of your attack power")]])
+                (when-let [defence (and levels (get-in levels [level :defence]))]
+                  [:<>
+                   [:br]
+                   [:br]
+                   [:span
+                    (str "Defence: " defence "%")]])
+                (when inc-chance
+                  [:<>
+                   [:br]
+                   [:br]
+                   [:span
+                    (str "Upgrades item, adding a " inc-chance "% increased chance of success")]])
+                [:br]
+                [:br]
+                (case item-desc-type
+                  :buy [:span (when (< coin buy) {:class ["not-enough-coin"]})
+                        (str "Buy: " (ui.utils/to-locale buy) " Coins")]
+                  :sell [:span (str "Sell: " (ui.utils/to-locale sell) " Coins")]
+                  nil)]])))))))
 
 (defn- shop-items []
   (for [item items-in-order]
