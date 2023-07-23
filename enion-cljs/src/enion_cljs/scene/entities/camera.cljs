@@ -12,7 +12,7 @@
                          :mouse-edge-range 15
                          :mouse-over? false
                          :camera-rotation-speed 10
-                         :chase-camera? true
+                         :chase-camera? false
                          :edge-scroll-speed 100
                          :page-x nil
                          :right-click? false
