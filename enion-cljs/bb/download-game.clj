@@ -10,7 +10,7 @@
 
 (def project-id 915833)
 (def scene-ids [1396021])
-(def api-token "J075L9lLsPT9N0Hqls1msBLsSsYILxH5")
+(def api-token "------")
 (def project-name "enion")
 (def project-resources (str "/Users/ertugrulcetin/IdeaProjects/" project-name "/enion-cljs/resources"))
 (def project-dir (str project-resources "/public"))

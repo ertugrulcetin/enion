@@ -2,7 +2,7 @@
 (require '[babashka.curl :as curl])
 (require '[babashka.tasks :as tasks])
 
-(def api-token "J075L9lLsPT9N0Hqls1msBLsSsYILxH5")
+(def api-token "-------")
 (def asset-id 118396797)
 (def app-file-path "/Users/ertugrulcetin/IdeaProjects/enion/enion-cljs/resources/public/js/compiled/app.js")
 (def project-dir "/Users/ertugrulcetin/IdeaProjects/enion/enion-cljs")
