@@ -4,6 +4,9 @@
 
 Enion Online is an Epic PvP Battle game between Orcs and Humans. It's a 3D browser-based multiplayer game that provides an immersive experience right within your favorite browser. The game is written using Clojure and ClojureScript, and utilizes the PlayCanvas game engine.
 
+![Enion Online](enion.png)
+
+
 ## Repository Structure
 
 This repository contains two main directories:
