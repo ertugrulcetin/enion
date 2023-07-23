@@ -6,7 +6,7 @@
     [taoensso.carmine :as car]))
 
 (defonce my-conn-pool (car/connection-pool {}))
-(defonce my-conn-spec-1 {:uri "redis://default:6df1e1ed1b4a4de6a582235b1829dbab@eu2-active-hyena-31054.upstash.io:31054"})
+(defonce my-conn-spec-1 {:uri "<REDIS_URL>"})
 
 (defonce my-wcar-opts
   {:pool my-conn-pool
